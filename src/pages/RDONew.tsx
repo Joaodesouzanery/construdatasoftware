@@ -426,36 +426,8 @@ const RDONew = () => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="project">Projeto *</Label>
-                  <Select value={selectedProject} onValueChange={setSelectedProject}>
-                    <SelectTrigger id="project">
-                      <SelectValue placeholder="Selecione o projeto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map(project => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="date">Data *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={reportDate}
-                    onChange={(e) => setReportDate(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Quadros Selecionáveis */}
+              
+              {/* Quadros Selecionáveis Numerados */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Informações do RDO</h3>
                 
@@ -693,95 +665,114 @@ const RDONew = () => {
                 </Button>
               </div>
 
-              {/* Condição do Terreno */}
-              <Card className="border-2 border-primary/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Condição do Terreno</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select value={terrainCondition} onValueChange={setTerrainCondition}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a condição" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="project">Obra *</Label>
+                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                    <SelectTrigger id="project">
+                      <SelectValue placeholder="Selecione a obra" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="seco">Seco</SelectItem>
-                      <SelectItem value="umido">Úmido</SelectItem>
-                      <SelectItem value="molhado">Molhado</SelectItem>
-                      <SelectItem value="lamacento">Lamacento</SelectItem>
-                      <SelectItem value="alagado">Alagado</SelectItem>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                </CardContent>
-              </Card>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date">Data *</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={reportDate}
+                    onChange={(e) => setReportDate(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Condição do Terreno */}
+              <div className="space-y-2">
+                <Label htmlFor="terrainCondition">Condição do Terreno</Label>
+                <Select value={terrainCondition} onValueChange={setTerrainCondition}>
+                  <SelectTrigger id="terrainCondition">
+                    <SelectValue placeholder="Selecione a condição" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="seco">Seco</SelectItem>
+                    <SelectItem value="umido">Úmido</SelectItem>
+                    <SelectItem value="molhado">Molhado</SelectItem>
+                    <SelectItem value="lamacento">Lamacento</SelectItem>
+                    <SelectItem value="alagado">Alagado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Localização */}
-              <Card className="border-2 border-primary/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Localização</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="Latitude, Longitude"
-                      className="flex-1"
-                    />
-                    <Button type="button" variant="outline" onClick={handleGetGPS}>
-                      <MapPin className="w-4 h-4 mr-2" />
-                      Obter GPS
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="space-y-2">
+                <Label htmlFor="location">Localização</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Latitude, Longitude"
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" onClick={handleGetGPS}>
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Obter GPS
+                  </Button>
+                </div>
+              </div>
 
               {/* Observações Gerais */}
-              <Card className="border-2 border-primary/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Observações Gerais</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={generalObservations}
-                    onChange={(e) => setGeneralObservations(e.target.value)}
-                    placeholder="Descreva as atividades realizadas, problemas encontrados, etc."
-                    rows={4}
-                  />
-                </CardContent>
-              </Card>
+              <div className="space-y-2">
+                <Label htmlFor="observations">Observações Gerais</Label>
+                <Textarea
+                  id="observations"
+                  value={generalObservations}
+                  onChange={(e) => setGeneralObservations(e.target.value)}
+                  placeholder="Descreva as atividades realizadas, problemas encontrados, etc."
+                  rows={4}
+                />
+              </div>
 
               {/* Fotos de Validação */}
-              <Card className="border-2 border-primary/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Image className="w-4 h-4" />
-                    Fotos de Validação
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    Tire fotos do local para validar a localização
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {validationPhotos.map((photo, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={URL.createObjectURL(photo)}
-                          alt={`Foto ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-md"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removePhoto(index)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Image className="w-4 h-4" />
+                  Fotos de Validação
+                </Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Tire fotos do local para validar a localização
+                </p>
+                <div className="space-y-3">
+                  {validationPhotos.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {validationPhotos.map((photo, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(photo)}
+                            alt={`Foto ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-md"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                            onClick={() => removePhoto(index)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <label className="block">
                     <input
                       type="file"
@@ -801,8 +792,8 @@ const RDONew = () => {
                       Adicionar Fotos
                     </Button>
                   </label>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Salvando..." : "Criar RDO"}
