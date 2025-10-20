@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Eye, Bell, Package, TrendingDown, History, Users } from "lucide-react";
 import { toast } from "sonner";
 import { demoUser } from "@/lib/demo-data";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -106,19 +107,23 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-6">
+          <DemoModeToggle />
+        </div>
+
         {isDemoMode && (
-          <Card className="mb-8 border-primary/50 bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <Eye className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+          <Card className="mb-6 sm:mb-8 border-primary/50 bg-primary/5">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-1" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2">Modo Demonstração</h3>
-                  <p className="text-muted-foreground mb-4">
+                  <h3 className="font-semibold text-base sm:text-lg mb-2">Modo Demonstração</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
                     Você está navegando no modo demo com dados de exemplo. Para ter acesso completo a todas as funcionalidades, 
                     incluindo criação de obras, salvamento de dados e relatórios personalizados, faça login ou crie sua conta.
                   </p>
-                  <Button onClick={() => navigate('/auth')} className="gap-2">
+                  <Button onClick={() => navigate('/auth')} className="gap-2 w-full sm:w-auto">
                     Fazer Login / Criar Conta
                   </Button>
                 </div>
@@ -127,22 +132,22 @@ const Dashboard = () => {
           </Card>
         )}
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Bem-vindo ao ConstruData</h1>
-          <p className="text-muted-foreground">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Bem-vindo ao ConstruData</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {isDemoMode ? "Explore as funcionalidades da plataforma" : "Gerencie suas obras com eficiência e precisão"}
           </p>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => !isDemoMode && navigate('/projects')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-4 group-hover:scale-110 transition-transform">
-                <Building2 className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Projetos</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base sm:text-lg">Projetos</CardTitle>
+              <CardDescription className="text-sm">
                 {isDemoMode ? "Recurso disponível após login" : "Gerencie seus projetos"}
               </CardDescription>
             </CardHeader>
@@ -150,11 +155,11 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/rdo?demo=true' : '/rdo-new')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-accent-foreground mb-4 group-hover:scale-110 transition-transform">
-                <Plus className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-accent-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Novo RDO</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base sm:text-lg">Novo RDO</CardTitle>
+              <CardDescription className="text-sm">
                 {isDemoMode ? "Veja exemplo de RDO" : "Criar relatório diário"}
               </CardDescription>
             </CardHeader>
@@ -237,16 +242,16 @@ const Dashboard = () => {
         {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle>Atividades Recentes</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base sm:text-lg">Atividades Recentes</CardTitle>
+            <CardDescription className="text-sm">
               Suas últimas ações no sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhuma atividade recente</p>
-              <p className="text-sm">Comece criando sua primeira obra</p>
+            <div className="text-center py-8 sm:py-12 text-muted-foreground">
+              <FileText className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+              <p className="text-sm sm:text-base">Nenhuma atividade recente</p>
+              <p className="text-xs sm:text-sm">Comece criando sua primeira obra</p>
             </div>
           </CardContent>
         </Card>

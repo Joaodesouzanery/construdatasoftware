@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { ArrowLeft, Plus, Upload, Search, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "@/components/employees/AddEmployeeDialog";
 import { ImportEmployeesDialog } from "@/components/employees/ImportEmployeesDialog";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
+import { demoEmployees, demoUser } from "@/lib/demo-data";
 
 interface Employee {
   id: string;
@@ -30,6 +32,9 @@ interface Employee {
 
 export default function Employees() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,14 +48,30 @@ export default function Employees() {
   }, [statusFilter]);
 
   const checkAuth = async () => {
+    if (isDemoMode) {
+      setUser(demoUser);
+      return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
       return;
     }
+    setUser(session.user);
   };
 
   const fetchEmployees = async () => {
+    if (isDemoMode) {
+      let filtered = demoEmployees;
+      if (statusFilter !== "all") {
+        filtered = filtered.filter(emp => emp.status === statusFilter);
+      }
+      setEmployees(filtered);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       let query = supabase
@@ -79,6 +100,11 @@ export default function Employees() {
   };
 
   const handleDeleteEmployee = async (id: string) => {
+    if (isDemoMode) {
+      toast.info("No modo demo, alterações não são salvas");
+      return;
+    }
+
     if (!confirm("Tem certeza que deseja excluir este funcionário?")) return;
 
     try {
@@ -120,36 +146,53 @@ export default function Employees() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-3 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate(isDemoMode ? "/dashboard?demo=true" : "/dashboard")}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">Funcionários</h1>
-              <p className="text-muted-foreground">Gerencie todos os funcionários do sistema</p>
+              <h1 className="text-2xl sm:text-3xl font-bold">Funcionários</h1>
+              <p className="text-sm text-muted-foreground">Gerencie todos os funcionários do sistema</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setImportDialogOpen(true)} variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button 
+              onClick={() => setImportDialogOpen(true)} 
+              variant="outline"
+              disabled={isDemoMode}
+              className="w-full sm:w-auto"
+            >
               <Upload className="h-4 w-4 mr-2" />
-              Importar Funcionários
+              <span className="hidden sm:inline">Importar</span>
+              <span className="sm:hidden">Importar Funcionários</span>
             </Button>
-            <Button onClick={() => setAddDialogOpen(true)}>
+            <Button 
+              onClick={() => setAddDialogOpen(true)}
+              disabled={isDemoMode}
+              className="w-full sm:w-auto"
+            >
               <Plus className="h-4 w-4 mr-2" />
-              Adicionar Funcionário
+              <span className="hidden sm:inline">Adicionar</span>
+              <span className="sm:hidden">Adicionar Funcionário</span>
             </Button>
           </div>
         </div>
 
+        <DemoModeToggle />
+
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Funcionários</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Lista de Funcionários</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -160,7 +203,7 @@ export default function Employees() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,47 +222,58 @@ export default function Employees() {
                 Nenhum funcionário encontrado
               </div>
             ) : (
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Cargo</TableHead>
-                      <TableHead>Departamento</TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Projeto</TableHead>
-                      <TableHead>Local</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="min-w-[150px]">Nome</TableHead>
+                      <TableHead className="hidden sm:table-cell min-w-[120px]">Cargo</TableHead>
+                      <TableHead className="hidden md:table-cell min-w-[120px]">Departamento</TableHead>
+                      <TableHead className="hidden lg:table-cell min-w-[120px]">Empresa</TableHead>
+                      <TableHead className="hidden xl:table-cell min-w-[150px]">Projeto</TableHead>
+                      <TableHead className="hidden 2xl:table-cell min-w-[120px]">Local</TableHead>
+                      <TableHead className="hidden lg:table-cell min-w-[130px]">Telefone</TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredEmployees.map((employee) => (
                       <TableRow key={employee.id}>
-                        <TableCell className="font-medium">{employee.name}</TableCell>
-                        <TableCell>{employee.role || "-"}</TableCell>
-                        <TableCell>{employee.department || "-"}</TableCell>
-                        <TableCell>{employee.company_name || "-"}</TableCell>
-                        <TableCell>{employee.projects?.name || "-"}</TableCell>
-                        <TableCell>{employee.construction_sites?.name || "-"}</TableCell>
-                        <TableCell>{employee.phone || "-"}</TableCell>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div>{employee.name}</div>
+                            <div className="text-xs text-muted-foreground sm:hidden mt-1">
+                              {employee.role || "-"}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{employee.role || "-"}</TableCell>
+                        <TableCell className="hidden md:table-cell">{employee.department || "-"}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{employee.company_name || "-"}</TableCell>
+                        <TableCell className="hidden xl:table-cell">{employee.projects?.name || "-"}</TableCell>
+                        <TableCell className="hidden 2xl:table-cell">{employee.construction_sites?.name || "-"}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{employee.phone || "-"}</TableCell>
                         <TableCell>{getStatusBadge(employee.status)}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               onClick={() => toast.info("Funcionalidade em desenvolvimento")}
+                              disabled={isDemoMode}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               onClick={() => handleDeleteEmployee(employee.id)}
+                              disabled={isDemoMode}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>

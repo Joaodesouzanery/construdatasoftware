@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialRequestDialog } from "@/components/materials/AddMaterialRequestDialog";
 import { demoMaterialRequests, demoUser } from "@/lib/demo-data";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface MaterialRequest {
   id: string;
@@ -134,13 +135,13 @@ export default function MaterialRequests() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
-              <Building2 className="w-6 h-6 mr-2" />
-              <span className="font-bold">ConstruData</span>
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')} className="p-2">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1 sm:mr-2" />
+              <span className="font-bold text-sm sm:text-base">ConstruData</span>
             </Button>
-            <h1 className="text-xl font-semibold">Pedidos de Material</h1>
+            <h1 className="text-base sm:text-xl font-semibold">Pedidos de Material</h1>
             {isDemoMode && (
               <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
                 <Eye className="w-3 h-3" />
@@ -151,13 +152,17 @@ export default function MaterialRequests() {
         </div>
       </header>
 
-      <main className="container mx-auto p-6 space-y-6">
-        <div className="flex justify-between items-center">
+      <main className="container mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="mb-4 sm:mb-0">
+          <DemoModeToggle />
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold">Gerencie as solicitações de materiais</h2>
-            <p className="text-muted-foreground">Acompanhe e aprove pedidos</p>
+            <h2 className="text-xl sm:text-2xl font-bold">Gerencie as solicitações de materiais</h2>
+            <p className="text-sm text-muted-foreground">Acompanhe e aprove pedidos</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={isDemoMode}>
+          <Button onClick={() => setShowAddDialog(true)} disabled={isDemoMode} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo Pedido
           </Button>
@@ -165,11 +170,11 @@ export default function MaterialRequests() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-          <CardDescription>Filtre os pedidos por status ou material</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Filtros</CardTitle>
+          <CardDescription className="text-sm">Filtre os pedidos por status ou material</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -203,69 +208,72 @@ export default function MaterialRequests() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Pedidos</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Lista de Pedidos</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p>Carregando...</p>
           ) : filteredRequests.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Nenhum pedido encontrado</p>
+            <p className="text-center text-muted-foreground py-8 text-sm">Nenhum pedido encontrado</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Material</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead>Solicitante</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead>Local de Uso</TableHead>
-                  <TableHead>Projeto</TableHead>
-                  <TableHead>Frente</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>{new Date(request.request_date).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell className="font-medium">{request.material_name}</TableCell>
-                    <TableCell>
-                      {request.quantity} {request.unit}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {request.employees?.name || '-'}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {request.needed_date ? new Date(request.needed_date).toLocaleDateString("pt-BR") : '-'}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {request.usage_location || '-'}
-                    </TableCell>
-                    <TableCell>{request.projects.name}</TableCell>
-                    <TableCell>{request.service_fronts.name}</TableCell>
-                    <TableCell>{getStatusBadge(request.status)}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={request.status}
-                        onValueChange={(value) => updateRequestStatus(request.id, value)}
-                      >
-                        <SelectTrigger className="w-[130px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pendente">Pendente</SelectItem>
-                          <SelectItem value="aprovado">Aprovado</SelectItem>
-                          <SelectItem value="rejeitado">Rejeitado</SelectItem>
-                          <SelectItem value="entregue">Entregue</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[100px]">Data</TableHead>
+                    <TableHead className="min-w-[150px]">Material</TableHead>
+                    <TableHead className="min-w-[100px]">Quantidade</TableHead>
+                    <TableHead className="hidden md:table-cell min-w-[120px]">Solicitante</TableHead>
+                    <TableHead className="hidden lg:table-cell min-w-[100px]">Prazo</TableHead>
+                    <TableHead className="hidden lg:table-cell min-w-[120px]">Local de Uso</TableHead>
+                    <TableHead className="hidden xl:table-cell min-w-[150px]">Projeto</TableHead>
+                    <TableHead className="hidden xl:table-cell min-w-[120px]">Frente</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="min-w-[130px]">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredRequests.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell className="text-sm">{new Date(request.request_date).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell className="font-medium text-sm">{request.material_name}</TableCell>
+                      <TableCell className="text-sm">
+                        {request.quantity} {request.unit}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm">
+                        {request.employees?.name || '-'}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">
+                        {request.needed_date ? new Date(request.needed_date).toLocaleDateString("pt-BR") : '-'}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm">
+                        {request.usage_location || '-'}
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-sm">{request.projects.name}</TableCell>
+                      <TableCell className="hidden xl:table-cell text-sm">{request.service_fronts.name}</TableCell>
+                      <TableCell>{getStatusBadge(request.status)}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={request.status}
+                          onValueChange={(value) => updateRequestStatus(request.id, value)}
+                          disabled={isDemoMode}
+                        >
+                          <SelectTrigger className="w-[120px] h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pendente">Pendente</SelectItem>
+                            <SelectItem value="aprovado">Aprovado</SelectItem>
+                            <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                            <SelectItem value="entregue">Entregue</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

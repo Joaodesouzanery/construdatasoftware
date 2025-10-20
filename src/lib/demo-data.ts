@@ -304,6 +304,108 @@ export const demoConstructionSites = [
   }
 ];
 
+export const demoEmployees = [
+  {
+    id: 'demo-emp-1',
+    name: 'João Silva',
+    role: 'Pedreiro',
+    department: 'Construção Civil',
+    phone: '(11) 99999-1111',
+    email: 'joao.silva@exemplo.com',
+    company_name: 'Construtora ABC',
+    status: 'active',
+    project_id: 'demo-project-1',
+    construction_site_id: 'demo-site-1',
+    created_at: '2025-01-20T10:00:00Z',
+    projects: { name: 'Residencial Park View' },
+    construction_sites: { name: 'Torre A' }
+  },
+  {
+    id: 'demo-emp-2',
+    name: 'Maria Santos',
+    role: 'Engenheira Civil',
+    department: 'Engenharia',
+    phone: '(11) 98888-2222',
+    email: 'maria.santos@exemplo.com',
+    company_name: 'Construtora ABC',
+    status: 'active',
+    project_id: 'demo-project-1',
+    construction_site_id: 'demo-site-1',
+    created_at: '2025-01-21T10:00:00Z',
+    projects: { name: 'Residencial Park View' },
+    construction_sites: { name: 'Torre A' }
+  },
+  {
+    id: 'demo-emp-3',
+    name: 'Carlos Oliveira',
+    role: 'Eletricista',
+    department: 'Elétrica',
+    phone: '(11) 97777-3333',
+    email: 'carlos.oliveira@exemplo.com',
+    company_name: 'Elétrica XYZ',
+    status: 'active',
+    project_id: 'demo-project-1',
+    construction_site_id: null,
+    created_at: '2025-01-22T10:00:00Z',
+    projects: { name: 'Residencial Park View' },
+    construction_sites: null
+  },
+  {
+    id: 'demo-emp-4',
+    name: 'Ana Costa',
+    role: 'Mestre de Obras',
+    department: 'Construção Civil',
+    phone: '(11) 96666-4444',
+    email: 'ana.costa@exemplo.com',
+    company_name: 'Construtora ABC',
+    status: 'active',
+    project_id: 'demo-project-1',
+    construction_site_id: 'demo-site-1',
+    created_at: '2025-01-23T10:00:00Z',
+    projects: { name: 'Residencial Park View' },
+    construction_sites: { name: 'Torre A' }
+  },
+  {
+    id: 'demo-emp-5',
+    name: 'Pedro Almeida',
+    role: 'Auxiliar',
+    department: 'Construção Civil',
+    phone: '(11) 95555-5555',
+    email: 'pedro.almeida@exemplo.com',
+    company_name: 'Construtora ABC',
+    status: 'inactive',
+    project_id: 'demo-project-1',
+    construction_site_id: null,
+    created_at: '2025-01-24T10:00:00Z',
+    projects: { name: 'Residencial Park View' },
+    construction_sites: null
+  }
+];
+
+export const demoServiceFronts = [
+  {
+    id: 'demo-front-1',
+    name: 'Fundação',
+    project_id: 'demo-project-1',
+    description: 'Serviços de fundação e base',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-front-2',
+    name: 'Estrutura',
+    project_id: 'demo-project-1',
+    description: 'Estrutura de concreto armado',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-front-3',
+    name: 'Alvenaria',
+    project_id: 'demo-project-1',
+    description: 'Levantamento de paredes',
+    created_at: '2025-01-15T10:00:00Z'
+  }
+];
+
 export const demoUser = {
   id: 'demo-user',
   email: 'demo@construdata.com',
