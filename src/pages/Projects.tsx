@@ -10,6 +10,7 @@ import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X } from "lucide
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImportDataDialog } from "@/components/projects/ImportDataDialog";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -322,6 +323,8 @@ const Projects = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <DemoModeToggle />
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
             <Card key={project.id}>

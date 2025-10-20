@@ -15,6 +15,7 @@ import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
 import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
 import { AddServiceDialog } from "@/components/rdo/AddServiceDialog";
 import { RDOHistoryView } from "@/components/rdo/RDOHistoryView";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface ExecutedService {
   service_id: string;
@@ -404,6 +405,8 @@ const RDONew = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <DemoModeToggle />
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           <div className="lg:col-span-2">
         <Tabs defaultValue="create">

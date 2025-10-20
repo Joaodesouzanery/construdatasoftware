@@ -9,6 +9,7 @@ import { Building2, Download, Filter, TrendingUp, Users, FileText, Eye } from "l
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { demoObras, demoProducaoData, demoMetasData, demoUser } from "@/lib/demo-data";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--destructive))'];
 
@@ -205,6 +206,8 @@ const Production = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <DemoModeToggle />
+        
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>

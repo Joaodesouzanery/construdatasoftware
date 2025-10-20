@@ -11,6 +11,7 @@ import { Building2, Bell, Plus, Trash2, Mail, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { demoObras, demoAlertsData, demoUser } from "@/lib/demo-data";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface Alert {
   id: string;
@@ -240,6 +241,8 @@ const Alerts = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <DemoModeToggle />
+        
         {showForm && (
           <Card className="mb-8">
             <CardHeader>

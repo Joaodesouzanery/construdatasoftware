@@ -14,6 +14,7 @@ import { ReportConfigDialog } from "@/components/production/ReportConfigDialog";
 import { ConsolidatedReportsView } from "@/components/production/ConsolidatedReportsView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { demoProjects, demoConstructionSites, demoProducaoData, demoMetasData, demoUser } from "@/lib/demo-data";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface ProductionData {
   service_name: string;
@@ -350,6 +351,8 @@ const ProductionControl = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <DemoModeToggle />
+        
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">

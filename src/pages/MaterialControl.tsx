@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { AddMaterialControlDialog } from "@/components/materials/AddMaterialControlDialog";
 import { MaterialComparisonDashboard } from "@/components/materials/MaterialComparisonDashboard";
 import { demoMaterialControl, demoProjects, demoUser } from "@/lib/demo-data";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface MaterialControl {
   id: string;
@@ -179,6 +180,8 @@ export default function MaterialControl() {
       </header>
 
       <main className="container mx-auto p-6 space-y-6">
+        <DemoModeToggle />
+        
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Registre e monitore o consumo de materiais</h2>

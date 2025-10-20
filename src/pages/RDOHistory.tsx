@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, LogOut, ArrowLeft, History } from "lucide-react";
 import { toast } from "sonner";
 import { RDOHistoryView } from "@/components/rdo/RDOHistoryView";
+import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const RDOHistory = () => {
   const navigate = useNavigate();
@@ -159,6 +160,8 @@ const RDOHistory = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        <DemoModeToggle />
+        
         {projects.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
