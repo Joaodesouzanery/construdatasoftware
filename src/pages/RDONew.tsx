@@ -15,7 +15,6 @@ import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
 import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
 import { AddServiceDialog } from "@/components/rdo/AddServiceDialog";
 import { RDOHistoryView } from "@/components/rdo/RDOHistoryView";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface ExecutedService {
   service_id: string;
@@ -35,8 +34,6 @@ interface CustomQuestion {
 
 const RDONew = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 

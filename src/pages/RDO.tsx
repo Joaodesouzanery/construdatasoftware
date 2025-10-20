@@ -11,13 +11,9 @@ import { Building2, MapPin, Camera, Cloud, Thermometer, Droplets, Wind, Plus, Ey
 import { toast } from "sonner";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useWeatherData } from "@/hooks/useWeatherData";
-import { demoObras, demoUser } from "@/lib/demo-data";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const RDO = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [obras, setObras] = useState<any[]>([]);
   const [selectedObra, setSelectedObra] = useState<string>("");

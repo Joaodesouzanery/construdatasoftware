@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialRequestDialog } from "@/components/materials/AddMaterialRequestDialog";
-import { demoMaterialRequests, demoUser } from "@/lib/demo-data";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface MaterialRequest {
   id: string;
@@ -29,8 +27,6 @@ interface MaterialRequest {
 
 export default function MaterialRequests() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,11 +40,6 @@ export default function MaterialRequests() {
   }, [statusFilter]);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      setUser(demoUser);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -58,15 +49,6 @@ export default function MaterialRequests() {
   };
 
   const fetchRequests = async () => {
-    if (isDemoMode) {
-      let filtered = demoMaterialRequests;
-      if (statusFilter !== "all") {
-        filtered = filtered.filter(req => req.status === statusFilter);
-      }
-      setRequests(filtered);
-      setIsLoading(false);
-      return;
-    }
     try {
       let query = supabase
         .from("material_requests")
@@ -98,11 +80,6 @@ export default function MaterialRequests() {
   }, [statusFilter]);
 
   const updateRequestStatus = async (id: string, newStatus: string) => {
-    if (isDemoMode) {
-      toast.info("No modo demo, alterações não são salvas");
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from("material_requests")
@@ -137,32 +114,22 @@ export default function MaterialRequests() {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center gap-3 sm:gap-4">
-            <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')} className="p-2">
+            <Button variant="ghost" onClick={() => navigate('/dashboard')} className="p-2">
               <Building2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1 sm:mr-2" />
               <span className="font-bold text-sm sm:text-base">ConstruData</span>
             </Button>
             <h1 className="text-base sm:text-xl font-semibold">Pedidos de Material</h1>
-            {isDemoMode && (
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                Demo
-              </span>
-            )}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        <div className="mb-4 sm:mb-0">
-          <DemoModeToggle />
-        </div>
-
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold">Gerencie as solicitações de materiais</h2>
             <p className="text-sm text-muted-foreground">Acompanhe e aprove pedidos</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={isDemoMode} className="w-full sm:w-auto">
+          <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo Pedido
           </Button>
@@ -256,7 +223,6 @@ export default function MaterialRequests() {
                         <Select
                           value={request.status}
                           onValueChange={(value) => updateRequestStatus(request.id, value)}
-                          disabled={isDemoMode}
                         >
                           <SelectTrigger className="w-[120px] h-8 text-xs">
                             <SelectValue />

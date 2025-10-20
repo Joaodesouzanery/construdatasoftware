@@ -11,8 +11,6 @@ import { ArrowLeft, Plus, Upload, Search, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "@/components/employees/AddEmployeeDialog";
 import { ImportEmployeesDialog } from "@/components/employees/ImportEmployeesDialog";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
-import { demoEmployees, demoUser } from "@/lib/demo-data";
 
 interface Employee {
   id: string;
@@ -32,8 +30,6 @@ interface Employee {
 
 export default function Employees() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -48,11 +44,6 @@ export default function Employees() {
   }, [statusFilter]);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      setUser(demoUser);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
@@ -62,16 +53,6 @@ export default function Employees() {
   };
 
   const fetchEmployees = async () => {
-    if (isDemoMode) {
-      let filtered = demoEmployees;
-      if (statusFilter !== "all") {
-        filtered = filtered.filter(emp => emp.status === statusFilter);
-      }
-      setEmployees(filtered);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       let query = supabase
@@ -100,11 +81,6 @@ export default function Employees() {
   };
 
   const handleDeleteEmployee = async (id: string) => {
-    if (isDemoMode) {
-      toast.info("No modo demo, alterações não são salvas");
-      return;
-    }
-
     if (!confirm("Tem certeza que deseja excluir este funcionário?")) return;
 
     try {
@@ -153,7 +129,7 @@ export default function Employees() {
             <Button 
               variant="ghost" 
               size="icon"
-              onClick={() => navigate(isDemoMode ? "/dashboard?demo=true" : "/dashboard")}
+              onClick={() => navigate("/dashboard")}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -166,7 +142,6 @@ export default function Employees() {
             <Button 
               onClick={() => setImportDialogOpen(true)} 
               variant="outline"
-              disabled={isDemoMode}
               className="w-full sm:w-auto"
             >
               <Upload className="h-4 w-4 mr-2" />
@@ -175,7 +150,6 @@ export default function Employees() {
             </Button>
             <Button 
               onClick={() => setAddDialogOpen(true)}
-              disabled={isDemoMode}
               className="w-full sm:w-auto"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -184,8 +158,6 @@ export default function Employees() {
             </Button>
           </div>
         </div>
-
-        <DemoModeToggle />
 
         <Card>
           <CardHeader>
@@ -262,7 +234,6 @@ export default function Employees() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => toast.info("Funcionalidade em desenvolvimento")}
-                              disabled={isDemoMode}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -271,7 +242,6 @@ export default function Employees() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => handleDeleteEmployee(employee.id)}
-                              disabled={isDemoMode}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>

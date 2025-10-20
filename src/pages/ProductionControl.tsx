@@ -13,8 +13,6 @@ import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteD
 import { ReportConfigDialog } from "@/components/production/ReportConfigDialog";
 import { ConsolidatedReportsView } from "@/components/production/ConsolidatedReportsView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { demoProjects, demoConstructionSites, demoProducaoData, demoMetasData, demoUser } from "@/lib/demo-data";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface ProductionData {
   service_name: string;
@@ -27,8 +25,6 @@ interface ProductionData {
 
 const ProductionControl = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   

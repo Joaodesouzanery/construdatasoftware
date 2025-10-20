@@ -8,15 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Building2, Download, Filter, TrendingUp, Users, FileText, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { demoObras, demoProducaoData, demoMetasData, demoUser } from "@/lib/demo-data";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--destructive))'];
 
 const Production = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [obras, setObras] = useState<any[]>([]);
   const [selectedObra, setSelectedObra] = useState<string>("all");
@@ -30,11 +26,6 @@ const Production = () => {
   }, [selectedObra]);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      setUser(demoUser);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -46,27 +37,15 @@ const Production = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      if (isDemoMode) {
-        // Usar dados demo
-        setObras(demoObras);
-        
-        if (selectedObra === "all") {
-          setProducaoData(demoProducaoData);
-          setMetasData(demoMetasData);
-        } else {
-          setProducaoData(demoProducaoData.filter(p => p.obra_id === selectedObra));
-          setMetasData(demoMetasData.filter(m => m.obra_id === selectedObra));
-        }
-      } else {
-        // Carregar obras
-        const { data: obrasData } = await supabase
+      // Carregar obras
+      const { data: obrasData } = await supabase
           .from('obras')
           .select('*')
           .order('created_at', { ascending: false });
-        
-        if (obrasData) setObras(obrasData);
+      
+      if (obrasData) setObras(obrasData);
 
-        // Carregar dados de produção
+      // Carregar dados de produção
         let query = supabase
           .from('formularios_producao')
           .select('*, obras(nome)');
@@ -87,9 +66,8 @@ const Production = () => {
           metasQuery = metasQuery.eq('obra_id', selectedObra);
         }
 
-        const { data: metas } = await metasQuery;
-        if (metas) setMetasData(metas);
-      }
+      const { data: metas } = await metasQuery;
+      if (metas) setMetasData(metas);
     } catch (error) {
       toast.error("Erro ao carregar dados");
     } finally {
@@ -171,17 +149,11 @@ const Production = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
+              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
                 <Building2 className="w-6 h-6 mr-2" />
                 <span className="font-bold">ConstruData</span>
               </Button>
               <h1 className="text-xl font-semibold">Controle de Produção</h1>
-              {isDemoMode && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                  <Eye className="w-3 h-3" />
-                  Demo
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-2">
               <Select value={selectedObra} onValueChange={setSelectedObra}>
@@ -206,8 +178,6 @@ const Production = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <DemoModeToggle />
-        
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>

@@ -7,12 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, LogOut, ArrowLeft, History } from "lucide-react";
 import { toast } from "sonner";
 import { RDOHistoryView } from "@/components/rdo/RDOHistoryView";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const RDOHistory = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
