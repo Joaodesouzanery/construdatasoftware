@@ -89,7 +89,7 @@ export const ReportConfigDialog = ({ open, onOpenChange, projectId }: ReportConf
         <DialogHeader>
           <DialogTitle>Configurar Relatórios Automáticos</DialogTitle>
           <DialogDescription>
-            Configure o envio automático de relatórios semanais e mensais por email
+            Configure o envio automático de relatórios diários, semanais e mensais por email
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -119,9 +119,10 @@ export const ReportConfigDialog = ({ open, onOpenChange, projectId }: ReportConf
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="daily">Diário (Todo dia às 18h)</SelectItem>
                   <SelectItem value="weekly">Semanal (Toda Segunda-feira)</SelectItem>
                   <SelectItem value="monthly">Mensal (Primeiro dia do mês)</SelectItem>
-                  <SelectItem value="both">Ambos (Semanal e Mensal)</SelectItem>
+                  <SelectItem value="all">Todos (Diário, Semanal e Mensal)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

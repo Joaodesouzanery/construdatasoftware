@@ -11,6 +11,8 @@ import { ServiceComparisonChart } from "@/components/production/ServiceCompariso
 import { AddTargetDialog } from "@/components/production/AddTargetDialog";
 import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
 import { ReportConfigDialog } from "@/components/production/ReportConfigDialog";
+import { ConsolidatedReportsView } from "@/components/production/ConsolidatedReportsView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { demoProjects, demoConstructionSites, demoProducaoData, demoMetasData, demoUser } from "@/lib/demo-data";
 
 interface ProductionData {
@@ -475,49 +477,62 @@ const ProductionControl = () => {
           </Card>
         </div>
 
-        {productionData.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum dado encontrado</h3>
-              <p className="text-muted-foreground mb-4">
-                Não há dados de produção para o período selecionado
-              </p>
-              <Button onClick={() => setShowTargetDialog(true)}>
-                <Target className="w-4 h-4 mr-2" />
-                Adicionar Planejado
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Production Timeline Chart */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Realizado x Planejado - Evolução Temporal</CardTitle>
-                <CardDescription>
-                  Acompanhamento da produção ao longo do tempo
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ProductionChart data={productionData} />
-              </CardContent>
-            </Card>
+        <Tabs defaultValue="charts" className="mb-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="charts">Gráficos de Produção</TabsTrigger>
+            <TabsTrigger value="reports">Relatórios Consolidados</TabsTrigger>
+          </TabsList>
 
-            {/* Service Comparison Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Comparação por Serviço</CardTitle>
-                <CardDescription>
-                  Performance de cada serviço em relação ao planejado
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ServiceComparisonChart data={productionData} />
-              </CardContent>
-            </Card>
-          </>
-        )}
+          <TabsContent value="charts">
+            {productionData.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum dado encontrado</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Não há dados de produção para o período selecionado
+                  </p>
+                  <Button onClick={() => setShowTargetDialog(true)}>
+                    <Target className="w-4 h-4 mr-2" />
+                    Adicionar Planejado
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Production Timeline Chart */}
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Realizado x Planejado - Evolução Temporal</CardTitle>
+                    <CardDescription>
+                      Acompanhamento da produção ao longo do tempo
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ProductionChart data={productionData} />
+                  </CardContent>
+                </Card>
+
+                {/* Service Comparison Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Comparação por Serviço</CardTitle>
+                    <CardDescription>
+                      Performance de cada serviço em relação ao planejado
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ServiceComparisonChart data={productionData} />
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <ConsolidatedReportsView projectId={selectedProject} isDemoMode={isDemoMode} />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <AddTargetDialog

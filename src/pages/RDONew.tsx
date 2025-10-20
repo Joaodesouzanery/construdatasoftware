@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Trash2, FileText, BarChart3 } from "lucide-react";
+import { Building2, Plus, Trash2, FileText, BarChart3, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
 import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
@@ -25,6 +25,8 @@ interface ExecutedService {
 
 const RDONew = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,6 +71,12 @@ const RDONew = () => {
   }, [selectedServiceFront]);
 
   const checkAuth = async () => {
+    if (isDemoMode) {
+      const { demoUser } = await import("@/lib/demo-data");
+      setUser(demoUser);
+      return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -78,6 +86,15 @@ const RDONew = () => {
   };
 
   const loadProjects = async () => {
+    if (isDemoMode) {
+      const { demoProjects } = await import("@/lib/demo-data");
+      setProjects(demoProjects);
+      if (demoProjects.length > 0) {
+        setSelectedProject(demoProjects[0].id);
+      }
+      return;
+    }
+
     const { data } = await supabase
       .from('projects')
       .select('*')
@@ -87,6 +104,15 @@ const RDONew = () => {
   };
 
   const loadServiceFronts = async (projectId: string) => {
+    if (isDemoMode) {
+      setServiceFronts([
+        { id: "sf-1", name: "Fundação", project_id: projectId },
+        { id: "sf-2", name: "Estrutura", project_id: projectId },
+        { id: "sf-3", name: "Alvenaria", project_id: projectId }
+      ]);
+      return;
+    }
+
     const { data } = await supabase
       .from('service_fronts')
       .select('*')
@@ -96,6 +122,12 @@ const RDONew = () => {
   };
 
   const loadConstructionSites = async (projectId: string) => {
+    if (isDemoMode) {
+      const { demoConstructionSites } = await import("@/lib/demo-data");
+      setConstructionSites(demoConstructionSites);
+      return;
+    }
+
     const { data } = await supabase
       .from('construction_sites')
       .select('*')
@@ -105,6 +137,16 @@ const RDONew = () => {
   };
 
   const loadServicesCatalog = async () => {
+    if (isDemoMode) {
+      setServicesCatalog([
+        { id: "s-1", name: "Escavação", unit: "m³" },
+        { id: "s-2", name: "Concretagem", unit: "m³" },
+        { id: "s-3", name: "Alvenaria", unit: "m²" },
+        { id: "s-4", name: "Reboco", unit: "m²" }
+      ]);
+      return;
+    }
+
     const { data } = await supabase
       .from('services_catalog')
       .select('*')
@@ -113,6 +155,14 @@ const RDONew = () => {
   };
 
   const loadProductionTargets = async (serviceFrontId: string) => {
+    if (isDemoMode) {
+      setProductionTargets([
+        { id: "pt-1", service_id: "s-1", target_quantity: 50, target_date: new Date().toISOString().split('T')[0] },
+        { id: "pt-2", service_id: "s-2", target_quantity: 30, target_date: new Date().toISOString().split('T')[0] }
+      ]);
+      return;
+    }
+
     const { data } = await supabase
       .from('production_targets')
       .select('*')
@@ -159,6 +209,12 @@ const RDONew = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isDemoMode) {
+      toast.success("RDO criado com sucesso no modo demo!");
+      setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "" }]);
+      return;
+    }
+
     if (!selectedProject || !selectedServiceFront || !selectedConstructionSite) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
@@ -252,11 +308,17 @@ const RDONew = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+            <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
               <Building2 className="w-6 h-6 mr-2" />
               <span className="font-bold">ConstruData</span>
             </Button>
             <h1 className="text-xl font-semibold">Relatório Diário de Obra (RDO)</h1>
+            {isDemoMode && (
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
+                <Eye className="w-3 h-3" />
+                Demo
+              </span>
+            )}
           </div>
         </div>
       </header>
