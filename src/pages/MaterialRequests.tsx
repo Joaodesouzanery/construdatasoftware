@@ -179,9 +179,26 @@ export default function MaterialRequests() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p>Carregando...</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground">Carregando pedidos...</p>
+              </div>
+            </div>
           ) : filteredRequests.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8 text-sm">Nenhum pedido encontrado</p>
+            <div className="text-center py-12 space-y-3">
+              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <Search className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-base font-medium">Nenhum pedido encontrado</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {searchTerm || statusFilter !== "all" 
+                    ? "Tente ajustar os filtros ou criar um novo pedido" 
+                    : "Clique no botão 'Novo Pedido' para criar o primeiro pedido de material"}
+                </p>
+              </div>
+            </div>
           ) : (
             <ScrollArea className="h-[600px] w-full">
               <div className="overflow-x-auto">

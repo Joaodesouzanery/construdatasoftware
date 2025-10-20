@@ -516,6 +516,7 @@ export type Database = {
           request_date: string
           requested_by_employee_id: string | null
           requested_by_user_id: string
+          requestor_name: string | null
           service_front_id: string
           status: string
           unit: string
@@ -532,6 +533,7 @@ export type Database = {
           request_date?: string
           requested_by_employee_id?: string | null
           requested_by_user_id: string
+          requestor_name?: string | null
           service_front_id: string
           status?: string
           unit: string
@@ -548,6 +550,7 @@ export type Database = {
           request_date?: string
           requested_by_employee_id?: string | null
           requested_by_user_id?: string
+          requestor_name?: string | null
           service_front_id?: string
           status?: string
           unit?: string

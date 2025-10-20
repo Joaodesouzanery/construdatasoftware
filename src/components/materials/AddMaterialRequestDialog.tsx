@@ -22,6 +22,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
     projectId: "",
     serviceFrontId: "",
     employeeId: "",
+    requestorName: "",
     materialName: "",
     quantity: "",
     unit: "",
@@ -88,7 +89,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.unit) {
+    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.unit || !formData.requestorName) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -103,6 +104,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
         project_id: formData.projectId,
         service_front_id: formData.serviceFrontId,
         requested_by_employee_id: formData.employeeId || null,
+        requestor_name: formData.requestorName,
         material_name: formData.materialName,
         quantity: parseFloat(formData.quantity),
         unit: formData.unit,
@@ -122,6 +124,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
         projectId: "",
         serviceFrontId: "",
         employeeId: "",
+        requestorName: "",
         materialName: "",
         quantity: "",
         unit: "",
@@ -189,7 +192,18 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="employee">Funcionário Solicitante</Label>
+              <Label htmlFor="requestorName">Nome do Solicitante *</Label>
+              <Input
+                id="requestorName"
+                value={formData.requestorName}
+                onChange={(e) => setFormData({ ...formData, requestorName: e.target.value })}
+                placeholder="Nome de quem está solicitando"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="employee">Funcionário Solicitante (Opcional)</Label>
               <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })} disabled={!formData.projectId}>
                 <SelectTrigger id="employee">
                   <SelectValue placeholder="Selecione o funcionário" />
