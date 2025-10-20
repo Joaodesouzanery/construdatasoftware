@@ -127,6 +127,16 @@ const Projects = () => {
       return;
     }
 
+    // Validar UUID do company_id se foi preenchido
+    const isValidUUID = (str: string) => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(str);
+    };
+
+    const companyIdValue = formData.company_id.trim() 
+      ? (isValidUUID(formData.company_id.trim()) ? formData.company_id.trim() : null)
+      : null;
+
     setIsLoading(true);
     
     try {
@@ -137,7 +147,7 @@ const Projects = () => {
           .from('projects')
           .update({
             name: formData.name,
-            company_id: formData.company_id || null,
+            company_id: companyIdValue,
             start_date: formData.start_date,
             end_date: formData.end_date || null,
             status: formData.status,
@@ -154,7 +164,7 @@ const Projects = () => {
           .from('projects')
           .insert([{
             name: formData.name,
-            company_id: formData.company_id || null,
+            company_id: companyIdValue,
             start_date: formData.start_date,
             end_date: formData.end_date || null,
             status: formData.status,
@@ -415,8 +425,11 @@ const Projects = () => {
                   id="company_id"
                   value={formData.company_id}
                   onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
-                  placeholder="Identificador da empresa"
+                  placeholder="Deixe em branco se não tiver"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Este campo é opcional e pode ser deixado em branco
+                </p>
               </div>
 
               {/* Localização */}
