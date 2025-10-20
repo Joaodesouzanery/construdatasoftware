@@ -10,8 +10,6 @@ import { Switch } from "@/components/ui/switch";
 import { Building2, Bell, Plus, Trash2, Mail, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { demoObras, demoAlertsData, demoUser } from "@/lib/demo-data";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface Alert {
   id: string;
@@ -25,8 +23,6 @@ interface Alert {
 
 const Alerts = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [obras, setObras] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -47,11 +43,6 @@ const Alerts = () => {
   }, []);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      setUser(demoUser);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -63,24 +54,19 @@ const Alerts = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      if (isDemoMode) {
-        setObras(demoObras);
-        setAlerts(demoAlertsData);
-      } else {
-        const { data: obrasData } = await supabase
+      const { data: obrasData } = await supabase
           .from('obras')
           .select('*')
           .order('created_at', { ascending: false });
-        
-        if (obrasData) setObras(obrasData);
+      
+      if (obrasData) setObras(obrasData);
 
-        const { data: alertsData } = await supabase
-          .from('alertas_config')
-          .select('*, obras(nome)')
-          .order('created_at', { ascending: false });
-        
-        if (alertsData) setAlerts(alertsData);
-      }
+      const { data: alertsData } = await supabase
+        .from('alertas_config')
+        .select('*, obras(nome)')
+        .order('created_at', { ascending: false });
+      
+      if (alertsData) setAlerts(alertsData);
     } catch (error) {
       toast.error("Erro ao carregar dados");
     } finally {
@@ -92,19 +78,6 @@ const Alerts = () => {
     e.preventDefault();
 
     if (!user) return;
-
-    if (isDemoMode) {
-      toast.success("No modo demo, alertas não são salvos no banco de dados");
-      setShowForm(false);
-      setNewAlert({
-        tipo_alerta: "",
-        obra_id: "",
-        condicao: {},
-        destinatarios: [""],
-        ativo: true
-      });
-      return;
-    }
 
     try {
       const alertPayload = {
@@ -139,10 +112,6 @@ const Alerts = () => {
   };
 
   const handleToggleAlert = async (alertId: string, currentStatus: boolean) => {
-    if (isDemoMode) {
-      toast.info("No modo demo, alterações não são salvas");
-      return;
-    }
 
     try {
       const { error } = await supabase
@@ -160,11 +129,6 @@ const Alerts = () => {
   };
 
   const handleDeleteAlert = async (alertId: string) => {
-    if (isDemoMode) {
-      toast.info("No modo demo, alterações não são salvas");
-      return;
-    }
-
     if (!confirm("Deseja realmente excluir este alerta?")) return;
 
     try {
@@ -220,17 +184,11 @@ const Alerts = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
+              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
                 <Building2 className="w-6 h-6 mr-2" />
                 <span className="font-bold">ConstruData</span>
               </Button>
               <h1 className="text-xl font-semibold">Alertas e Notificações</h1>
-              {isDemoMode && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                  <Eye className="w-3 h-3" />
-                  Demo
-                </span>
-              )}
             </div>
             <Button onClick={() => setShowForm(!showForm)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -241,8 +199,6 @@ const Alerts = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <DemoModeToggle />
-        
         {showForm && (
           <Card className="mb-8">
             <CardHeader>

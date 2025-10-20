@@ -1,28 +1,18 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Eye, Bell, Package, TrendingDown, History, Users } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users } from "lucide-react";
 import { toast } from "sonner";
-import { demoUser } from "@/lib/demo-data";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (isDemoMode) {
-        setUser(demoUser);
-        setIsLoading(false);
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -36,25 +26,18 @@ const Dashboard = () => {
 
     checkAuth();
 
-    if (!isDemoMode) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (!session) {
-          navigate('/auth');
-        } else {
-          setUser(session.user);
-        }
-      });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setUser(session.user);
+      }
+    });
 
-      return () => subscription.unsubscribe();
-    }
-  }, [navigate, isDemoMode]);
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSignOut = async () => {
-    if (isDemoMode) {
-      navigate('/');
-      return;
-    }
-    
     try {
       await supabase.auth.signOut();
       toast.success("Logout realizado com sucesso!");
@@ -83,23 +66,15 @@ const Dashboard = () => {
           <div className="flex items-center gap-2 text-primary">
             <Building2 className="w-8 h-8" />
             <span className="text-2xl font-bold">ConstruData</span>
-            {isDemoMode && (
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                Modo Demo
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:inline">
-              {user?.user_metadata?.name || user?.email || 'Usuário Demo'}
+              {user?.user_metadata?.name || user?.email}
             </span>
-            {!isDemoMode && (
-              <Button variant="ghost" size="icon">
-                <Settings className="w-5 h-5" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={handleSignOut} title={isDemoMode ? "Sair do Demo" : "Sair"}>
+            <Button variant="ghost" size="icon">
+              <Settings className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sair">
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
@@ -108,20 +83,16 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="mb-4 sm:mb-6">
-          <DemoModeToggle />
-        </div>
-
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Bem-vindo ao ConstruData</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            {isDemoMode ? "Explore as funcionalidades da plataforma com dados fictícios" : "Gerencie suas obras com eficiência e precisão"}
+            Gerencie suas obras com eficiência e precisão
           </p>
         </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => isDemoMode ? navigate('/projects?demo=true') : navigate('/projects')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/projects')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -133,19 +104,19 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/rdo?demo=true' : '/rdo-new')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/rdo-new')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-accent-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <CardTitle className="text-base sm:text-lg">Novo RDO</CardTitle>
               <CardDescription className="text-sm">
-                {isDemoMode ? "Criar relatório com dados fictícios" : "Criar relatório diário"}
+                Criar relatório diário
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/rdo-history?demo=true' : '/rdo-history')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/rdo-history')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <History className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -157,43 +128,43 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/production-control?demo=true' : '/production-control')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/production-control')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center text-secondary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <CardTitle className="text-base sm:text-lg">Controle de Produção</CardTitle>
               <CardDescription className="text-sm">
-                {isDemoMode ? "Visualize dashboards com dados fictícios" : "Dashboards e análises"}
+                Dashboards e análises
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/material-requests?demo=true' : '/material-requests')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/material-requests')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <Package className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <CardTitle className="text-base sm:text-lg">Pedidos de Material</CardTitle>
               <CardDescription className="text-sm">
-                {isDemoMode ? "Gerencie pedidos com dados fictícios" : "Solicite materiais"}
+                Solicite materiais
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/material-control?demo=true' : '/material-control')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/material-control')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-green-500 to-green-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <CardTitle className="text-base sm:text-lg">Controle de Material</CardTitle>
               <CardDescription className="text-sm">
-                {isDemoMode ? "Monitore consumo com dados fictícios" : "Monitore consumo"}
+                Monitore consumo
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/alerts?demo=true' : '/alerts')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/alerts')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-destructive to-destructive/70 flex items-center justify-center text-destructive-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -205,14 +176,14 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/employees?demo=true' : '/employees')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/employees')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <Users className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <CardTitle className="text-base sm:text-lg">Funcionários</CardTitle>
               <CardDescription className="text-sm">
-                {isDemoMode ? "Gerencie funcionários com dados fictícios" : "Gerencie funcionários"}
+                Gerencie funcionários
               </CardDescription>
             </CardHeader>
           </Card>

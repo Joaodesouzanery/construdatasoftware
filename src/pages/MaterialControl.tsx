@@ -11,8 +11,6 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialControlDialog } from "@/components/materials/AddMaterialControlDialog";
 import { MaterialComparisonDashboard } from "@/components/materials/MaterialComparisonDashboard";
-import { demoMaterialControl, demoProjects, demoUser } from "@/lib/demo-data";
-import { DemoModeToggle } from "@/components/DemoModeToggle";
 
 interface MaterialControl {
   id: string;
@@ -32,8 +30,6 @@ interface MaterialSummary {
 
 export default function MaterialControl() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get('demo') === 'true';
   const [user, setUser] = useState<any>(null);
   const [controls, setControls] = useState<MaterialControl[]>([]);
   const [summary, setSummary] = useState<MaterialSummary[]>([]);
@@ -53,11 +49,6 @@ export default function MaterialControl() {
   }, [projectFilter]);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      setUser(demoUser);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -67,10 +58,6 @@ export default function MaterialControl() {
   };
 
   const fetchProjects = async () => {
-    if (isDemoMode) {
-      setProjects(demoProjects);
-      return;
-    }
     try {
       const { data, error } = await supabase
         .from("projects")
@@ -85,26 +72,6 @@ export default function MaterialControl() {
   };
 
   const fetchControls = async () => {
-    if (isDemoMode) {
-      const materialMap = new Map<string, { total: number; unit: string }>();
-      demoMaterialControl.forEach((item) => {
-        const key = item.material_name;
-        const existing = materialMap.get(key) || { total: 0, unit: item.unit };
-        existing.total += Number(item.quantity_used);
-        materialMap.set(key, existing);
-      });
-
-      const summaryData = Array.from(materialMap.entries()).map(([material, data]) => ({
-        material_name: material,
-        total_used: data.total,
-        unit: data.unit,
-      }));
-
-      setSummary(summaryData);
-      setControls(demoMaterialControl);
-      setIsLoading(false);
-      return;
-    }
     try {
       let query = supabase
         .from("material_control")
@@ -147,13 +114,6 @@ export default function MaterialControl() {
     }
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  useEffect(() => {
-    fetchControls();
-  }, [projectFilter]);
 
   const filteredControls = controls.filter((ctrl) =>
     ctrl.material_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -164,30 +124,22 @@ export default function MaterialControl() {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
               <Building2 className="w-6 h-6 mr-2" />
               <span className="font-bold">ConstruData</span>
             </Button>
             <h1 className="text-xl font-semibold">Controle de Material</h1>
-            {isDemoMode && (
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                Demo
-              </span>
-            )}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto p-6 space-y-6">
-        <DemoModeToggle />
-        
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Registre e monitore o consumo de materiais</h2>
             <p className="text-muted-foreground">Acompanhe o uso de materiais</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={isDemoMode}>
+          <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Registrar Consumo
           </Button>
