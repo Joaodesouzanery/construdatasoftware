@@ -1,6 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
+
+const coordinatesSchema = z.object({
+  latitude: z.number()
+    .min(-90, 'Latitude must be between -90 and 90')
+    .max(90, 'Latitude must be between -90 and 90'),
+  longitude: z.number()
+    .min(-180, 'Longitude must be between -180 and 180')
+    .max(180, 'Longitude must be between -180 and 180')
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +23,25 @@ serve(async (req) => {
   }
 
   try {
-    const { latitude, longitude } = await req.json();
-
-    if (!latitude || !longitude) {
-      throw new Error('Latitude e longitude são obrigatórios');
+    const body = await req.json();
+    
+    // Validate input coordinates
+    const validationResult = coordinatesSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid coordinates', 
+          details: validationResult.error.errors 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
+
+    const { latitude, longitude } = validationResult.data;
 
     if (!OPENWEATHER_API_KEY) {
       throw new Error('API key do OpenWeather não configurada');
