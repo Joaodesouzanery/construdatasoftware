@@ -30,7 +30,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     try {
       const dateFilter = getDateFilter();
       
-      let query = supabase
+      // Buscar da tabela daily_reports (sistema novo)
+      let dailyReportsQuery = supabase
         .from('daily_reports')
         .select(`
           *,
@@ -44,40 +45,102 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         `)
         .eq('project_id', projectId);
 
-      // Se houver data específica, filtrar por ela
       if (specificDate) {
-        query = query.eq('report_date', specificDate);
+        dailyReportsQuery = dailyReportsQuery.eq('report_date', specificDate);
       } else {
-        query = query
+        dailyReportsQuery = dailyReportsQuery
           .gte('report_date', dateFilter.start)
           .lte('report_date', dateFilter.end);
       }
       
-      query = query.order('report_date', { ascending: false });
+      dailyReportsQuery = dailyReportsQuery.order('report_date', { ascending: false });
 
-      const { data, error } = await query;
+      const { data: dailyReportsData, error: dailyReportsError } = await dailyReportsQuery;
       
-      if (error) throw error;
-      
-      if (data) {
-        setRdos(data);
+      if (dailyReportsError) {
+        console.error("Erro ao carregar daily_reports:", dailyReportsError);
+      }
+
+      // Buscar da tabela rdos (sistema antigo) relacionada com obras
+      const { data: obrasData, error: obrasError } = await supabase
+        .from('obras')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+      let rdosData: any[] = [];
+      if (obrasData && obrasData.length > 0) {
+        let rdosQuery = supabase
+          .from('rdos')
+          .select('*')
+          .in('obra_id', obrasData.map(o => o.id));
+
+        if (specificDate) {
+          rdosQuery = rdosQuery.eq('data', specificDate);
+        } else {
+          rdosQuery = rdosQuery
+            .gte('data', dateFilter.start)
+            .lte('data', dateFilter.end);
+        }
+
+        const { data: rdos, error: rdosError } = await rdosQuery.order('data', { ascending: false });
         
-        // Extract unique services
-        const uniqueServices = new Set<string>();
-        data.forEach(rdo => {
-          rdo.executed_services?.forEach((es: any) => {
-            if (es.services_catalog) {
-              uniqueServices.add(JSON.stringify({
-                id: es.service_id,
-                name: es.services_catalog.name
-              }));
-            }
-          });
+        if (rdosError) {
+          console.error("Erro ao carregar rdos:", rdosError);
+        } else if (rdos) {
+          rdosData = rdos;
+        }
+      }
+
+      // Consolidar dados
+      const allRdos: any[] = [];
+      
+      // Adicionar daily_reports
+      if (dailyReportsData) {
+        allRdos.push(...dailyReportsData);
+      }
+      
+      // Adicionar rdos (converter para formato compatível)
+      if (rdosData && rdosData.length > 0) {
+        const convertedRdos = rdosData.map(rdo => ({
+          id: rdo.id,
+          report_date: rdo.data,
+          construction_sites: { name: rdo.localizacao_validada || 'Local não especificado' },
+          service_fronts: { name: 'Frente não especificada' },
+          executed_services: [],
+          justifications: [],
+          _source: 'rdos'
+        }));
+        allRdos.push(...convertedRdos);
+      }
+
+      console.log("Total de RDOs carregados:", allRdos.length);
+      console.log("- Daily Reports:", dailyReportsData?.length || 0);
+      console.log("- RDOs antigos:", rdosData.length);
+      
+      setRdos(allRdos);
+      
+      // Extract unique services
+      const uniqueServices = new Set<string>();
+      allRdos.forEach(rdo => {
+        rdo.executed_services?.forEach((es: any) => {
+          if (es.services_catalog) {
+            uniqueServices.add(JSON.stringify({
+              id: es.service_id,
+              name: es.services_catalog.name
+            }));
+          }
         });
-        
-        setServices(Array.from(uniqueServices).map(s => JSON.parse(s)));
+      });
+      
+      setServices(Array.from(uniqueServices).map(s => JSON.parse(s)));
+      
+      if (allRdos.length === 0) {
+        toast.info("Nenhum RDO encontrado para o período selecionado");
+      } else {
+        toast.success(`${allRdos.length} RDO(s) carregado(s) com sucesso!`);
       }
     } catch (error: any) {
+      console.error("Erro detalhado:", error);
       toast.error("Erro ao carregar histórico: " + error.message);
     } finally {
       setIsLoading(false);
