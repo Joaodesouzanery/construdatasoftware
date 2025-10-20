@@ -9,13 +9,30 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Building2, Eye, CheckCircle2 } from "lucide-react";
 import { z } from "zod";
+import { PasswordStrengthIndicator, calculatePasswordStrength } from "@/components/auth/PasswordStrengthIndicator";
 
+// Strong password validation schema
 const signUpSchema = z.object({
-  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
-  email: z.string().email("Email inválido"),
+  name: z.string()
+    .trim()
+    .min(3, "Nome deve ter pelo menos 3 caracteres")
+    .max(100, "Nome muito longo"),
+  email: z.string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email muito longo"),
   password: z.string()
-    .min(6, "Senha deve ter pelo menos 6 caracteres")
-    .max(100, "Senha muito longa")
+    .min(8, "Senha deve ter pelo menos 8 caracteres")
+    .max(128, "Senha muito longa")
+    .refine((pwd) => /[A-Z]/.test(pwd), {
+      message: "Senha deve conter pelo menos uma letra maiúscula"
+    })
+    .refine((pwd) => /[a-z]/.test(pwd), {
+      message: "Senha deve conter pelo menos uma letra minúscula"
+    })
+    .refine((pwd) => /\d/.test(pwd), {
+      message: "Senha deve conter pelo menos um número"
+    })
 });
 
 const signInSchema = z.object({
@@ -249,11 +266,9 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
-                    minLength={6}
+                    minLength={8}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Mínimo de 6 caracteres
-                  </p>
+                  <PasswordStrengthIndicator password={password} />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Criando conta..." : "Criar Conta"}
