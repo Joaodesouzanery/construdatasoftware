@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '@/lib/supabase-typed';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const useProductionUpdates = () => {

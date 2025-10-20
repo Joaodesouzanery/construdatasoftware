@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase-typed";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Trash2 } from "lucide-react";
+import { Building2, Plus, Trash2, FileText, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
 import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
 import { AddServiceDialog } from "@/components/rdo/AddServiceDialog";
+import { RDOHistoryView } from "@/components/rdo/RDOHistoryView";
 
 interface ExecutedService {
   service_id: string;
@@ -260,13 +262,26 @@ const RDONew = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle>Novo RDO</CardTitle>
-            <CardDescription>Preencha as informações do relatório diário</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <Tabs defaultValue="create" className="max-w-6xl mx-auto">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="create">
+              <FileText className="w-4 h-4 mr-2" />
+              Criar RDO
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Histórico e Gráficos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="create">
+            <Card>
+              <CardHeader>
+                <CardTitle>Novo RDO</CardTitle>
+                <CardDescription>Preencha as informações do relatório diário</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="project">Projeto *</Label>
@@ -469,12 +484,29 @@ const RDONew = () => {
                 </Button>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Salvando..." : "Criar RDO"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Salvando..." : "Criar RDO"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            {selectedProject ? (
+              <RDOHistoryView projectId={selectedProject} />
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <BarChart3 className="w-16 h-16 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    Selecione um projeto para visualizar o histórico de RDOs
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
 
       <AddServiceFrontDialog
