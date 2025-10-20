@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users } from "lucide-react";
 import { toast } from "sonner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -59,30 +61,37 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary">
-            <Building2 className="w-8 h-8" />
-            <span className="text-2xl font-bold">ConstruData</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {user?.user_metadata?.name || user?.email}
-            </span>
-            <Button variant="ghost" size="icon">
-              <Settings className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sair">
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <AppSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <div className="flex items-center gap-2 text-primary">
+                  <Building2 className="w-8 h-8" />
+                  <span className="text-2xl font-bold">ConstruData</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {user?.user_metadata?.name || user?.email}
+                </span>
+                <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+                  <Settings className="w-5 h-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sair">
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+          {/* Main Content */}
+          <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 flex-1">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Bem-vindo ao ConstruData</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
@@ -206,8 +215,10 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
