@@ -125,11 +125,11 @@ const RDONew = () => {
 
   const loadServiceFronts = async (projectId: string) => {
     if (isDemoMode) {
-      setServiceFronts([
-        { id: "sf-1", name: "Fundação", project_id: projectId },
-        { id: "sf-2", name: "Estrutura", project_id: projectId },
-        { id: "sf-3", name: "Alvenaria", project_id: projectId }
-      ]);
+      const { demoServiceFronts } = await import("@/lib/demo-data");
+      setServiceFronts(demoServiceFronts);
+      if (demoServiceFronts.length > 0) {
+        setSelectedServiceFront(demoServiceFronts[0].id);
+      }
       return;
     }
 
@@ -145,6 +145,9 @@ const RDONew = () => {
     if (isDemoMode) {
       const { demoConstructionSites } = await import("@/lib/demo-data");
       setConstructionSites(demoConstructionSites);
+      if (demoConstructionSites.length > 0) {
+        setSelectedConstructionSite(demoConstructionSites[0].id);
+      }
       return;
     }
 
@@ -158,12 +161,8 @@ const RDONew = () => {
 
   const loadServicesCatalog = async () => {
     if (isDemoMode) {
-      setServicesCatalog([
-        { id: "s-1", name: "Escavação", unit: "m³" },
-        { id: "s-2", name: "Concretagem", unit: "m³" },
-        { id: "s-3", name: "Alvenaria", unit: "m²" },
-        { id: "s-4", name: "Reboco", unit: "m²" }
-      ]);
+      const { demoServicesCatalog } = await import("@/lib/demo-data");
+      setServicesCatalog(demoServicesCatalog);
       return;
     }
 
@@ -176,10 +175,8 @@ const RDONew = () => {
 
   const loadProductionTargets = async (serviceFrontId: string) => {
     if (isDemoMode) {
-      setProductionTargets([
-        { id: "pt-1", service_id: "s-1", target_quantity: 50, target_date: new Date().toISOString().split('T')[0] },
-        { id: "pt-2", service_id: "s-2", target_quantity: 30, target_date: new Date().toISOString().split('T')[0] }
-      ]);
+      const { demoProductionTargets } = await import("@/lib/demo-data");
+      setProductionTargets(demoProductionTargets);
       return;
     }
 
@@ -258,6 +255,12 @@ const RDONew = () => {
   };
 
   const handleGetGPS = () => {
+    if (isDemoMode) {
+      setLocation("-23.550520, -46.633308");
+      toast.success("Localização obtida com sucesso! (Dados fictícios)");
+      return;
+    }
+
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -276,6 +279,11 @@ const RDONew = () => {
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isDemoMode) {
+      toast.success("Foto adicionada com sucesso! (Modo demo)");
+      return;
+    }
+
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       setValidationPhotos([...validationPhotos, ...newFiles]);
@@ -291,8 +299,13 @@ const RDONew = () => {
     e.preventDefault();
     
     if (isDemoMode) {
-      toast.success("RDO criado com sucesso no modo demo!");
+      toast.success("RDO criado com sucesso! (Dados fictícios)");
+      // Reset form
       setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "" }]);
+      setCustomQuestions([]);
+      setTerrainCondition("");
+      setGeneralObservations("");
+      setValidationPhotos([]);
       return;
     }
 

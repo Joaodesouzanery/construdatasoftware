@@ -406,6 +406,74 @@ export const demoServiceFronts = [
   }
 ];
 
+export const demoServicesCatalog = [
+  {
+    id: 'demo-service-1',
+    name: 'Escavação',
+    unit: 'm³',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-service-2',
+    name: 'Concretagem',
+    unit: 'm³',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-service-3',
+    name: 'Alvenaria',
+    unit: 'm²',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-service-4',
+    name: 'Reboco',
+    unit: 'm²',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-service-5',
+    name: 'Pintura',
+    unit: 'm²',
+    created_at: '2025-01-15T10:00:00Z'
+  }
+];
+
+export const demoProductionTargets = [
+  {
+    id: 'demo-target-1',
+    service_id: 'demo-service-1',
+    target_quantity: 50,
+    target_date: new Date().toISOString().split('T')[0],
+    service_front_id: 'demo-front-1',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-target-2',
+    service_id: 'demo-service-2',
+    target_quantity: 30,
+    target_date: new Date().toISOString().split('T')[0],
+    service_front_id: 'demo-front-1',
+    created_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'demo-target-3',
+    service_id: 'demo-service-3',
+    target_quantity: 80,
+    target_date: new Date().toISOString().split('T')[0],
+    service_front_id: 'demo-front-2',
+    created_at: '2025-01-15T10:00:00Z'
+  }
+];
+
+export const demoWeatherData = {
+  temperature: 26,
+  humidity: 68,
+  windSpeed: 15,
+  rainProbability: false,
+  description: 'Parcialmente nublado'
+};
+
 export const demoUser = {
   id: 'demo-user',
   email: 'demo@construdata.com',
