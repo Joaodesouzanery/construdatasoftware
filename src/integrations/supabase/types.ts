@@ -63,6 +63,9 @@ export type Database = {
           alerta_config_id: string
           enviado_em: string | null
           id: string
+          justificado_em: string | null
+          justificado_por_user_id: string | null
+          justificativa: string | null
           mensagem: string
           obra_id: string
         }
@@ -70,6 +73,9 @@ export type Database = {
           alerta_config_id: string
           enviado_em?: string | null
           id?: string
+          justificado_em?: string | null
+          justificado_por_user_id?: string | null
+          justificativa?: string | null
           mensagem: string
           obra_id: string
         }
@@ -77,6 +83,9 @@ export type Database = {
           alerta_config_id?: string
           enviado_em?: string | null
           id?: string
+          justificado_em?: string | null
+          justificado_por_user_id?: string | null
+          justificativa?: string | null
           mensagem?: string
           obra_id?: string
         }

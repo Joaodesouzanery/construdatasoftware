@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Building2, Bell, Plus, Trash2, Mail, Eye } from "lucide-react";
+import { Building2, Bell, Plus, Trash2, Mail, Eye, History } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { AlertHistoryDialog } from "@/components/alerts/AlertHistoryDialog";
 
 interface Alert {
   id: string;
@@ -28,6 +29,7 @@ const Alerts = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   
   const [newAlert, setNewAlert] = useState({
     tipo_alerta: "",
@@ -190,10 +192,16 @@ const Alerts = () => {
               </Button>
               <h1 className="text-xl font-semibold">Alertas e Notificações</h1>
             </div>
-            <Button onClick={() => setShowForm(!showForm)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Alerta
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowHistoryDialog(true)}>
+                <History className="w-4 h-4 mr-2" />
+                Histórico
+              </Button>
+              <Button onClick={() => setShowForm(!showForm)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Alerta
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -360,6 +368,11 @@ const Alerts = () => {
             ))
           )}
         </div>
+
+        <AlertHistoryDialog
+          open={showHistoryDialog}
+          onOpenChange={setShowHistoryDialog}
+        />
       </main>
     </div>
   );

@@ -33,7 +33,7 @@ const ProductionControl = () => {
   const [constructionSites, setConstructionSites] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [selectedSite, setSelectedSite] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<"week" | "month" | "quarter">("week");
+  const [dateRange, setDateRange] = useState<"day" | "week" | "month" | "quarter">("week");
   
   // Data
   const [productionData, setProductionData] = useState<ProductionData[]>([]);
@@ -192,6 +192,9 @@ const ProductionControl = () => {
     let start = new Date();
 
     switch (dateRange) {
+      case 'day':
+        start = new Date(end);
+        break;
       case 'week':
         start.setDate(end.getDate() - 7);
         break;
@@ -333,11 +336,12 @@ const ProductionControl = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Período</label>
-                <Select value={dateRange} onValueChange={(value) => setDateRange(value as "week" | "month" | "quarter")}>
+                <Select value={dateRange} onValueChange={(value) => setDateRange(value as "day" | "week" | "month" | "quarter")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="day">Hoje</SelectItem>
                     <SelectItem value="week">Última Semana</SelectItem>
                     <SelectItem value="month">Último Mês</SelectItem>
                     <SelectItem value="quarter">Último Trimestre</SelectItem>

@@ -339,11 +339,15 @@ const Projects = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {project.end_date && (
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Previsão de término: {new Date(project.end_date).toLocaleDateString('pt-BR')}
-                  </p>
-                )}
+                  {project.end_date ? (
+                    <CardDescription className="mt-1">
+                      Término: {new Date(project.end_date).toLocaleDateString('pt-BR')}
+                    </CardDescription>
+                  ) : (
+                    <CardDescription className="mt-1">
+                      Status: Em andamento
+                    </CardDescription>
+                  )}
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -540,12 +544,26 @@ const Projects = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="end_date">Data de Término</Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="em-andamento"
+                        checked={!formData.end_date}
+                        onChange={(e) => setFormData({ ...formData, end_date: e.target.checked ? '' : new Date().toISOString().split('T')[0] })}
+                        className="rounded border-input"
+                      />
+                      <Label htmlFor="em-andamento" className="font-normal cursor-pointer">Em andamento</Label>
+                    </div>
+                    {formData.end_date && (
+                      <Input
+                        id="end_date"
+                        type="date"
+                        value={formData.end_date}
+                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
