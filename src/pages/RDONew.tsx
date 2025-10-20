@@ -23,6 +23,14 @@ interface ExecutedService {
   justification?: string;
 }
 
+interface CustomQuestion {
+  id: string;
+  question: string;
+  answer: string;
+  type: 'text' | 'select' | 'number';
+  options?: string[];
+}
+
 const RDONew = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -45,6 +53,10 @@ const RDONew = () => {
   const [executedServices, setExecutedServices] = useState<ExecutedService[]>([
     { service_id: "", quantity: "", unit: "", equipment_used: "" }
   ]);
+  const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
+  const [showNewQuestionDialog, setShowNewQuestionDialog] = useState(false);
+  const [newQuestionText, setNewQuestionText] = useState("");
+  const [newQuestionType, setNewQuestionType] = useState<'text' | 'select' | 'number'>('text');
 
   // Dialog states
   const [showServiceFrontDialog, setShowServiceFrontDialog] = useState(false);
@@ -204,6 +216,37 @@ const RDONew = () => {
       return true;
     }
     return false;
+  };
+
+  const addCustomQuestion = () => {
+    if (!newQuestionText.trim()) {
+      toast.error("Digite uma pergunta");
+      return;
+    }
+    
+    const newQuestion: CustomQuestion = {
+      id: crypto.randomUUID(),
+      question: newQuestionText,
+      answer: "",
+      type: newQuestionType,
+      options: newQuestionType === 'select' ? [] : undefined
+    };
+    
+    setCustomQuestions([...customQuestions, newQuestion]);
+    setNewQuestionText("");
+    setNewQuestionType('text');
+    setShowNewQuestionDialog(false);
+    toast.success("Pergunta adicionada");
+  };
+
+  const updateCustomQuestion = (id: string, answer: string) => {
+    setCustomQuestions(customQuestions.map(q => 
+      q.id === id ? { ...q, answer } : q
+    ));
+  };
+
+  const removeCustomQuestion = (id: string) => {
+    setCustomQuestions(customQuestions.filter(q => q.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -373,176 +416,241 @@ const RDONew = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="serviceFront">Frente de Serviço *</Label>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowServiceFrontDialog(true)}
-                    disabled={!selectedProject}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Adicionar Nova Frente
-                  </Button>
-                </div>
-                <Select 
-                  value={selectedServiceFront} 
-                  onValueChange={setSelectedServiceFront}
-                  disabled={!selectedProject}
-                >
-                  <SelectTrigger id="serviceFront">
-                    <SelectValue placeholder="Selecione a frente de serviço" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {serviceFronts.map(front => (
-                      <SelectItem key={front.id} value={front.id}>
-                        {front.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="constructionSite">Local da Obra *</Label>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowConstructionSiteDialog(true)}
-                    disabled={!selectedProject}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Adicionar Novo Local
-                  </Button>
-                </div>
-                <Select 
-                  value={selectedConstructionSite} 
-                  onValueChange={setSelectedConstructionSite}
-                  disabled={!selectedProject}
-                >
-                  <SelectTrigger id="constructionSite">
-                    <SelectValue placeholder="Selecione o local da obra" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {constructionSites.map(site => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {site.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+              {/* Quadros Selecionáveis */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Serviços Executados *</Label>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowServiceDialog(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Adicionar Serviço ao Catálogo
-                  </Button>
-                </div>
+                <h3 className="text-lg font-semibold">Informações do RDO</h3>
+                
+                {/* Quadro 1: Frente de Serviço */}
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">1. Frente de Serviço *</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select 
+                      value={selectedServiceFront} 
+                      onValueChange={setSelectedServiceFront}
+                      disabled={!selectedProject}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a frente de serviço" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceFronts.map(front => (
+                          <SelectItem key={front.id} value={front.id}>
+                            {front.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowServiceFrontDialog(true)}
+                      disabled={!selectedProject}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Adicionar Nova Frente
+                    </Button>
+                  </CardContent>
+                </Card>
 
-                {executedServices.map((service, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between">
-                        <h4 className="font-medium">Serviço {index + 1}</h4>
-                        {executedServices.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeExecutedService(index)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
+                {/* Quadro 2: Local da Obra */}
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">2. Local da Obra *</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select 
+                      value={selectedConstructionSite} 
+                      onValueChange={setSelectedConstructionSite}
+                      disabled={!selectedProject}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o local da obra" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {constructionSites.map(site => (
+                          <SelectItem key={site.id} value={site.id}>
+                            {site.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowConstructionSiteDialog(true)}
+                      disabled={!selectedProject}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Adicionar Novo Local
+                    </Button>
+                  </CardContent>
+                </Card>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Serviço</Label>
-                          <Select
-                            value={service.service_id}
-                            onValueChange={(value) => updateExecutedService(index, 'service_id', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o serviço" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {servicesCatalog.map(s => (
-                                <SelectItem key={s.id} value={s.id}>
-                                  {s.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Quantidade</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={service.quantity}
-                            onChange={(e) => updateExecutedService(index, 'quantity', e.target.value)}
-                            placeholder="0.00"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Unidade</Label>
-                          <Input
-                            value={service.unit}
-                            onChange={(e) => updateExecutedService(index, 'unit', e.target.value)}
-                            placeholder="m², m³, un"
-                            readOnly
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Equipamentos Utilizados</Label>
-                          <Input
-                            value={service.equipment_used}
-                            onChange={(e) => updateExecutedService(index, 'equipment_used', e.target.value)}
-                            placeholder="Betoneira, Vibrador..."
-                          />
-                        </div>
-                      </div>
-
-                      {service.service_id && service.quantity && checkBelowTarget(service.service_id, parseFloat(service.quantity)) && (
-                        <div className="space-y-2 border-t pt-4">
-                          <Label className="text-destructive">Justificativa (Produção Abaixo da Meta) *</Label>
-                          <Textarea
-                            value={service.justification || ""}
-                            onChange={(e) => updateExecutedService(index, 'justification', e.target.value)}
-                            placeholder="Explique o motivo da produção estar abaixo da meta..."
-                            rows={3}
-                            className="border-destructive"
-                          />
-                        </div>
-                      )}
+                {/* Quadro 3: Serviços Executados */}
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">3. Serviços Executados *</CardTitle>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowServiceDialog(true)}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Adicionar Serviço ao Catálogo
+                      </Button>
                     </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {executedServices.map((service, index) => (
+                      <Card key={index} className="p-4 bg-muted/30">
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between">
+                            <h4 className="font-medium">Serviço {index + 1}</h4>
+                            {executedServices.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeExecutedService(index)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Serviço</Label>
+                              <Select
+                                value={service.service_id}
+                                onValueChange={(value) => updateExecutedService(index, 'service_id', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o serviço" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {servicesCatalog.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Quantidade</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={service.quantity}
+                                onChange={(e) => updateExecutedService(index, 'quantity', e.target.value)}
+                                placeholder="0.00"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Unidade</Label>
+                              <Input
+                                value={service.unit}
+                                onChange={(e) => updateExecutedService(index, 'unit', e.target.value)}
+                                placeholder="m², m³, un"
+                                readOnly
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Equipamentos Utilizados</Label>
+                              <Input
+                                value={service.equipment_used}
+                                onChange={(e) => updateExecutedService(index, 'equipment_used', e.target.value)}
+                                placeholder="Betoneira, Vibrador..."
+                              />
+                            </div>
+                          </div>
+
+                          {service.service_id && service.quantity && checkBelowTarget(service.service_id, parseFloat(service.quantity)) && (
+                            <div className="space-y-2 border-t pt-4">
+                              <Label className="text-destructive">Justificativa (Produção Abaixo da Meta) *</Label>
+                              <Textarea
+                                value={service.justification || ""}
+                                onChange={(e) => updateExecutedService(index, 'justification', e.target.value)}
+                                placeholder="Explique o motivo da produção estar abaixo da meta..."
+                                rows={3}
+                                className="border-destructive"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addExecutedService}
+                      className="w-full"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Outro Serviço
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Perguntas Customizadas */}
+                {customQuestions.map((question, index) => (
+                  <Card key={question.id} className="border-2 border-primary/20">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{index + 4}. {question.question}</CardTitle>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCustomQuestion(question.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {question.type === 'text' && (
+                        <Textarea
+                          value={question.answer}
+                          onChange={(e) => updateCustomQuestion(question.id, e.target.value)}
+                          placeholder="Digite sua resposta..."
+                          rows={3}
+                        />
+                      )}
+                      {question.type === 'number' && (
+                        <Input
+                          type="number"
+                          value={question.answer}
+                          onChange={(e) => updateCustomQuestion(question.id, e.target.value)}
+                          placeholder="Digite um número..."
+                        />
+                      )}
+                    </CardContent>
                   </Card>
                 ))}
 
+                {/* Botão Nova Pergunta */}
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={addExecutedService}
-                  className="w-full"
+                  onClick={() => setShowNewQuestionDialog(true)}
+                  className="w-full border-dashed border-2"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Outro Serviço
+                  Nova Pergunta
                 </Button>
               </div>
 
@@ -599,6 +707,52 @@ const RDONew = () => {
           setShowServiceDialog(false);
         }}
       />
+
+      {/* Dialog Nova Pergunta */}
+      <dialog open={showNewQuestionDialog} className="fixed inset-0 z-50 flex items-center justify-center">
+        {showNewQuestionDialog && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowNewQuestionDialog(false)} />
+        )}
+        {showNewQuestionDialog && (
+          <Card className="relative z-50 w-full max-w-lg mx-4">
+            <CardHeader>
+              <CardTitle>Adicionar Nova Pergunta</CardTitle>
+              <CardDescription>Crie uma pergunta customizada para o RDO</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newQuestion">Pergunta</Label>
+                <Input
+                  id="newQuestion"
+                  value={newQuestionText}
+                  onChange={(e) => setNewQuestionText(e.target.value)}
+                  placeholder="Digite a pergunta..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="questionType">Tipo de Resposta</Label>
+                <Select value={newQuestionType} onValueChange={(value: any) => setNewQuestionType(value)}>
+                  <SelectTrigger id="questionType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Texto</SelectItem>
+                    <SelectItem value="number">Número</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setShowNewQuestionDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button type="button" onClick={addCustomQuestion}>
+                  Adicionar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </dialog>
     </div>
   );
 };
