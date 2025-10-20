@@ -15,6 +15,7 @@ import MaterialRequests from "./pages/MaterialRequests";
 import MaterialControl from "./pages/MaterialControl";
 import RDO from "./pages/RDO";
 import RDONew from "./pages/RDONew";
+import RDOHistory from "./pages/RDOHistory";
 import Alerts from "./pages/Alerts";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const AppContent = () => {
         <Route path="/material-control" element={<MaterialControl />} />
         <Route path="/rdo" element={<RDO />} />
         <Route path="/rdo-new" element={<RDONew />} />
+        <Route path="/rdo-history" element={<RDOHistory />} />
         <Route path="/alerts" element={<Alerts />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />

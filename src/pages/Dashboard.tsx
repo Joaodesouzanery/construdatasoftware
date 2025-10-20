@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Eye, Bell, Package, TrendingDown } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Eye, Bell, Package, TrendingDown, History } from "lucide-react";
 import { toast } from "sonner";
 import { demoUser } from "@/lib/demo-data";
 
@@ -156,6 +156,18 @@ const Dashboard = () => {
               <CardTitle>Novo RDO</CardTitle>
               <CardDescription>
                 {isDemoMode ? "Veja exemplo de RDO" : "Criar relatório diário"}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/rdo-history?demo=true' : '/rdo-history')}>
+            <CardHeader>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-400 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
+                <History className="w-6 h-6" />
+              </div>
+              <CardTitle>Histórico de RDOs</CardTitle>
+              <CardDescription>
+                {isDemoMode ? "Recurso disponível após login" : "Visualize e analise RDOs"}
               </CardDescription>
             </CardHeader>
           </Card>
