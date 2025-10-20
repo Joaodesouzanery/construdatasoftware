@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Eye, Bell, Package, TrendingDown, History } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Eye, Bell, Package, TrendingDown, History, Users } from "lucide-react";
 import { toast } from "sonner";
 import { demoUser } from "@/lib/demo-data";
 
@@ -216,6 +216,18 @@ const Dashboard = () => {
               <CardTitle>Alertas</CardTitle>
               <CardDescription>
                 Configure notificações
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/employees?demo=true' : '/employees')}>
+            <CardHeader>
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
+                <Users className="w-6 h-6" />
+              </div>
+              <CardTitle>Funcionários</CardTitle>
+              <CardDescription>
+                {isDemoMode ? "Veja exemplo de gestão" : "Gerencie funcionários"}
               </CardDescription>
             </CardHeader>
           </Card>
