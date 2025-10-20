@@ -1,0 +1,527 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/lib/supabase-typed";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, TrendingUp, Target, AlertCircle, Download, Mail, Eye } from "lucide-react";
+import { toast } from "sonner";
+import { ProductionChart } from "@/components/production/ProductionChart";
+import { ServiceComparisonChart } from "@/components/production/ServiceComparisonChart";
+import { AddTargetDialog } from "@/components/production/AddTargetDialog";
+import { ReportConfigDialog } from "@/components/production/ReportConfigDialog";
+import { demoProjects, demoConstructionSites, demoProducaoData, demoMetasData, demoUser } from "@/lib/demo-data";
+
+interface ProductionData {
+  service_name: string;
+  planned: number;
+  actual: number;
+  unit: string;
+  date: string;
+  construction_site?: string;
+}
+
+const ProductionControl = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Filters
+  const [projects, setProjects] = useState<any[]>([]);
+  const [constructionSites, setConstructionSites] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>("");
+  const [selectedSite, setSelectedSite] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<"week" | "month" | "quarter">("week");
+  
+  // Data
+  const [productionData, setProductionData] = useState<ProductionData[]>([]);
+  const [summaryStats, setSummaryStats] = useState({
+    totalPlanned: 0,
+    totalActual: 0,
+    completionRate: 0,
+    servicesCount: 0
+  });
+
+  // Dialogs
+  const [showTargetDialog, setShowTargetDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+
+  useEffect(() => {
+    checkAuth();
+    loadProjects();
+  }, []);
+
+  useEffect(() => {
+    if (selectedProject) {
+      loadConstructionSites();
+      loadProductionData();
+    }
+  }, [selectedProject, selectedSite, dateRange]);
+
+  const checkAuth = async () => {
+    if (isDemoMode) {
+      setUser(demoUser);
+      setIsLoading(false);
+      return;
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate('/auth');
+      return;
+    }
+    setUser(session.user);
+    setIsLoading(false);
+  };
+
+  const loadProjects = async () => {
+    if (isDemoMode) {
+      setProjects(demoProjects);
+      if (demoProjects.length > 0) {
+        setSelectedProject(demoProjects[0].id);
+      }
+      return;
+    }
+
+    const { data } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+    
+    if (data && data.length > 0) {
+      setProjects(data);
+      setSelectedProject(data[0].id);
+    }
+  };
+
+  const loadConstructionSites = async () => {
+    if (isDemoMode) {
+      setConstructionSites(demoConstructionSites);
+      return;
+    }
+
+    const { data } = await supabase
+      .from('construction_sites')
+      .select('*')
+      .eq('project_id', selectedProject)
+      .order('created_at', { ascending: false });
+    
+    if (data) setConstructionSites(data);
+  };
+
+  const loadProductionData = async () => {
+    if (!selectedProject) return;
+
+    if (isDemoMode) {
+      // Processar dados demo
+      const dataMap = new Map<string, ProductionData>();
+      
+      demoProducaoData.forEach(item => {
+        const key = `${item.frente_servico}-${item.data_registro}`;
+        const existing = dataMap.get(key) || {
+          service_name: item.frente_servico,
+          planned: 0,
+          actual: 0,
+          unit: item.respostas.unidade,
+          date: item.data_registro
+        };
+        existing.actual += Number(item.respostas.quantidade);
+        dataMap.set(key, existing);
+      });
+
+      demoMetasData.forEach(item => {
+        const key = `${item.frente_servico}-${item.periodo_inicio}`;
+        const existing = dataMap.get(key) || {
+          service_name: item.frente_servico,
+          planned: 0,
+          actual: 0,
+          unit: item.unidade,
+          date: item.periodo_inicio
+        };
+        existing.planned = item.meta_diaria;
+        dataMap.set(key, existing);
+      });
+
+      const production = Array.from(dataMap.values());
+      const totalPlanned = production.reduce((sum, item) => sum + item.planned, 0);
+      const totalActual = production.reduce((sum, item) => sum + item.actual, 0);
+      const completionRate = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
+      const servicesCount = new Set(production.map(p => p.service_name)).size;
+
+      setSummaryStats({ totalPlanned, totalActual, completionRate, servicesCount });
+      setProductionData(production);
+      return;
+    }
+
+    const dateFilter = getDateFilter();
+    
+    // Load executed services from RDOs
+    let query = supabase
+      .from('executed_services')
+      .select(`
+        *,
+        daily_reports!inner (
+          report_date,
+          project_id,
+          construction_sites (name)
+        ),
+        services_catalog (name, unit)
+      `)
+      .eq('daily_reports.project_id', selectedProject)
+      .gte('daily_reports.report_date', dateFilter.start)
+      .lte('daily_reports.report_date', dateFilter.end);
+
+    const { data: executedData } = await query;
+
+    // Load production targets
+    const { data: targetsData } = await supabase
+      .from('production_targets')
+      .select(`
+        *,
+        service_fronts!inner (project_id),
+        services_catalog (name, unit)
+      `)
+      .eq('service_fronts.project_id', selectedProject)
+      .gte('target_date', dateFilter.start)
+      .lte('target_date', dateFilter.end);
+
+    // Process and combine data
+    const dataMap = new Map<string, ProductionData>();
+
+    // Add executed services
+    executedData?.forEach(item => {
+      const key = `${item.services_catalog.name}-${item.daily_reports.report_date}`;
+      const existing = dataMap.get(key) || {
+        service_name: item.services_catalog.name,
+        planned: 0,
+        actual: 0,
+        unit: item.services_catalog.unit,
+        date: item.daily_reports.report_date,
+        construction_site: item.daily_reports.construction_sites?.name
+      };
+      
+      existing.actual += Number(item.quantity);
+      dataMap.set(key, existing);
+    });
+
+    // Add targets
+    targetsData?.forEach(item => {
+      const key = `${item.services_catalog.name}-${item.target_date}`;
+      const existing = dataMap.get(key) || {
+        service_name: item.services_catalog.name,
+        planned: 0,
+        actual: 0,
+        unit: item.services_catalog.unit,
+        date: item.target_date
+      };
+      
+      existing.planned += Number(item.target_quantity);
+      dataMap.set(key, existing);
+    });
+
+    let production = Array.from(dataMap.values());
+
+    // Filter by construction site if selected
+    if (selectedSite !== 'all') {
+      const site = constructionSites.find(s => s.id === selectedSite);
+      production = production.filter(p => p.construction_site === site?.name);
+    }
+
+    // Calculate summary stats
+    const totalPlanned = production.reduce((sum, item) => sum + item.planned, 0);
+    const totalActual = production.reduce((sum, item) => sum + item.actual, 0);
+    const completionRate = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
+    const servicesCount = new Set(production.map(p => p.service_name)).size;
+
+    setSummaryStats({
+      totalPlanned,
+      totalActual,
+      completionRate,
+      servicesCount
+    });
+
+    setProductionData(production);
+  };
+
+  const getDateFilter = () => {
+    const end = new Date();
+    let start = new Date();
+
+    switch (dateRange) {
+      case 'week':
+        start.setDate(end.getDate() - 7);
+        break;
+      case 'month':
+        start.setMonth(end.getMonth() - 1);
+        break;
+      case 'quarter':
+        start.setMonth(end.getMonth() - 3);
+        break;
+      default:
+        start.setDate(end.getDate() - 7);
+    }
+
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    };
+  };
+
+  const handleExportReport = async () => {
+    toast.info("Gerando relatório...");
+    
+    try {
+      const csvContent = generateCSVReport(productionData);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio_producao_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      
+      toast.success("Relatório exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar relatório");
+    }
+  };
+
+  const generateCSVReport = (data: ProductionData[]) => {
+    const headers = ['Data', 'Serviço', 'Planejado', 'Realizado', 'Unidade', 'Local'];
+    const rows = data.map(item => [
+      item.date,
+      item.service_name,
+      item.planned.toFixed(2),
+      item.actual.toFixed(2),
+      item.unit,
+      item.construction_site || 'N/A'
+    ]);
+
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <div className="text-center">
+          <Building2 className="w-12 h-12 mx-auto text-primary animate-pulse mb-4" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
+                <Building2 className="w-6 h-6 mr-2" />
+                <span className="font-bold">ConstruData</span>
+              </Button>
+              <h1 className="text-xl font-semibold">Controle de Produção</h1>
+              {isDemoMode && (
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  Demo
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowReportDialog(true)}>
+                <Mail className="w-4 h-4 mr-2" />
+                Relatórios Automáticos
+              </Button>
+              <Button variant="outline" onClick={handleExportReport}>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Projeto</label>
+                <Select value={selectedProject} onValueChange={setSelectedProject}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Local da Obra</label>
+                <Select value={selectedSite} onValueChange={setSelectedSite}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os locais" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os locais</SelectItem>
+                    {constructionSites.map(site => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Período</label>
+                <Select value={dateRange} onValueChange={(value) => setDateRange(value as "week" | "month" | "quarter")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Última Semana</SelectItem>
+                    <SelectItem value="month">Último Mês</SelectItem>
+                    <SelectItem value="quarter">Último Trimestre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button onClick={() => setShowTargetDialog(true)} className="w-full">
+                  <Target className="w-4 h-4 mr-2" />
+                  Adicionar Planejado
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Planejado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                {summaryStats.totalPlanned.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Realizado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-secondary">
+                {summaryStats.totalActual.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Taxa de Conclusão</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <div className={`text-2xl font-bold ${
+                  summaryStats.completionRate >= 100 ? 'text-green-600' : 
+                  summaryStats.completionRate >= 80 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {summaryStats.completionRate.toFixed(1)}%
+                </div>
+                <TrendingUp className="w-5 h-5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Serviços Monitorados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {summaryStats.servicesCount}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {productionData.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Nenhum dado encontrado</h3>
+              <p className="text-muted-foreground mb-4">
+                Não há dados de produção para o período selecionado
+              </p>
+              <Button onClick={() => setShowTargetDialog(true)}>
+                <Target className="w-4 h-4 mr-2" />
+                Adicionar Planejado
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Production Timeline Chart */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Realizado x Planejado - Evolução Temporal</CardTitle>
+                <CardDescription>
+                  Acompanhamento da produção ao longo do tempo
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProductionChart data={productionData} />
+              </CardContent>
+            </Card>
+
+            {/* Service Comparison Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Comparação por Serviço</CardTitle>
+                <CardDescription>
+                  Performance de cada serviço em relação ao planejado
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ServiceComparisonChart data={productionData} />
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </main>
+
+      <AddTargetDialog
+        open={showTargetDialog}
+        onOpenChange={setShowTargetDialog}
+        projectId={selectedProject}
+        onSuccess={() => {
+          loadProductionData();
+          setShowTargetDialog(false);
+        }}
+      />
+
+      <ReportConfigDialog
+        open={showReportDialog}
+        onOpenChange={setShowReportDialog}
+        projectId={selectedProject}
+      />
+    </div>
+  );
+};
+
+export default ProductionControl;
