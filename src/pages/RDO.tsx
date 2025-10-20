@@ -50,11 +50,6 @@ const RDO = () => {
   }, [selectedObra, location]);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      setUser(demoUser);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -64,11 +59,6 @@ const RDO = () => {
   };
 
   const loadObras = async () => {
-    if (isDemoMode) {
-      setObras(demoObras);
-      return;
-    }
-
     const { data } = await supabase
       .from('obras')
       .select('*')
@@ -88,19 +78,6 @@ const RDO = () => {
     
     if (!selectedObra) {
       toast.error("Selecione uma obra");
-      return;
-    }
-
-    if (isDemoMode) {
-      toast.success("No modo demo, o RDO não é salvo no banco de dados");
-      setRdoData({
-        data: new Date().toISOString().split('T')[0],
-        condicao_terreno: "",
-        observacoes_gerais: "",
-        localizacao_validada: "",
-        fotos_validacao: []
-      });
-      setSelectedObra("");
       return;
     }
 
@@ -150,24 +127,16 @@ const RDO = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
               <Building2 className="w-6 h-6 mr-2" />
               <span className="font-bold">ConstruData</span>
             </Button>
             <h1 className="text-xl font-semibold">Relatório Diário de Obra (RDO)</h1>
-            {isDemoMode && (
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                Demo
-              </span>
-            )}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <DemoModeToggle />
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Formulário Principal */}
           <div className="lg:col-span-2">

@@ -62,12 +62,6 @@ const ProductionControl = () => {
   }, [selectedProject, selectedSite, dateRange]);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      setUser(demoUser);
-      setIsLoading(false);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -78,14 +72,6 @@ const ProductionControl = () => {
   };
 
   const loadProjects = async () => {
-    if (isDemoMode) {
-      setProjects(demoProjects);
-      if (demoProjects.length > 0) {
-        setSelectedProject(demoProjects[0].id);
-      }
-      return;
-    }
-
     const { data } = await supabase
       .from('projects')
       .select('*')
@@ -99,11 +85,6 @@ const ProductionControl = () => {
   };
 
   const loadConstructionSites = async () => {
-    if (isDemoMode) {
-      setConstructionSites(demoConstructionSites);
-      return;
-    }
-
     const { data } = await supabase
       .from('construction_sites')
       .select('*')
@@ -115,47 +96,6 @@ const ProductionControl = () => {
 
   const loadProductionData = async () => {
     if (!selectedProject) return;
-
-    if (isDemoMode) {
-      // Processar dados demo
-      const dataMap = new Map<string, ProductionData>();
-      
-      demoProducaoData.forEach(item => {
-        const key = `${item.frente_servico}-${item.data_registro}`;
-        const existing = dataMap.get(key) || {
-          service_name: item.frente_servico,
-          planned: 0,
-          actual: 0,
-          unit: item.respostas.unidade,
-          date: item.data_registro
-        };
-        existing.actual += Number(item.respostas.quantidade);
-        dataMap.set(key, existing);
-      });
-
-      demoMetasData.forEach(item => {
-        const key = `${item.frente_servico}-${item.periodo_inicio}`;
-        const existing = dataMap.get(key) || {
-          service_name: item.frente_servico,
-          planned: 0,
-          actual: 0,
-          unit: item.unidade,
-          date: item.periodo_inicio
-        };
-        existing.planned = item.meta_diaria;
-        dataMap.set(key, existing);
-      });
-
-      const production = Array.from(dataMap.values());
-      const totalPlanned = production.reduce((sum, item) => sum + item.planned, 0);
-      const totalActual = production.reduce((sum, item) => sum + item.actual, 0);
-      const completionRate = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
-      const servicesCount = new Set(production.map(p => p.service_name)).size;
-
-      setSummaryStats({ totalPlanned, totalActual, completionRate, servicesCount });
-      setProductionData(production);
-      return;
-    }
 
     const dateFilter = getDateFilter();
     
@@ -320,17 +260,11 @@ const ProductionControl = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
-                <Building2 className="w-6 h-6 mr-2" />
-                <span className="font-bold">ConstruData</span>
-              </Button>
-              <h1 className="text-xl font-semibold">Controle de Produção</h1>
-              {isDemoMode && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                  <Eye className="w-3 h-3" />
-                  Demo
-                </span>
-              )}
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+              <Building2 className="w-6 h-6 mr-2" />
+              <span className="font-bold">ConstruData</span>
+            </Button>
+            <h1 className="text-xl font-semibold">Controle de Produção</h1>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowReportDialog(true)}>
@@ -347,8 +281,6 @@ const ProductionControl = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <DemoModeToggle />
-        
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
@@ -529,7 +461,7 @@ const ProductionControl = () => {
           </TabsContent>
 
           <TabsContent value="reports">
-            <ConsolidatedReportsView projectId={selectedProject} isDemoMode={isDemoMode} />
+            <ConsolidatedReportsView projectId={selectedProject} />
           </TabsContent>
         </Tabs>
       </main>

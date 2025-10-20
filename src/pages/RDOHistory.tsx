@@ -17,13 +17,6 @@ const RDOHistory = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (isDemoMode) {
-        setUser({ email: "demo@example.com" });
-        setIsLoading(false);
-        toast.info("Funcionalidade disponível apenas após login");
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -38,18 +31,16 @@ const RDOHistory = () => {
 
     checkAuth();
 
-    if (!isDemoMode) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (!session) {
-          navigate('/auth');
-        } else {
-          setUser(session.user);
-        }
-      });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setUser(session.user);
+      }
+    });
 
-      return () => subscription.unsubscribe();
-    }
-  }, [navigate, isDemoMode]);
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const loadProjects = async () => {
     try {
@@ -70,11 +61,6 @@ const RDOHistory = () => {
   };
 
   const handleSignOut = async () => {
-    if (isDemoMode) {
-      navigate('/');
-      return;
-    }
-    
     try {
       await supabase.auth.signOut();
       toast.success("Logout realizado com sucesso!");
@@ -91,41 +77,6 @@ const RDOHistory = () => {
           <Building2 className="w-12 h-12 mx-auto text-primary animate-pulse mb-4" />
           <p className="text-muted-foreground">Carregando...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (isDemoMode) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-primary">
-              <Building2 className="w-8 h-8" />
-              <span className="text-2xl font-bold">ConstruData</span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-4 py-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-12">
-                <History className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h2 className="text-2xl font-semibold mb-2">Histórico de RDOs</h2>
-                <p className="text-muted-foreground mb-6">
-                  Esta funcionalidade está disponível apenas para usuários autenticados.
-                </p>
-                <Button onClick={() => navigate('/auth')}>
-                  Fazer Login / Criar Conta
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
       </div>
     );
   }
@@ -157,8 +108,6 @@ const RDOHistory = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <DemoModeToggle />
-        
         {projects.length === 0 ? (
           <Card>
             <CardContent className="pt-6">

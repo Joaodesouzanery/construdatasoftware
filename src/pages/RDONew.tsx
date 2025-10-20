@@ -88,12 +88,6 @@ const RDONew = () => {
   }, [selectedServiceFront]);
 
   const checkAuth = async () => {
-    if (isDemoMode) {
-      const { demoUser } = await import("@/lib/demo-data");
-      setUser(demoUser);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/auth');
@@ -103,15 +97,6 @@ const RDONew = () => {
   };
 
   const loadProjects = async () => {
-    if (isDemoMode) {
-      const { demoProjects } = await import("@/lib/demo-data");
-      setProjects(demoProjects);
-      if (demoProjects.length > 0) {
-        setSelectedProject(demoProjects[0].id);
-      }
-      return;
-    }
-
     const { data } = await supabase
       .from('projects')
       .select('*')
@@ -121,15 +106,6 @@ const RDONew = () => {
   };
 
   const loadServiceFronts = async (projectId: string) => {
-    if (isDemoMode) {
-      const { demoServiceFronts } = await import("@/lib/demo-data");
-      setServiceFronts(demoServiceFronts);
-      if (demoServiceFronts.length > 0) {
-        setSelectedServiceFront(demoServiceFronts[0].id);
-      }
-      return;
-    }
-
     const { data } = await supabase
       .from('service_fronts')
       .select('*')
@@ -139,15 +115,6 @@ const RDONew = () => {
   };
 
   const loadConstructionSites = async (projectId: string) => {
-    if (isDemoMode) {
-      const { demoConstructionSites } = await import("@/lib/demo-data");
-      setConstructionSites(demoConstructionSites);
-      if (demoConstructionSites.length > 0) {
-        setSelectedConstructionSite(demoConstructionSites[0].id);
-      }
-      return;
-    }
-
     const { data } = await supabase
       .from('construction_sites')
       .select('*')
@@ -157,12 +124,6 @@ const RDONew = () => {
   };
 
   const loadServicesCatalog = async () => {
-    if (isDemoMode) {
-      const { demoServicesCatalog } = await import("@/lib/demo-data");
-      setServicesCatalog(demoServicesCatalog);
-      return;
-    }
-
     const { data } = await supabase
       .from('services_catalog')
       .select('*')
@@ -171,12 +132,6 @@ const RDONew = () => {
   };
 
   const loadProductionTargets = async (serviceFrontId: string) => {
-    if (isDemoMode) {
-      const { demoProductionTargets } = await import("@/lib/demo-data");
-      setProductionTargets(demoProductionTargets);
-      return;
-    }
-
     const { data } = await supabase
       .from('production_targets')
       .select('*')
@@ -252,12 +207,6 @@ const RDONew = () => {
   };
 
   const handleGetGPS = () => {
-    if (isDemoMode) {
-      setLocation("-23.550520, -46.633308");
-      toast.success("Localização obtida com sucesso! (Dados fictícios)");
-      return;
-    }
-
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -276,11 +225,6 @@ const RDONew = () => {
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isDemoMode) {
-      toast.success("Foto adicionada com sucesso! (Modo demo)");
-      return;
-    }
-
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       setValidationPhotos([...validationPhotos, ...newFiles]);
@@ -295,17 +239,6 @@ const RDONew = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isDemoMode) {
-      toast.success("RDO criado com sucesso! (Dados fictícios)");
-      // Reset form
-      setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "" }]);
-      setCustomQuestions([]);
-      setTerrainCondition("");
-      setGeneralObservations("");
-      setValidationPhotos([]);
-      return;
-    }
-
     if (!selectedProject || !selectedServiceFront || !selectedConstructionSite) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
@@ -399,24 +332,16 @@ const RDONew = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate(isDemoMode ? '/dashboard?demo=true' : '/dashboard')}>
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
               <Building2 className="w-6 h-6 mr-2" />
               <span className="font-bold">ConstruData</span>
             </Button>
             <h1 className="text-xl font-semibold">Relatório Diário de Obra (RDO)</h1>
-            {isDemoMode && (
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                Demo
-              </span>
-            )}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <DemoModeToggle />
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           <div className="lg:col-span-2">
         <Tabs defaultValue="create">
