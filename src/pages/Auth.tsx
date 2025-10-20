@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Building2 } from "lucide-react";
+import { Building2, Eye } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -88,23 +88,23 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-3 sm:p-4">
       <Card className="w-full max-w-md shadow-card">
-        <CardHeader className="space-y-4">
+        <CardHeader className="space-y-3 sm:space-y-4">
           <div className="flex items-center justify-center gap-2 text-primary">
-            <Building2 className="w-8 h-8" />
-            <span className="text-2xl font-bold">ConstruData</span>
+            <Building2 className="w-7 h-7 sm:w-8 sm:h-8" />
+            <span className="text-xl sm:text-2xl font-bold">ConstruData</span>
           </div>
           <div className="text-center">
-            <CardTitle>Bem-vindo</CardTitle>
-            <CardDescription>Faça login ou crie sua conta para continuar</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Bem-vindo</CardTitle>
+            <CardDescription className="text-sm">Faça login ou crie sua conta para continuar</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Criar Conta</TabsTrigger>
+              <TabsTrigger value="login" className="text-sm">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="text-sm">Criar Conta</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -185,14 +185,23 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
           
-          <div className="mt-4 pt-4 border-t">
+          <div className="mt-6 pt-6 border-t space-y-3">
+            <div className="text-center">
+              <p className="text-sm font-medium text-muted-foreground mb-3">
+                Ou explore o sistema sem criar uma conta
+              </p>
+            </div>
             <Button 
               variant="outline" 
-              className="w-full"
+              className="w-full border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
               onClick={() => navigate('/dashboard?demo=true')}
             >
-              Visualizar Demo
+              <Eye className="w-4 h-4 mr-2" />
+              Testar com Dados Fictícios
             </Button>
+            <p className="text-xs text-center text-muted-foreground px-2">
+              Explore todas as funcionalidades com dados de exemplo, sem precisar criar uma conta
+            </p>
           </div>
         </CardContent>
       </Card>
