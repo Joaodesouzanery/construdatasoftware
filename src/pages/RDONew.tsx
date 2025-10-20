@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Plus, Trash2, FileText, BarChart3, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
 import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
 import { AddServiceDialog } from "@/components/rdo/AddServiceDialog";
@@ -709,50 +710,45 @@ const RDONew = () => {
       />
 
       {/* Dialog Nova Pergunta */}
-      <dialog open={showNewQuestionDialog} className="fixed inset-0 z-50 flex items-center justify-center">
-        {showNewQuestionDialog && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowNewQuestionDialog(false)} />
-        )}
-        {showNewQuestionDialog && (
-          <Card className="relative z-50 w-full max-w-lg mx-4">
-            <CardHeader>
-              <CardTitle>Adicionar Nova Pergunta</CardTitle>
-              <CardDescription>Crie uma pergunta customizada para o RDO</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newQuestion">Pergunta</Label>
-                <Input
-                  id="newQuestion"
-                  value={newQuestionText}
-                  onChange={(e) => setNewQuestionText(e.target.value)}
-                  placeholder="Digite a pergunta..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="questionType">Tipo de Resposta</Label>
-                <Select value={newQuestionType} onValueChange={(value: any) => setNewQuestionType(value)}>
-                  <SelectTrigger id="questionType">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Texto</SelectItem>
-                    <SelectItem value="number">Número</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowNewQuestionDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button type="button" onClick={addCustomQuestion}>
-                  Adicionar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </dialog>
+      <Dialog open={showNewQuestionDialog} onOpenChange={setShowNewQuestionDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Adicionar Nova Pergunta</DialogTitle>
+            <DialogDescription>Crie uma pergunta customizada para o RDO</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newQuestion">Pergunta</Label>
+              <Input
+                id="newQuestion"
+                value={newQuestionText}
+                onChange={(e) => setNewQuestionText(e.target.value)}
+                placeholder="Digite a pergunta..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="questionType">Tipo de Resposta</Label>
+              <Select value={newQuestionType} onValueChange={(value: any) => setNewQuestionType(value)}>
+                <SelectTrigger id="questionType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">Texto</SelectItem>
+                  <SelectItem value="number">Número</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setShowNewQuestionDialog(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={addCustomQuestion}>
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

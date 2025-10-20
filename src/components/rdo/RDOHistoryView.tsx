@@ -16,13 +16,14 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [services, setServices] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
+  const [specificDate, setSpecificDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (projectId) {
       loadRDOs();
     }
-  }, [projectId, selectedService, selectedPeriod]);
+  }, [projectId, selectedService, selectedPeriod, specificDate]);
 
   const loadRDOs = async () => {
     setIsLoading(true);
@@ -41,10 +42,18 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
           ),
           justifications (reason)
         `)
-        .eq('project_id', projectId)
-        .gte('report_date', dateFilter.start)
-        .lte('report_date', dateFilter.end)
-        .order('report_date', { ascending: false });
+        .eq('project_id', projectId);
+
+      // Se houver data específica, filtrar por ela
+      if (specificDate) {
+        query = query.eq('report_date', specificDate);
+      } else {
+        query = query
+          .gte('report_date', dateFilter.start)
+          .lte('report_date', dateFilter.end);
+      }
+      
+      query = query.order('report_date', { ascending: false });
 
       const { data, error } = await query;
       
@@ -195,12 +204,43 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Data Específica</label>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => {
+                    setSpecificDate(e.target.value);
+                    if (e.target.value) setSelectedPeriod("");
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+                {specificDate && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSpecificDate("")}
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Período</label>
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <Select 
+                value={selectedPeriod} 
+                onValueChange={(value) => {
+                  setSelectedPeriod(value);
+                  if (value) setSpecificDate("");
+                }}
+                disabled={!!specificDate}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o período" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="week">Última Semana</SelectItem>
