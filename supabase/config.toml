@@ -2,3 +2,12 @@ project_id = "zciovdjrasfitgpisnng"
 
 [functions.weather-data]
 verify_jwt = true
+
+[functions.configure-reports]
+verify_jwt = true
+
+[functions.send-production-report]
+verify_jwt = true
+
+[functions.process-alerts]
+verify_jwt = true

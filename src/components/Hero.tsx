@@ -133,6 +133,69 @@ const Hero = () => {
         </div>
       </section>
 
+      {/* Security Trust Section */}
+      <section className="container px-4 py-16 mx-auto bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-3xl border border-green-200/50 dark:border-green-800/50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700 mb-4">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-semibold">Segurança Empresarial</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Seus Dados Protegidos</h2>
+            <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+              Segurança de nível empresarial para proteger informações confidenciais da sua empresa
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <SecurityFeature
+              icon="🔐"
+              title="Autenticação Segura"
+              description="Login protegido com validação de senha e proteção contra vazamentos"
+            />
+            <SecurityFeature
+              icon="🛡️"
+              title="Isolamento de Dados"
+              description="Cada empresa acessa apenas seus próprios dados de projetos e equipes"
+            />
+            <SecurityFeature
+              icon="🔒"
+              title="APIs Protegidas"
+              description="Todas as funções de backend requerem autenticação e verificam permissões"
+            />
+            <SecurityFeature
+              icon="👥"
+              title="Controle de Acesso"
+              description="Dados de funcionários e locais visíveis apenas para proprietários do projeto"
+            />
+          </div>
+
+          <div className="mt-12 p-6 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-green-200 dark:border-green-800">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg mb-2">Proteção de Dados Confidenciais</h3>
+                <p className="text-sm text-muted-foreground">
+                  Informações sensíveis como dados de funcionários, localização de obras, métricas de produção e custos de materiais 
+                  são protegidas por políticas de segurança em nível de linha (RLS). Concorrentes não podem acessar seus dados, 
+                  mesmo criando uma conta gratuita.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              ✓ Criptografia end-to-end &nbsp;•&nbsp; ✓ Políticas de segurança em nível de linha &nbsp;•&nbsp; ✓ Autenticação JWT
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Benefits Section */}
       <section className="container px-4 py-16 mx-auto">
         <div className="max-w-5xl mx-auto">
@@ -193,6 +256,14 @@ const BenefitCard = ({ icon, title, description }: { icon: React.ReactNode; titl
     </div>
     <h3 className="text-xl font-semibold">{title}</h3>
     <p className="text-muted-foreground">{description}</p>
+  </div>
+);
+
+const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
+  <div className="bg-white/80 dark:bg-slate-900/80 p-6 rounded-xl border border-green-200/50 dark:border-green-800/50 hover:border-green-300 dark:hover:border-green-700 transition-colors">
+    <div className="text-4xl mb-3">{icon}</div>
+    <h3 className="font-semibold mb-2 text-sm">{title}</h3>
+    <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
   </div>
 );
 

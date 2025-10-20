@@ -18,7 +18,58 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // SECURITY: Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Missing authorization header' }), 
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify JWT token
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }), 
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { projectId, email, frequency, enabled }: ConfigRequest = await req.json();
+
+    // SECURITY: Verify project ownership
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('created_by_user_id')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError || !project) {
+      return new Response(
+        JSON.stringify({ error: 'Project not found' }), 
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (project.created_by_user_id !== user.id) {
+      console.warn(`Unauthorized access attempt: User ${user.id} tried to configure reports for project ${projectId}`);
+      return new Response(
+        JSON.stringify({ error: 'Access denied - You do not own this project' }), 
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // Store configuration (you would typically save this to a database table)
     // For now, we'll just return success

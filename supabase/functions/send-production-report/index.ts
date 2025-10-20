@@ -19,12 +19,59 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    // SECURITY: Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Missing authorization header' }), 
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    // Create client with anon key for auth verification
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }), 
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     const { projectId, email, reportType }: ReportRequest = await req.json();
+
+    // SECURITY: Verify project ownership before allowing report generation
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('created_by_user_id, name')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError || !project) {
+      return new Response(
+        JSON.stringify({ error: 'Project not found' }), 
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (project.created_by_user_id !== user.id) {
+      console.warn(`Unauthorized access attempt: User ${user.id} tried to access project ${projectId}`);
+      return new Response(
+        JSON.stringify({ error: 'Access denied - You do not own this project' }), 
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
     // Calculate date range based on report type
     const endDate = new Date();
@@ -35,13 +82,6 @@ const handler = async (req: Request): Promise<Response> => {
     } else if (reportType === 'monthly') {
       startDate.setMonth(endDate.getMonth() - 1);
     }
-
-    // Fetch project details
-    const { data: project } = await supabase
-      .from('projects')
-      .select('name')
-      .eq('id', projectId)
-      .single();
 
     // Fetch production data
     const { data: executedData } = await supabase
