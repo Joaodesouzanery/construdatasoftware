@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Filter, Search, Building2, Eye, Users } from "lucide-react";
+import { Plus, Filter, Search, Building2, Eye, Users, Upload, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialRequestDialog } from "@/components/materials/AddMaterialRequestDialog";
 import { AddEmployeeDialog } from "@/components/employees/AddEmployeeDialog";
+import { ImportEmployeesDialog } from "@/components/employees/ImportEmployeesDialog";
 import { demoMaterialRequests, demoUser } from "@/lib/demo-data";
 
 interface MaterialRequest {
@@ -36,6 +37,7 @@ export default function MaterialRequests() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEmployeeDialog, setShowEmployeeDialog] = useState(false);
+  const [showImportEmployeesDialog, setShowImportEmployeesDialog] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -161,8 +163,12 @@ export default function MaterialRequests() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowEmployeeDialog(true)} disabled={isDemoMode}>
-              <Users className="mr-2 h-4 w-4" />
+              <UserPlus className="mr-2 h-4 w-4" />
               Adicionar Funcionário
+            </Button>
+            <Button variant="outline" onClick={() => setShowImportEmployeesDialog(true)} disabled={isDemoMode}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importar Funcionários
             </Button>
             <Button onClick={() => setShowAddDialog(true)} disabled={isDemoMode}>
               <Plus className="mr-2 h-4 w-4" />
@@ -278,9 +284,21 @@ export default function MaterialRequests() {
         </CardContent>
       </Card>
 
+      <AddMaterialRequestDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onSuccess={fetchRequests}
+      />
+
       <AddEmployeeDialog
         open={showEmployeeDialog}
         onOpenChange={setShowEmployeeDialog}
+        onSuccess={fetchRequests}
+      />
+
+      <ImportEmployeesDialog
+        open={showImportEmployeesDialog}
+        onOpenChange={setShowImportEmployeesDialog}
         onSuccess={fetchRequests}
       />
       </main>

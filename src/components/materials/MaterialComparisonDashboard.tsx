@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { AlertCircle, Package, TrendingUp, TrendingDown } from "lucide-react";
 
@@ -14,6 +15,8 @@ const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accen
 export const MaterialComparisonDashboard = ({ projectId }: MaterialComparisonDashboardProps) => {
   const [period, setPeriod] = useState<"week" | "month" | "quarter">("month");
   const [comparisonData, setComparisonData] = useState<any[]>([]);
+  const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -99,6 +102,8 @@ export const MaterialComparisonDashboard = ({ projectId }: MaterialComparisonDas
       }));
 
       setComparisonData(comparison);
+      setFilteredData(comparison);
+      setSelectedMaterials([]);
     } catch (error) {
       console.error("Erro ao carregar dados de comparação:", error);
     } finally {
@@ -107,11 +112,28 @@ export const MaterialComparisonDashboard = ({ projectId }: MaterialComparisonDas
   };
 
   const getTotalStats = () => {
-    const totalSolicitado = comparisonData.reduce((sum, item) => sum + item.solicitado, 0);
-    const totalUsado = comparisonData.reduce((sum, item) => sum + item.usado, 0);
+    const dataToUse = selectedMaterials.length > 0 ? filteredData : comparisonData;
+    const totalSolicitado = dataToUse.reduce((sum, item) => sum + item.solicitado, 0);
+    const totalUsado = dataToUse.reduce((sum, item) => sum + item.usado, 0);
     const eficiencia = totalSolicitado > 0 ? (totalUsado / totalSolicitado) * 100 : 0;
 
     return { totalSolicitado, totalUsado, eficiencia };
+  };
+
+  const toggleMaterialSelection = (materialName: string) => {
+    let newSelection: string[];
+    if (selectedMaterials.includes(materialName)) {
+      newSelection = selectedMaterials.filter(m => m !== materialName);
+    } else {
+      newSelection = [...selectedMaterials, materialName];
+    }
+    setSelectedMaterials(newSelection);
+    
+    if (newSelection.length > 0) {
+      setFilteredData(comparisonData.filter(item => newSelection.includes(item.material)));
+    } else {
+      setFilteredData(comparisonData);
+    }
   };
 
   const stats = getTotalStats();
@@ -122,8 +144,37 @@ export const MaterialComparisonDashboard = ({ projectId }: MaterialComparisonDas
 
   return (
     <div className="space-y-6">
-      {/* Filtro */}
-      <div className="flex justify-end">
+      {/* Filtros */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="flex-1">
+          {comparisonData.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm font-medium">Filtrar materiais:</span>
+              {comparisonData.map((item) => (
+                <Button
+                  key={item.material}
+                  variant={selectedMaterials.includes(item.material) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => toggleMaterialSelection(item.material)}
+                >
+                  {item.material}
+                </Button>
+              ))}
+              {selectedMaterials.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedMaterials([]);
+                    setFilteredData(comparisonData);
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
         <Select value={period} onValueChange={(value) => setPeriod(value as "week" | "month" | "quarter")}>
           <SelectTrigger className="w-[200px]">
             <SelectValue />
@@ -183,7 +234,7 @@ export const MaterialComparisonDashboard = ({ projectId }: MaterialComparisonDas
           <CardDescription>Análise por material</CardDescription>
         </CardHeader>
         <CardContent>
-          {comparisonData.length === 0 ? (
+          {(selectedMaterials.length > 0 ? filteredData : comparisonData).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Nenhum dado encontrado</h3>
@@ -193,7 +244,7 @@ export const MaterialComparisonDashboard = ({ projectId }: MaterialComparisonDas
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={comparisonData}>
+              <BarChart data={selectedMaterials.length > 0 ? filteredData : comparisonData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="material" angle={-45} textAnchor="end" height={100} />
                 <YAxis />
@@ -214,7 +265,7 @@ export const MaterialComparisonDashboard = ({ projectId }: MaterialComparisonDas
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {comparisonData.map((item, idx) => (
+            {(selectedMaterials.length > 0 ? filteredData : comparisonData).map((item, idx) => (
               <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="font-semibold">{item.material}</div>

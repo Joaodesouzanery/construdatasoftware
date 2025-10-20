@@ -17,12 +17,16 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [serviceFronts, setServiceFronts] = useState<Array<{ id: string; name: string }>>([]);
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string }>>([]);
   const [formData, setFormData] = useState({
     projectId: "",
     serviceFrontId: "",
+    employeeId: "",
     materialName: "",
     quantity: "",
     unit: "",
+    neededDate: "",
+    usageLocation: "",
     requestDate: new Date().toISOString().split("T")[0],
   });
 
@@ -35,6 +39,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
   useEffect(() => {
     if (formData.projectId) {
       fetchServiceFronts(formData.projectId);
+      fetchEmployees(formData.projectId);
     }
   }, [formData.projectId]);
 
@@ -64,6 +69,22 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
     }
   };
 
+  const fetchEmployees = async (projectId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, name")
+        .eq("project_id", projectId)
+        .eq("status", "active")
+        .order("name");
+
+      if (error) throw error;
+      setEmployees(data || []);
+    } catch (error: any) {
+      toast.error("Erro ao carregar funcionários: " + error.message);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -81,9 +102,12 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
       const { error } = await supabase.from("material_requests").insert({
         project_id: formData.projectId,
         service_front_id: formData.serviceFrontId,
+        requested_by_employee_id: formData.employeeId || null,
         material_name: formData.materialName,
         quantity: parseFloat(formData.quantity),
         unit: formData.unit,
+        needed_date: formData.neededDate || null,
+        usage_location: formData.usageLocation || null,
         request_date: formData.requestDate,
         requested_by_user_id: userData.user.id,
         status: "pendente",
@@ -97,9 +121,12 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
       setFormData({
         projectId: "",
         serviceFrontId: "",
+        employeeId: "",
         materialName: "",
         quantity: "",
         unit: "",
+        neededDate: "",
+        usageLocation: "",
         requestDate: new Date().toISOString().split("T")[0],
       });
     } catch (error: any) {
@@ -162,6 +189,22 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="employee">Funcionário Solicitante</Label>
+              <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })} disabled={!formData.projectId}>
+                <SelectTrigger id="employee">
+                  <SelectValue placeholder="Selecione o funcionário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="materialName">Material *</Label>
               <Input
                 id="materialName"
@@ -195,6 +238,26 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="neededDate">Prazo (Quando Precisa)</Label>
+              <Input
+                id="neededDate"
+                type="date"
+                value={formData.neededDate}
+                onChange={(e) => setFormData({ ...formData, neededDate: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="usageLocation">Onde Vai Ser Usado</Label>
+              <Input
+                id="usageLocation"
+                value={formData.usageLocation}
+                onChange={(e) => setFormData({ ...formData, usageLocation: e.target.value })}
+                placeholder="Local de utilização"
+              />
             </div>
           </div>
           <DialogFooter>

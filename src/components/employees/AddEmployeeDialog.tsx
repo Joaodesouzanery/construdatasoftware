@@ -17,6 +17,7 @@ interface AddEmployeeDialogProps {
 export const AddEmployeeDialog = ({ open, onOpenChange, projectId, onSuccess }: AddEmployeeDialogProps) => {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [department, setDepartment] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -77,6 +78,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, projectId, onSuccess }: 
         .insert([{
           name,
           role,
+          department,
           phone,
           email,
           company_name: companyName,
@@ -90,6 +92,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, projectId, onSuccess }: 
       toast.success("Funcionário adicionado com sucesso!");
       setName("");
       setRole("");
+      setDepartment("");
       setPhone("");
       setEmail("");
       setCompanyName("");
@@ -132,6 +135,16 @@ export const AddEmployeeDialog = ({ open, onOpenChange, projectId, onSuccess }: 
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 placeholder="Ex: Pedreiro, Eletricista..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Setor</Label>
+              <Input
+                id="department"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                placeholder="Ex: Construção Civil, Elétrica..."
               />
             </div>
 

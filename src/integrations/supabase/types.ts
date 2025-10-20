@@ -196,6 +196,7 @@ export type Database = {
           construction_site_id: string | null
           created_at: string | null
           created_by_user_id: string
+          department: string | null
           email: string | null
           id: string
           name: string
@@ -210,6 +211,7 @@ export type Database = {
           construction_site_id?: string | null
           created_at?: string | null
           created_by_user_id: string
+          department?: string | null
           email?: string | null
           id?: string
           name: string
@@ -224,6 +226,7 @@ export type Database = {
           construction_site_id?: string | null
           created_at?: string | null
           created_by_user_id?: string
+          department?: string | null
           email?: string | null
           id?: string
           name?: string
