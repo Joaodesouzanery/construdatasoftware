@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Edit, Trash2, Upload } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImportDataDialog } from "@/components/projects/ImportDataDialog";
@@ -25,8 +25,17 @@ const Projects = () => {
     company_id: "",
     start_date: new Date().toISOString().split('T')[0],
     end_date: "",
-    status: "active"
+    status: "active",
+    address: "",
+    latitude: null as number | null,
+    longitude: null as number | null
   });
+
+  const [serviceFronts, setServiceFronts] = useState<string[]>([]);
+  const [constructionSites, setConstructionSites] = useState<string[]>([]);
+  const [newServiceFront, setNewServiceFront] = useState("");
+  const [newConstructionSite, setNewConstructionSite] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -50,6 +59,66 @@ const Projects = () => {
     if (data) setProjects(data);
   };
 
+  const handleGeocoding = async () => {
+    if (!formData.address.trim()) {
+      toast.error("Digite um endereço primeiro");
+      return;
+    }
+
+    setIsGeocoding(true);
+    try {
+      // Using Nominatim (OpenStreetMap) for free geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(formData.address)}&format=json&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'ConstruData/1.0'
+          }
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const location = data[0];
+        setFormData({
+          ...formData,
+          latitude: parseFloat(location.lat),
+          longitude: parseFloat(location.lon)
+        });
+        toast.success("Localização encontrada!");
+      } else {
+        toast.error("Endereço não encontrado. Tente ser mais específico.");
+      }
+    } catch (error) {
+      toast.error("Erro ao buscar localização");
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  const addServiceFront = () => {
+    if (newServiceFront.trim() && !serviceFronts.includes(newServiceFront.trim())) {
+      setServiceFronts([...serviceFronts, newServiceFront.trim()]);
+      setNewServiceFront("");
+    }
+  };
+
+  const removeServiceFront = (index: number) => {
+    setServiceFronts(serviceFronts.filter((_, i) => i !== index));
+  };
+
+  const addConstructionSite = () => {
+    if (newConstructionSite.trim() && !constructionSites.includes(newConstructionSite.trim())) {
+      setConstructionSites([...constructionSites, newConstructionSite.trim()]);
+      setNewConstructionSite("");
+    }
+  };
+
+  const removeConstructionSite = (index: number) => {
+    setConstructionSites(constructionSites.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -61,6 +130,8 @@ const Projects = () => {
     setIsLoading(true);
     
     try {
+      let projectId = editingProject?.id;
+
       if (editingProject) {
         const { error } = await supabase
           .from('projects')
@@ -69,24 +140,71 @@ const Projects = () => {
             company_id: formData.company_id || null,
             start_date: formData.start_date,
             end_date: formData.end_date || null,
-            status: formData.status
+            status: formData.status,
+            address: formData.address || null,
+            latitude: formData.latitude,
+            longitude: formData.longitude
           })
           .eq('id', editingProject.id);
 
         if (error) throw error;
         toast.success("Projeto atualizado com sucesso!");
       } else {
-        const { error } = await supabase
+        const { data: newProject, error } = await supabase
           .from('projects')
           .insert([{
-            ...formData,
+            name: formData.name,
             company_id: formData.company_id || null,
+            start_date: formData.start_date,
             end_date: formData.end_date || null,
+            status: formData.status,
+            address: formData.address || null,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
             created_by_user_id: user.id
-          }]);
+          }])
+          .select()
+          .single();
 
         if (error) throw error;
+        projectId = newProject.id;
         toast.success("Projeto criado com sucesso!");
+      }
+
+      // Insert service fronts
+      if (serviceFronts.length > 0 && projectId) {
+        const serviceFrontsData = serviceFronts.map(name => ({
+          name,
+          project_id: projectId,
+          created_by_user_id: user.id
+        }));
+
+        const { error: sfError } = await supabase
+          .from('service_fronts')
+          .insert(serviceFrontsData);
+
+        if (sfError) {
+          console.error("Erro ao criar frentes de serviço:", sfError);
+          toast.error("Erro ao criar frentes de serviço");
+        }
+      }
+
+      // Insert construction sites
+      if (constructionSites.length > 0 && projectId) {
+        const sitesData = constructionSites.map(name => ({
+          name,
+          project_id: projectId,
+          created_by_user_id: user.id
+        }));
+
+        const { error: csError } = await supabase
+          .from('construction_sites')
+          .insert(sitesData);
+
+        if (csError) {
+          console.error("Erro ao criar locais da obra:", csError);
+          toast.error("Erro ao criar locais da obra");
+        }
       }
 
       setFormData({
@@ -94,8 +212,13 @@ const Projects = () => {
         company_id: "",
         start_date: new Date().toISOString().split('T')[0],
         end_date: "",
-        status: "active"
+        status: "active",
+        address: "",
+        latitude: null,
+        longitude: null
       });
+      setServiceFronts([]);
+      setConstructionSites([]);
       setEditingProject(null);
       setShowDialog(false);
       loadProjects();
@@ -178,8 +301,13 @@ const Projects = () => {
                   company_id: "",
                   start_date: new Date().toISOString().split('T')[0],
                   end_date: "",
-                  status: "active"
+                  status: "active",
+                  address: "",
+                  latitude: null,
+                  longitude: null
                 });
+                setServiceFronts([]);
+                setConstructionSites([]);
                 setShowDialog(true);
               }}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -254,7 +382,7 @@ const Projects = () => {
       </main>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingProject ? "Editar Projeto" : "Novo Projeto"}</DialogTitle>
             <DialogDescription>
@@ -282,6 +410,117 @@ const Projects = () => {
                   onChange={(e) => setFormData({ ...formData, company_id: e.target.value })}
                   placeholder="Identificador da empresa"
                 />
+              </div>
+
+              {/* Localização */}
+              <div className="space-y-2">
+                <Label htmlFor="address">Localização da Obra</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Digite o endereço completo"
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleGeocoding}
+                    disabled={isGeocoding}
+                  >
+                    {isGeocoding ? (
+                      "Buscando..."
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4 mr-2" />
+                        Buscar
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {formData.latitude && formData.longitude && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                    <MapPin className="w-3 h-3" />
+                    <span>
+                      Localização: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Frentes de Serviço */}
+              <div className="space-y-2">
+                <Label>Frentes de Serviço</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newServiceFront}
+                    onChange={(e) => setNewServiceFront(e.target.value)}
+                    placeholder="Ex: Fundação, Estrutura, Acabamento"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addServiceFront();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addServiceFront}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                {serviceFronts.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {serviceFronts.map((front, index) => (
+                      <div key={index} className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">
+                        <span>{front}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeServiceFront(index)}
+                          className="hover:bg-primary/20 rounded p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Locais da Obra */}
+              <div className="space-y-2">
+                <Label>Locais da Obra</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newConstructionSite}
+                    onChange={(e) => setNewConstructionSite(e.target.value)}
+                    placeholder="Ex: Bloco A, Bloco B, Área Externa"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addConstructionSite();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addConstructionSite}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                {constructionSites.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {constructionSites.map((site, index) => (
+                      <div key={index} className="flex items-center gap-1 bg-secondary/10 text-secondary px-2 py-1 rounded-md text-sm">
+                        <span>{site}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeConstructionSite(index)}
+                          className="hover:bg-secondary/20 rounded p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -325,6 +564,8 @@ const Projects = () => {
               <Button type="button" variant="outline" onClick={() => {
                 setShowDialog(false);
                 setEditingProject(null);
+                setServiceFronts([]);
+                setConstructionSites([]);
               }}>
                 Cancelar
               </Button>

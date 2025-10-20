@@ -701,33 +701,42 @@ export type Database = {
       }
       projects: {
         Row: {
+          address: string | null
           company_id: string | null
           created_at: string | null
           created_by_user_id: string
           end_date: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
           start_date: string
           status: string | null
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           company_id?: string | null
           created_at?: string | null
           created_by_user_id: string
           end_date?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
           start_date: string
           status?: string | null
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           company_id?: string | null
           created_at?: string | null
           created_by_user_id?: string
           end_date?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           start_date?: string
           status?: string | null
