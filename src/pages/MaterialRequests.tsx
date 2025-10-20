@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Filter, Search, Building2, Eye } from "lucide-react";
+import { Plus, Filter, Search, Building2, Eye, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialRequestDialog } from "@/components/materials/AddMaterialRequestDialog";
+import { AddEmployeeDialog } from "@/components/employees/AddEmployeeDialog";
 import { demoMaterialRequests, demoUser } from "@/lib/demo-data";
 
 interface MaterialRequest {
@@ -19,8 +20,11 @@ interface MaterialRequest {
   quantity: number;
   unit: string;
   status: string;
+  needed_date?: string;
+  usage_location?: string;
   projects: { name: string };
   service_fronts: { name: string };
+  employees?: { name: string };
 }
 
 export default function MaterialRequests() {
@@ -31,6 +35,7 @@ export default function MaterialRequests() {
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEmployeeDialog, setShowEmployeeDialog] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -69,7 +74,8 @@ export default function MaterialRequests() {
         .select(`
           *,
           projects (name),
-          service_fronts (name)
+          service_fronts (name),
+          employees (name)
         `)
         .order("request_date", { ascending: false });
 
@@ -153,10 +159,16 @@ export default function MaterialRequests() {
             <h2 className="text-2xl font-bold">Gerencie as solicitações de materiais</h2>
             <p className="text-muted-foreground">Acompanhe e aprove pedidos</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={isDemoMode}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Pedido
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowEmployeeDialog(true)} disabled={isDemoMode}>
+              <Users className="mr-2 h-4 w-4" />
+              Adicionar Funcionário
+            </Button>
+            <Button onClick={() => setShowAddDialog(true)} disabled={isDemoMode}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Pedido
+            </Button>
+          </div>
         </div>
 
       <Card>
@@ -213,8 +225,11 @@ export default function MaterialRequests() {
                   <TableHead>Data</TableHead>
                   <TableHead>Material</TableHead>
                   <TableHead>Quantidade</TableHead>
+                  <TableHead>Solicitante</TableHead>
+                  <TableHead>Prazo</TableHead>
+                  <TableHead>Local de Uso</TableHead>
                   <TableHead>Projeto</TableHead>
-                  <TableHead>Frente de Serviço</TableHead>
+                  <TableHead>Frente</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -226,6 +241,15 @@ export default function MaterialRequests() {
                     <TableCell className="font-medium">{request.material_name}</TableCell>
                     <TableCell>
                       {request.quantity} {request.unit}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {request.employees?.name || '-'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {request.needed_date ? new Date(request.needed_date).toLocaleDateString("pt-BR") : '-'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {request.usage_location || '-'}
                     </TableCell>
                     <TableCell>{request.projects.name}</TableCell>
                     <TableCell>{request.service_fronts.name}</TableCell>
@@ -254,6 +278,11 @@ export default function MaterialRequests() {
         </CardContent>
       </Card>
 
+      <AddEmployeeDialog
+        open={showEmployeeDialog}
+        onOpenChange={setShowEmployeeDialog}
+        onSuccess={fetchRequests}
+      />
       </main>
     </div>
   );

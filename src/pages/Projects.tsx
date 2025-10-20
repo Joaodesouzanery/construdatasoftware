@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Edit, Trash2 } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ImportDataDialog } from "@/components/projects/ImportDataDialog";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const Projects = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
 
   const [formData, setFormData] = useState({
@@ -164,20 +166,26 @@ const Projects = () => {
               </Button>
               <h1 className="text-xl font-semibold">Gerenciar Projetos</h1>
             </div>
-            <Button onClick={() => {
-              setEditingProject(null);
-              setFormData({
-                name: "",
-                company_id: "",
-                start_date: new Date().toISOString().split('T')[0],
-                end_date: "",
-                status: "active"
-              });
-              setShowDialog(true);
-            }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Projeto
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Importar Dados
+              </Button>
+              <Button onClick={() => {
+                setEditingProject(null);
+                setFormData({
+                  name: "",
+                  company_id: "",
+                  start_date: new Date().toISOString().split('T')[0],
+                  end_date: "",
+                  status: "active"
+                });
+                setShowDialog(true);
+              }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Projeto
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -327,6 +335,12 @@ const Projects = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ImportDataDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onSuccess={loadProjects}
+      />
     </div>
   );
 };

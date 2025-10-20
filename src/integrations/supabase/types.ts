@@ -14,7 +14,848 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alertas_config: {
+        Row: {
+          ativo: boolean | null
+          condicao: Json
+          created_at: string | null
+          destinatarios: string[]
+          id: string
+          obra_id: string | null
+          tipo_alerta: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          condicao: Json
+          created_at?: string | null
+          destinatarios: string[]
+          id?: string
+          obra_id?: string | null
+          tipo_alerta: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          condicao?: Json
+          created_at?: string | null
+          destinatarios?: string[]
+          id?: string
+          obra_id?: string | null
+          tipo_alerta?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_config_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alertas_historico: {
+        Row: {
+          alerta_config_id: string
+          enviado_em: string | null
+          id: string
+          mensagem: string
+          obra_id: string
+        }
+        Insert: {
+          alerta_config_id: string
+          enviado_em?: string | null
+          id?: string
+          mensagem: string
+          obra_id: string
+        }
+        Update: {
+          alerta_config_id?: string
+          enviado_em?: string | null
+          id?: string
+          mensagem?: string
+          obra_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_historico_alerta_config_id_fkey"
+            columns: ["alerta_config_id"]
+            isOneToOne: false
+            referencedRelation: "alertas_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_historico_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      construction_sites: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          name: string
+          project_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          name: string
+          project_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          name?: string
+          project_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "construction_sites_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_reports: {
+        Row: {
+          construction_site_id: string
+          created_at: string | null
+          executed_by_user_id: string
+          id: string
+          project_id: string
+          report_date: string
+          service_front_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          construction_site_id: string
+          created_at?: string | null
+          executed_by_user_id: string
+          id?: string
+          project_id: string
+          report_date?: string
+          service_front_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          construction_site_id?: string
+          created_at?: string | null
+          executed_by_user_id?: string
+          id?: string
+          project_id?: string
+          report_date?: string
+          service_front_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reports_construction_site_id_fkey"
+            columns: ["construction_site_id"]
+            isOneToOne: false
+            referencedRelation: "construction_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_reports_service_front_id_fkey"
+            columns: ["service_front_id"]
+            isOneToOne: false
+            referencedRelation: "service_fronts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          company_name: string | null
+          construction_site_id: string | null
+          created_at: string | null
+          created_by_user_id: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          project_id: string | null
+          role: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          construction_site_id?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          project_id?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          construction_site_id?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          project_id?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_construction_site_id_fkey"
+            columns: ["construction_site_id"]
+            isOneToOne: false
+            referencedRelation: "construction_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      executed_services: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          daily_report_id: string
+          equipment_used: Json | null
+          id: string
+          quantity: number
+          service_id: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          daily_report_id: string
+          equipment_used?: Json | null
+          id?: string
+          quantity: number
+          service_id: string
+          unit: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          daily_report_id?: string
+          equipment_used?: Json | null
+          id?: string
+          quantity?: number
+          service_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executed_services_daily_report_id_fkey"
+            columns: ["daily_report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executed_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formulario_modelos: {
+        Row: {
+          campos: Json
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          tipo_obra: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          campos: Json
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          tipo_obra?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          campos?: Json
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tipo_obra?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      formularios_producao: {
+        Row: {
+          created_at: string | null
+          data_registro: string
+          equipe_nome: string | null
+          fotos_urls: string[] | null
+          frente_servico: string
+          id: string
+          localizacao_gps: string | null
+          modelo_id: string | null
+          obra_id: string
+          observacoes: string | null
+          responsavel_nome: string | null
+          respostas: Json
+          updated_at: string | null
+          videos_urls: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_registro?: string
+          equipe_nome?: string | null
+          fotos_urls?: string[] | null
+          frente_servico: string
+          id?: string
+          localizacao_gps?: string | null
+          modelo_id?: string | null
+          obra_id: string
+          observacoes?: string | null
+          responsavel_nome?: string | null
+          respostas: Json
+          updated_at?: string | null
+          videos_urls?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          data_registro?: string
+          equipe_nome?: string | null
+          fotos_urls?: string[] | null
+          frente_servico?: string
+          id?: string
+          localizacao_gps?: string | null
+          modelo_id?: string | null
+          obra_id?: string
+          observacoes?: string | null
+          responsavel_nome?: string | null
+          respostas?: Json
+          updated_at?: string | null
+          videos_urls?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formularios_producao_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "formulario_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formularios_producao_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      justifications: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          daily_report_id: string
+          executed_service_id: string | null
+          id: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          daily_report_id: string
+          executed_service_id?: string | null
+          id?: string
+          reason: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          daily_report_id?: string
+          executed_service_id?: string | null
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "justifications_daily_report_id_fkey"
+            columns: ["daily_report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "justifications_executed_service_id_fkey"
+            columns: ["executed_service_id"]
+            isOneToOne: false
+            referencedRelation: "executed_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_control: {
+        Row: {
+          created_at: string | null
+          id: string
+          material_name: string
+          project_id: string
+          quantity_used: number
+          recorded_by_user_id: string
+          service_front_id: string
+          unit: string
+          updated_at: string | null
+          usage_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          material_name: string
+          project_id: string
+          quantity_used: number
+          recorded_by_user_id: string
+          service_front_id: string
+          unit: string
+          updated_at?: string | null
+          usage_date?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          material_name?: string
+          project_id?: string
+          quantity_used?: number
+          recorded_by_user_id?: string
+          service_front_id?: string
+          unit?: string
+          updated_at?: string | null
+          usage_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_control_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_control_service_front_id_fkey"
+            columns: ["service_front_id"]
+            isOneToOne: false
+            referencedRelation: "service_fronts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          material_name: string
+          needed_date: string | null
+          project_id: string
+          quantity: number
+          request_date: string
+          requested_by_employee_id: string | null
+          requested_by_user_id: string
+          service_front_id: string
+          status: string
+          unit: string
+          updated_at: string | null
+          usage_location: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          material_name: string
+          needed_date?: string | null
+          project_id: string
+          quantity: number
+          request_date?: string
+          requested_by_employee_id?: string | null
+          requested_by_user_id: string
+          service_front_id: string
+          status?: string
+          unit: string
+          updated_at?: string | null
+          usage_location?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          material_name?: string
+          needed_date?: string | null
+          project_id?: string
+          quantity?: number
+          request_date?: string
+          requested_by_employee_id?: string | null
+          requested_by_user_id?: string
+          service_front_id?: string
+          status?: string
+          unit?: string
+          updated_at?: string | null
+          usage_location?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_requests_service_front_id_fkey"
+            columns: ["service_front_id"]
+            isOneToOne: false
+            referencedRelation: "service_fronts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metas_producao: {
+        Row: {
+          created_at: string | null
+          frente_servico: string
+          id: string
+          meta_diaria: number | null
+          obra_id: string
+          periodo_fim: string | null
+          periodo_inicio: string
+          unidade: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          frente_servico: string
+          id?: string
+          meta_diaria?: number | null
+          obra_id: string
+          periodo_fim?: string | null
+          periodo_inicio: string
+          unidade: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          frente_servico?: string
+          id?: string
+          meta_diaria?: number | null
+          obra_id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string
+          unidade?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_producao_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras: {
+        Row: {
+          created_at: string | null
+          data_inicio: string
+          data_prevista_fim: string | null
+          id: string
+          latitude: number | null
+          localizacao: string
+          longitude: number | null
+          nome: string
+          status: string | null
+          tipo_obra: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_inicio: string
+          data_prevista_fim?: string | null
+          id?: string
+          latitude?: number | null
+          localizacao: string
+          longitude?: number | null
+          nome: string
+          status?: string | null
+          tipo_obra: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data_inicio?: string
+          data_prevista_fim?: string | null
+          id?: string
+          latitude?: number | null
+          localizacao?: string
+          longitude?: number | null
+          nome?: string
+          status?: string | null
+          tipo_obra?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      production_targets: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          service_front_id: string
+          service_id: string
+          target_date: string
+          target_quantity: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          service_front_id: string
+          service_id: string
+          target_date: string
+          target_quantity: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          service_front_id?: string
+          service_id?: string
+          target_date?: string
+          target_quantity?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_targets_service_front_id_fkey"
+            columns: ["service_front_id"]
+            isOneToOne: false
+            referencedRelation: "service_fronts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_targets_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          created_by_user_id: string
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      rdos: {
+        Row: {
+          clima_previsao_chuva: boolean | null
+          clima_temperatura: number | null
+          clima_umidade: number | null
+          clima_vento_velocidade: number | null
+          condicao_terreno: string | null
+          created_at: string | null
+          data: string
+          fotos_validacao: string[] | null
+          id: string
+          localizacao_validada: string | null
+          obra_id: string
+          observacoes_gerais: string | null
+          producao_ids: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          clima_previsao_chuva?: boolean | null
+          clima_temperatura?: number | null
+          clima_umidade?: number | null
+          clima_vento_velocidade?: number | null
+          condicao_terreno?: string | null
+          created_at?: string | null
+          data?: string
+          fotos_validacao?: string[] | null
+          id?: string
+          localizacao_validada?: string | null
+          obra_id: string
+          observacoes_gerais?: string | null
+          producao_ids?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          clima_previsao_chuva?: boolean | null
+          clima_temperatura?: number | null
+          clima_umidade?: number | null
+          clima_vento_velocidade?: number | null
+          condicao_terreno?: string | null
+          created_at?: string | null
+          data?: string
+          fotos_validacao?: string[] | null
+          id?: string
+          localizacao_validada?: string | null
+          obra_id?: string
+          observacoes_gerais?: string | null
+          producao_ids?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_fronts: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          description: string | null
+          id: string
+          name: string
+          project_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          description?: string | null
+          id?: string
+          name: string
+          project_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_fronts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services_catalog: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          name: string
+          unit: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          name: string
+          unit: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          name?: string
+          unit?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

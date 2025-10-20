@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, TrendingDown, Building2, Eye } from "lucide-react";
+import { Plus, Search, TrendingDown, Building2, Eye, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialControlDialog } from "@/components/materials/AddMaterialControlDialog";
+import { MaterialComparisonDashboard } from "@/components/materials/MaterialComparisonDashboard";
 import { demoMaterialControl, demoProjects, demoUser } from "@/lib/demo-data";
 
 interface MaterialControl {
@@ -188,6 +190,17 @@ export default function MaterialControl() {
           </Button>
         </div>
 
+        <Tabs defaultValue="records" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="records">Registros</TabsTrigger>
+            <TabsTrigger value="comparison">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Comparativo
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="records" className="space-y-6">
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -317,7 +330,30 @@ export default function MaterialControl() {
             </Table>
           )}
         </CardContent>
-      </Card>
+          </Card>
+          </TabsContent>
+
+          <TabsContent value="comparison">
+            {projectFilter !== 'all' ? (
+              <MaterialComparisonDashboard projectId={projectFilter} />
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <BarChart3 className="w-16 h-16 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    Selecione um projeto para visualizar o comparativo
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+
+      <AddMaterialControlDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onSuccess={fetchControls}
+      />
 
       </main>
     </div>

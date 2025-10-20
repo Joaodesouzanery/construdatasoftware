@@ -4,11 +4,12 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, TrendingUp, Target, AlertCircle, Download, Mail, Eye } from "lucide-react";
+import { Building2, TrendingUp, Target, AlertCircle, Download, Mail, Eye, MapPin, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ProductionChart } from "@/components/production/ProductionChart";
 import { ServiceComparisonChart } from "@/components/production/ServiceComparisonChart";
 import { AddTargetDialog } from "@/components/production/AddTargetDialog";
+import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
 import { ReportConfigDialog } from "@/components/production/ReportConfigDialog";
 import { demoProjects, demoConstructionSites, demoProducaoData, demoMetasData, demoUser } from "@/lib/demo-data";
 
@@ -47,6 +48,7 @@ const ProductionControl = () => {
   // Dialogs
   const [showTargetDialog, setShowTargetDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [showSiteDialog, setShowSiteDialog] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -349,39 +351,52 @@ const ProductionControl = () => {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Projeto</label>
-                <Select value={selectedProject} onValueChange={setSelectedProject}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o projeto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map(project => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Projeto</label>
+                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o projeto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Local da Obra</label>
-                <Select value={selectedSite} onValueChange={setSelectedSite}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os locais" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os locais</SelectItem>
-                    {constructionSites.map(site => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {site.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Local da Obra</label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowSiteDialog(true)}
+                      disabled={!selectedProject}
+                      className="h-auto p-0 text-xs"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Novo
+                    </Button>
+                  </div>
+                  <Select value={selectedSite} onValueChange={setSelectedSite}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os locais" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os locais</SelectItem>
+                      {constructionSites.map(site => (
+                        <SelectItem key={site.id} value={site.id}>
+                          {site.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Período</label>
@@ -519,6 +534,16 @@ const ProductionControl = () => {
         open={showReportDialog}
         onOpenChange={setShowReportDialog}
         projectId={selectedProject}
+      />
+
+      <AddConstructionSiteDialog
+        open={showSiteDialog}
+        onOpenChange={setShowSiteDialog}
+        projectId={selectedProject}
+        onSuccess={() => {
+          loadConstructionSites();
+          setShowSiteDialog(false);
+        }}
       />
     </div>
   );
