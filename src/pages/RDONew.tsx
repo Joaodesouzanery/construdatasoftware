@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Trash2, FileText, BarChart3, Eye } from "lucide-react";
+import { Building2, Plus, Trash2, FileText, BarChart3, Eye, MapPin, Image, Cloud } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
@@ -58,6 +58,12 @@ const RDONew = () => {
   const [showNewQuestionDialog, setShowNewQuestionDialog] = useState(false);
   const [newQuestionText, setNewQuestionText] = useState("");
   const [newQuestionType, setNewQuestionType] = useState<'text' | 'select' | 'number'>('text');
+  
+  // Novos campos
+  const [terrainCondition, setTerrainCondition] = useState("");
+  const [location, setLocation] = useState("");
+  const [generalObservations, setGeneralObservations] = useState("");
+  const [validationPhotos, setValidationPhotos] = useState<File[]>([]);
 
   // Dialog states
   const [showServiceFrontDialog, setShowServiceFrontDialog] = useState(false);
@@ -250,6 +256,36 @@ const RDONew = () => {
     setCustomQuestions(customQuestions.filter(q => q.id !== id));
   };
 
+  const handleGetGPS = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude.toFixed(6);
+          const lng = position.coords.longitude.toFixed(6);
+          setLocation(`${lat}, ${lng}`);
+          toast.success("Localização obtida com sucesso!");
+        },
+        (error) => {
+          toast.error("Erro ao obter localização: " + error.message);
+        }
+      );
+    } else {
+      toast.error("Geolocalização não disponível neste navegador");
+    }
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setValidationPhotos([...validationPhotos, ...newFiles]);
+      toast.success(`${newFiles.length} foto(s) adicionada(s)`);
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setValidationPhotos(validationPhotos.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -368,7 +404,9 @@ const RDONew = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="create" className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <div className="lg:col-span-2">
+        <Tabs defaultValue="create">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="create">
               <FileText className="w-4 h-4 mr-2" />
@@ -655,6 +693,117 @@ const RDONew = () => {
                 </Button>
               </div>
 
+              {/* Condição do Terreno */}
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Condição do Terreno</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Select value={terrainCondition} onValueChange={setTerrainCondition}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a condição" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="seco">Seco</SelectItem>
+                      <SelectItem value="umido">Úmido</SelectItem>
+                      <SelectItem value="molhado">Molhado</SelectItem>
+                      <SelectItem value="lamacento">Lamacento</SelectItem>
+                      <SelectItem value="alagado">Alagado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+
+              {/* Localização */}
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Localização</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Latitude, Longitude"
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" onClick={handleGetGPS}>
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Obter GPS
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Observações Gerais */}
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Observações Gerais</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={generalObservations}
+                    onChange={(e) => setGeneralObservations(e.target.value)}
+                    placeholder="Descreva as atividades realizadas, problemas encontrados, etc."
+                    rows={4}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Fotos de Validação */}
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Image className="w-4 h-4" />
+                    Fotos de Validação
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Tire fotos do local para validar a localização
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {validationPhotos.map((photo, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={URL.createObjectURL(photo)}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-md"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      id="photo-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => document.getElementById('photo-upload')?.click()}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Fotos
+                    </Button>
+                  </label>
+                </CardContent>
+              </Card>
+
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Salvando..." : "Criar RDO"}
                   </Button>
@@ -678,6 +827,61 @@ const RDONew = () => {
             )}
           </TabsContent>
         </Tabs>
+        </div>
+
+        {/* Sidebar Direita */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Dados Climáticos */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Cloud className="w-5 h-5" />
+                Dados Climáticos
+              </CardTitle>
+              <CardDescription>Aguardando localização</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <Cloud className="w-16 h-16 text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground text-center">
+                Selecione uma obra e obtenha a localização para ver os dados climáticos
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Dicas */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Dicas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                <p className="text-sm text-muted-foreground">
+                  Registre o RDO diariamente para melhor controle
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                <p className="text-sm text-muted-foreground">
+                  As fotos ajudam na validação da localização
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                <p className="text-sm text-muted-foreground">
+                  Dados climáticos são salvos automaticamente
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                <p className="text-sm text-muted-foreground">
+                  Descreva detalhadamente as atividades realizadas
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        </div>
       </main>
 
       <AddServiceFrontDialog
