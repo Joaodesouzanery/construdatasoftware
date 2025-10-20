@@ -7,7 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Building2, Eye } from "lucide-react";
+import { Building2, Eye, CheckCircle2 } from "lucide-react";
+import { z } from "zod";
+
+const signUpSchema = z.object({
+  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
+  email: z.string().email("Email inválido"),
+  password: z.string()
+    .min(6, "Senha deve ter pelo menos 6 caracteres")
+    .max(100, "Senha muito longa")
+});
+
+const signInSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(1, "Senha é obrigatória")
+});
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -42,25 +56,61 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      // Validar inputs
+      const validationResult = signUpSchema.safeParse({
+        name: name.trim(),
+        email: email.trim(),
+        password
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const { error, data } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            name: name,
+            name: name.trim(),
           }
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Mensagens de erro mais amigáveis
+        if (error.message.includes("already registered")) {
+          toast.error("Este email já está cadastrado. Faça login ou use outro email.");
+        } else if (error.message.includes("password")) {
+          toast.error("Senha inválida. Use pelo menos 6 caracteres.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
 
-      toast.success("Conta criada com sucesso! Você já pode fazer login.");
+      // Sucesso no cadastro
+      toast.success("Conta criada com sucesso!", {
+        description: "Você já está logado e pode começar a usar o sistema.",
+        icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
+      });
+      
+      // Limpar campos
       setEmail("");
       setPassword("");
       setName("");
+      
+      // Redirecionar após um pequeno delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar conta");
+      console.error("Signup error:", error);
+      toast.error("Erro ao criar conta. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -71,17 +121,41 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      // Validar inputs
+      const validationResult = signInSchema.safeParse({
+        email: email.trim(),
+        password
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Mensagens de erro mais amigáveis
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Email ou senha incorretos. Verifique seus dados.");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Confirme seu email antes de fazer login.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
 
       toast.success("Login realizado com sucesso!");
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer login");
+      console.error("Login error:", error);
+      toast.error("Erro ao fazer login. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -177,6 +251,9 @@ const Auth = () => {
                     disabled={isLoading}
                     minLength={6}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo de 6 caracteres
+                  </p>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Criando conta..." : "Criar Conta"}
