@@ -92,7 +92,7 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:inline">
-              {user?.user_metadata?.name || user?.email}
+              {user?.user_metadata?.name || user?.email || 'Usuário Demo'}
             </span>
             {!isDemoMode && (
               <Button variant="ghost" size="icon">
@@ -112,43 +112,23 @@ const Dashboard = () => {
           <DemoModeToggle />
         </div>
 
-        {isDemoMode && (
-          <Card className="mb-6 sm:mb-8 border-primary/50 bg-primary/5">
-            <CardContent className="pt-4 sm:pt-6">
-              <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0 mt-1" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-base sm:text-lg mb-2">Modo Demonstração</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Você está navegando no modo demo com dados de exemplo. Para ter acesso completo a todas as funcionalidades, 
-                    incluindo criação de obras, salvamento de dados e relatórios personalizados, faça login ou crie sua conta.
-                  </p>
-                  <Button onClick={() => navigate('/auth')} className="gap-2 w-full sm:w-auto">
-                    Fazer Login / Criar Conta
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Bem-vindo ao ConstruData</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            {isDemoMode ? "Explore as funcionalidades da plataforma" : "Gerencie suas obras com eficiência e precisão"}
+            {isDemoMode ? "Explore as funcionalidades da plataforma com dados fictícios" : "Gerencie suas obras com eficiência e precisão"}
           </p>
         </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => !isDemoMode && navigate('/projects')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => isDemoMode ? navigate('/projects?demo=true') : navigate('/projects')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <CardTitle className="text-base sm:text-lg">Projetos</CardTitle>
               <CardDescription className="text-sm">
-                {isDemoMode ? "Recurso disponível após login" : "Gerencie seus projetos"}
+                Gerencie seus projetos
               </CardDescription>
             </CardHeader>
           </Card>
@@ -160,66 +140,66 @@ const Dashboard = () => {
               </div>
               <CardTitle className="text-base sm:text-lg">Novo RDO</CardTitle>
               <CardDescription className="text-sm">
-                {isDemoMode ? "Veja exemplo de RDO" : "Criar relatório diário"}
+                {isDemoMode ? "Criar relatório com dados fictícios" : "Criar relatório diário"}
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/rdo-history?demo=true' : '/rdo-history')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-400 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
-                <History className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <History className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Histórico de RDOs</CardTitle>
-              <CardDescription>
-                {isDemoMode ? "Recurso disponível após login" : "Visualize e analise RDOs"}
+              <CardTitle className="text-base sm:text-lg">Histórico de RDOs</CardTitle>
+              <CardDescription className="text-sm">
+                Visualize e analise RDOs
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/production-control?demo=true' : '/production-control')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center text-secondary-foreground mb-4 group-hover:scale-110 transition-transform">
-                <ClipboardList className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center text-secondary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Controle de Produção</CardTitle>
-              <CardDescription>
-                {isDemoMode ? "Veja dashboards de exemplo" : "Dashboards e análises"}
+              <CardTitle className="text-base sm:text-lg">Controle de Produção</CardTitle>
+              <CardDescription className="text-sm">
+                {isDemoMode ? "Visualize dashboards com dados fictícios" : "Dashboards e análises"}
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/material-requests?demo=true' : '/material-requests')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-400 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
-                <Package className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Pedidos de Material</CardTitle>
-              <CardDescription>
-                {isDemoMode ? "Veja exemplo de pedidos" : "Solicite materiais"}
+              <CardTitle className="text-base sm:text-lg">Pedidos de Material</CardTitle>
+              <CardDescription className="text-sm">
+                {isDemoMode ? "Gerencie pedidos com dados fictícios" : "Solicite materiais"}
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/material-control?demo=true' : '/material-control')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-green-400 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
-                <TrendingDown className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-green-500 to-green-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Controle de Material</CardTitle>
-              <CardDescription>
-                {isDemoMode ? "Veja exemplo de controle" : "Monitore consumo"}
+              <CardTitle className="text-base sm:text-lg">Controle de Material</CardTitle>
+              <CardDescription className="text-sm">
+                {isDemoMode ? "Monitore consumo com dados fictícios" : "Monitore consumo"}
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/alerts?demo=true' : '/alerts')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-destructive to-destructive/70 flex items-center justify-center text-destructive-foreground mb-4 group-hover:scale-110 transition-transform">
-                <Bell className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-destructive to-destructive/70 flex items-center justify-center text-destructive-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Alertas</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base sm:text-lg">Alertas</CardTitle>
+              <CardDescription className="text-sm">
                 Configure notificações
               </CardDescription>
             </CardHeader>
@@ -227,12 +207,12 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate(isDemoMode ? '/employees?demo=true' : '/employees')}>
             <CardHeader>
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
-                <Users className="w-6 h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle>Funcionários</CardTitle>
-              <CardDescription>
-                {isDemoMode ? "Veja exemplo de gestão" : "Gerencie funcionários"}
+              <CardTitle className="text-base sm:text-lg">Funcionários</CardTitle>
+              <CardDescription className="text-sm">
+                {isDemoMode ? "Gerencie funcionários com dados fictícios" : "Gerencie funcionários"}
               </CardDescription>
             </CardHeader>
           </Card>
