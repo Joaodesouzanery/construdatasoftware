@@ -431,6 +431,30 @@ const RDONew = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Informações do RDO</h3>
                 
+                {/* Quadro 0: Projeto */}
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Projeto *</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Select 
+                      value={selectedProject} 
+                      onValueChange={setSelectedProject}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o projeto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map(project => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
                 {/* Quadro 1: Frente de Serviço */}
                 <Card className="border-2 border-primary/20">
                   <CardHeader className="pb-3">
