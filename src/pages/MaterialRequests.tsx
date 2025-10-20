@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialRequestDialog } from "@/components/materials/AddMaterialRequestDialog";
@@ -20,9 +21,9 @@ interface MaterialRequest {
   status: string;
   needed_date?: string;
   usage_location?: string;
+  requestor_name?: string;
   projects: { name: string };
   service_fronts: { name: string };
-  employees?: { name: string };
 }
 
 export default function MaterialRequests() {
@@ -55,8 +56,7 @@ export default function MaterialRequests() {
         .select(`
           *,
           projects (name),
-          service_fronts (name),
-          employees (name)
+          service_fronts (name)
         `)
         .order("request_date", { ascending: false });
 
@@ -183,63 +183,65 @@ export default function MaterialRequests() {
           ) : filteredRequests.length === 0 ? (
             <p className="text-center text-muted-foreground py-8 text-sm">Nenhum pedido encontrado</p>
           ) : (
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[100px]">Data</TableHead>
-                    <TableHead className="min-w-[150px]">Material</TableHead>
-                    <TableHead className="min-w-[100px]">Quantidade</TableHead>
-                    <TableHead className="hidden md:table-cell min-w-[120px]">Solicitante</TableHead>
-                    <TableHead className="hidden lg:table-cell min-w-[100px]">Prazo</TableHead>
-                    <TableHead className="hidden lg:table-cell min-w-[120px]">Local de Uso</TableHead>
-                    <TableHead className="hidden xl:table-cell min-w-[150px]">Projeto</TableHead>
-                    <TableHead className="hidden xl:table-cell min-w-[120px]">Frente</TableHead>
-                    <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[130px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="text-sm">{new Date(request.request_date).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell className="font-medium text-sm">{request.material_name}</TableCell>
-                      <TableCell className="text-sm">
-                        {request.quantity} {request.unit}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">
-                        {request.employees?.name || '-'}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">
-                        {request.needed_date ? new Date(request.needed_date).toLocaleDateString("pt-BR") : '-'}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm">
-                        {request.usage_location || '-'}
-                      </TableCell>
-                      <TableCell className="hidden xl:table-cell text-sm">{request.projects.name}</TableCell>
-                      <TableCell className="hidden xl:table-cell text-sm">{request.service_fronts.name}</TableCell>
-                      <TableCell>{getStatusBadge(request.status)}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={request.status}
-                          onValueChange={(value) => updateRequestStatus(request.id, value)}
-                        >
-                          <SelectTrigger className="w-[120px] h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pendente">Pendente</SelectItem>
-                            <SelectItem value="aprovado">Aprovado</SelectItem>
-                            <SelectItem value="rejeitado">Rejeitado</SelectItem>
-                            <SelectItem value="entregue">Entregue</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
+            <ScrollArea className="h-[600px] w-full">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[100px]">Data</TableHead>
+                      <TableHead className="min-w-[150px]">Material</TableHead>
+                      <TableHead className="min-w-[100px]">Quantidade</TableHead>
+                      <TableHead className="hidden md:table-cell min-w-[120px]">Solicitante</TableHead>
+                      <TableHead className="hidden lg:table-cell min-w-[100px]">Prazo</TableHead>
+                      <TableHead className="hidden lg:table-cell min-w-[120px]">Local de Uso</TableHead>
+                      <TableHead className="hidden xl:table-cell min-w-[150px]">Projeto</TableHead>
+                      <TableHead className="hidden xl:table-cell min-w-[120px]">Frente</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="min-w-[130px]">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell className="text-sm">{new Date(request.request_date).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell className="font-medium text-sm">{request.material_name}</TableCell>
+                        <TableCell className="text-sm">
+                          {request.quantity} {request.unit}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">
+                          {request.requestor_name || '-'}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm">
+                          {request.needed_date ? new Date(request.needed_date).toLocaleDateString("pt-BR") : '-'}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm">
+                          {request.usage_location || '-'}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-sm">{request.projects.name}</TableCell>
+                        <TableCell className="hidden xl:table-cell text-sm">{request.service_fronts.name}</TableCell>
+                        <TableCell>{getStatusBadge(request.status)}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={request.status}
+                            onValueChange={(value) => updateRequestStatus(request.id, value)}
+                          >
+                            <SelectTrigger className="w-[120px] h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pendente">Pendente</SelectItem>
+                              <SelectItem value="aprovado">Aprovado</SelectItem>
+                              <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                              <SelectItem value="entregue">Entregue</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>
