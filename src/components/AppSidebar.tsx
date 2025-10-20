@@ -30,11 +30,9 @@ const settingsItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { open } = useSidebar();
   const location = useLocation();
-  const currentPath = location.pathname;
 
-  const isCollapsed = state === "collapsed";
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted/50";
 
@@ -43,7 +41,7 @@ export function AppSidebar() {
       <SidebarContent>
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
-            <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sm font-medium">Menu Principal</SidebarGroupLabel>
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -52,7 +50,7 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} end className={getNavCls}>
                           <item.icon className="h-4 w-4" />
-                          {!isCollapsed && <span>{item.title}</span>}
+                          <span>{item.title}</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -65,7 +63,7 @@ export function AppSidebar() {
 
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
-            <SidebarGroupLabel>Sistema</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sm font-medium">Sistema</SidebarGroupLabel>
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -74,7 +72,7 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} end className={getNavCls}>
                           <item.icon className="h-4 w-4" />
-                          {!isCollapsed && <span>{item.title}</span>}
+                          <span>{item.title}</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
