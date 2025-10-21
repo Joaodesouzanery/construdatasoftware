@@ -58,69 +58,45 @@ const Hero = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background dark:bg-background">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border/50">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold text-primary">ConstruData</span>
-            </div>
-            <Button 
-              onClick={() => navigate('/auth')}
-              className="bg-primary hover:bg-primary/90"
-            >
-              Fazer Orçamento
-            </Button>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 md:py-32">
-        {/* Background gradient effects */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-[120px]" />
-        </div>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         
-        <div className="container relative z-10 px-4 mx-auto">
-          <div className="max-w-5xl mx-auto text-center space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-medium uppercase tracking-wide">
-              <span className="text-primary">GESTÃO DE OBRAS DE PONTA A PONTA</span>
+        <div className="container relative z-10 px-4 py-20 mx-auto">
+          <div className="max-w-4xl mx-auto text-center space-y-8 animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20">
+              <Building2 className="w-4 h-4" />
+              <span className="text-sm font-medium">Gestão de Obras Inteligente</span>
             </div>
             
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
-              <span className="bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
-                Garanta o mesmo nível de controle
-              </span>
-              <br />
-              <span className="text-foreground">
-                das Empresas líderes do mercado
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent">
+                ConstruData
               </span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Controle projetos, produção e equipes com tecnologia de ponta e monitoramento contínuo para garantir o sucesso total da sua obra.
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Plataforma completa para gestão de obras com Controle de Produção, RDO e Alertas Inteligentes
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
-              <Button 
-                size="lg" 
-                onClick={() => navigate('/dashboard')}
-                variant="outline"
-                className="w-full sm:w-auto border-white/80 hover:bg-primary/10 hover:border-white transition-all text-base"
-              >
-                Ver mais
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
               <Button 
                 size="lg" 
                 onClick={() => navigate('/auth')}
-                className="w-full sm:w-auto bg-card text-card-foreground hover:bg-card/90 shadow-lg hover:shadow-xl transition-all duration-300 group text-base font-semibold"
+                className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/90 hover:shadow-lg hover:shadow-primary/50 transition-all duration-300 group"
               >
-                Contratar Agora
+                Começar Agora
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+                className="w-full sm:w-auto border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
+              >
+                <Eye className="mr-2 w-5 h-5" />
+                Ver Dashboard
               </Button>
             </div>
           </div>
@@ -128,9 +104,9 @@ const Hero = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="container px-4 py-20 mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4">Funcionalidades Completas</h2>
+      <section className="container px-4 py-16 mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Funcionalidades Completas</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Todas as ferramentas necessárias para gerenciar suas obras com eficiência
           </p>
@@ -140,11 +116,11 @@ const Hero = () => {
           {features.map((feature, index) => (
             <Card 
               key={index}
-              className="group cursor-pointer hover:shadow-xl hover:shadow-primary/10 hover:border-primary/50 transition-all duration-300 bg-card"
+              className="group cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-300"
               onClick={() => navigate(feature.link)}
             >
               <CardHeader>
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-primary/20">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-4 group-hover:scale-110 transition-transform">
                   {feature.icon}
                 </div>
                 <CardTitle className="text-lg">{feature.title}</CardTitle>
@@ -158,20 +134,20 @@ const Hero = () => {
       </section>
 
       {/* Security Trust Section */}
-      <section className="container px-4 py-20 mx-auto">
-        <div className="max-w-6xl mx-auto bg-card rounded-3xl p-8 md:p-12 shadow-2xl border border-border/50">
+      <section className="container px-4 py-16 mx-auto bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-3xl border border-green-200/50 dark:border-green-800/50">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 mb-6 text-sm font-semibold uppercase tracking-wide">
-              <Shield className="w-4 h-4 text-primary" />
-              <span className="text-primary">Segurança Empresarial</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700 mb-4">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-semibold">Segurança Empresarial</span>
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-primary">Seus Dados Protegidos</h2>
-            <p className="text-primary text-lg max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Seus Dados Protegidos</h2>
+            <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
               Segurança de nível empresarial para proteger informações confidenciais da sua empresa
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <SecurityFeature
               icon="🔐"
               title="Autenticação Segura"
@@ -194,16 +170,16 @@ const Hero = () => {
             />
           </div>
 
-          <div className="p-6 bg-primary/5 rounded-xl border border-primary/20">
+          <div className="mt-12 p-6 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-green-200 dark:border-green-800">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-2 text-primary">Proteção de Dados Confidenciais</h3>
-                <p className="text-sm text-primary/80">
+                <h3 className="font-semibold text-lg mb-2">Proteção de Dados Confidenciais</h3>
+                <p className="text-sm text-muted-foreground">
                   Informações sensíveis como dados de funcionários, localização de obras, métricas de produção e custos de materiais 
                   são protegidas por políticas de segurança em nível de linha (RLS). Concorrentes não podem acessar seus dados, 
                   mesmo criando uma conta gratuita.
@@ -212,7 +188,7 @@ const Hero = () => {
             </div>
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               ✓ Criptografia end-to-end &nbsp;•&nbsp; ✓ Políticas de segurança em nível de linha &nbsp;•&nbsp; ✓ Autenticação JWT
             </p>
@@ -252,24 +228,21 @@ const Hero = () => {
 
       {/* CTA Section */}
       <section className="container px-4 py-20 mx-auto">
-        <div className="max-w-4xl mx-auto text-center bg-card rounded-3xl p-12 md:p-16 shadow-2xl border border-border/50 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-primary">
-              Pronto para transformar sua gestão de obras?
-            </h2>
-            <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
-              Comece agora e tenha controle total sobre projetos, produção, materiais e equipe
-            </p>
-            <Button 
-              size="lg"
-              onClick={() => navigate('/auth')}
-              className="bg-card text-card-foreground hover:bg-card/90 shadow-lg hover:shadow-xl transition-all duration-300 text-base font-semibold px-8"
-            >
-              Criar Conta Grátis
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </div>
+        <div className="max-w-4xl mx-auto text-center bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-12 border border-primary/20">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Pronto para transformar sua gestão de obras?
+          </h2>
+          <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
+            Comece agora e tenha controle total sobre projetos, produção, materiais e equipe
+          </p>
+          <Button 
+            size="lg"
+            onClick={() => navigate('/auth')}
+            className="bg-gradient-to-r from-primary to-primary/90 hover:shadow-lg hover:shadow-primary/50 transition-all duration-300"
+          >
+            Criar Conta Grátis
+            <ArrowRight className="ml-2 w-5 h-5" />
+          </Button>
         </div>
       </section>
     </div>
@@ -287,10 +260,10 @@ const BenefitCard = ({ icon, title, description }: { icon: React.ReactNode; titl
 );
 
 const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-  <div className="bg-background/50 p-6 rounded-xl border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+  <div className="bg-white/80 dark:bg-slate-900/80 p-6 rounded-xl border border-green-200/50 dark:border-green-800/50 hover:border-green-300 dark:hover:border-green-700 transition-colors">
     <div className="text-4xl mb-3">{icon}</div>
-    <h3 className="font-semibold mb-2 text-sm text-white">{title}</h3>
-    <p className="text-xs text-white leading-relaxed">{description}</p>
+    <h3 className="font-semibold mb-2 text-sm">{title}</h3>
+    <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
   </div>
 );
 
