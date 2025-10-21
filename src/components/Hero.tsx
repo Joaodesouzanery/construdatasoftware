@@ -102,7 +102,7 @@ const Hero = () => {
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Gestão sem falhas. Controle projetos, produção e equipes com tecnologia de ponta e monitoramento contínuo para garantir o sucesso total da sua obra.
+              Controle projetos, produção e equipes com tecnologia de ponta e monitoramento contínuo para garantir o sucesso total da sua obra.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
@@ -110,7 +110,7 @@ const Hero = () => {
                 size="lg" 
                 onClick={() => navigate('/dashboard')}
                 variant="outline"
-                className="w-full sm:w-auto border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all text-base"
+                className="w-full sm:w-auto border-white/80 hover:bg-primary/10 hover:border-white transition-all text-base"
               >
                 Ver mais
               </Button>
@@ -166,7 +166,7 @@ const Hero = () => {
               Segurança Empresarial
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-4">Seus Dados Protegidos</h2>
-            <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+            <p className="text-primary text-lg max-w-3xl mx-auto">
               Segurança de nível empresarial para proteger informações confidenciais da sua empresa
             </p>
           </div>
@@ -202,8 +202,8 @@ const Hero = () => {
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-2">Proteção de Dados Confidenciais</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-lg mb-2 text-primary">Proteção de Dados Confidenciais</h3>
+                <p className="text-sm text-primary/80">
                   Informações sensíveis como dados de funcionários, localização de obras, métricas de produção e custos de materiais 
                   são protegidas por políticas de segurança em nível de linha (RLS). Concorrentes não podem acessar seus dados, 
                   mesmo criando uma conta gratuita.
