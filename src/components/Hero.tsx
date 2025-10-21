@@ -88,7 +88,7 @@ const Hero = () => {
         <div className="container relative z-10 px-4 mx-auto">
           <div className="max-w-5xl mx-auto text-center space-y-8 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-medium uppercase tracking-wide">
-              GESTÃO DE OBRAS DE PONTA A PONTA
+              <span className="text-primary">GESTÃO DE OBRAS DE PONTA A PONTA</span>
             </div>
             
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
@@ -162,8 +162,8 @@ const Hero = () => {
         <div className="max-w-6xl mx-auto bg-card rounded-3xl p-8 md:p-12 shadow-2xl border border-border/50">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 mb-6 text-sm font-semibold uppercase tracking-wide">
-              <Shield className="w-4 h-4" />
-              Segurança Empresarial
+              <Shield className="w-4 h-4 text-primary" />
+              <span className="text-primary">Segurança Empresarial</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-4">Seus Dados Protegidos</h2>
             <p className="text-primary text-lg max-w-3xl mx-auto">
@@ -289,8 +289,8 @@ const BenefitCard = ({ icon, title, description }: { icon: React.ReactNode; titl
 const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
   <div className="bg-background/50 p-6 rounded-xl border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
     <div className="text-4xl mb-3">{icon}</div>
-    <h3 className="font-semibold mb-2 text-sm">{title}</h3>
-    <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+    <h3 className="font-semibold mb-2 text-sm text-primary">{title}</h3>
+    <p className="text-xs text-primary/80 leading-relaxed">{description}</p>
   </div>
 );
 
