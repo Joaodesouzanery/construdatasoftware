@@ -290,7 +290,7 @@ const SecurityFeature = ({ icon, title, description }: { icon: string; title: st
   <div className="bg-background/50 p-6 rounded-xl border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
     <div className="text-4xl mb-3">{icon}</div>
     <h3 className="font-semibold mb-2 text-sm text-white">{title}</h3>
-    <p className="text-xs text-primary/80 leading-relaxed">{description}</p>
+    <p className="text-xs text-white leading-relaxed">{description}</p>
   </div>
 );
 
