@@ -58,25 +58,27 @@ const Hero = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <div className="min-h-screen bg-[#0a1628] relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-20 left-10 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+      
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
-        
         <div className="container relative z-10 px-4 py-20 mx-auto">
           <div className="max-w-4xl mx-auto text-center space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary border border-primary/20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 backdrop-blur-sm">
               <Building2 className="w-4 h-4" />
               <span className="text-sm font-medium">Gestão de Obras Inteligente</span>
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent">
+              <span className="text-blue-400">
                 ConstruData
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
               Plataforma completa para gestão de obras com Controle de Produção, RDO e Alertas Inteligentes
             </p>
             
@@ -84,7 +86,7 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 onClick={() => navigate('/auth')}
-                className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/90 hover:shadow-lg hover:shadow-primary/50 transition-all duration-300 group"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50 hover:shadow-blue-600/70 transition-all duration-300 group border-0"
               >
                 Começar Agora
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -93,7 +95,7 @@ const Hero = () => {
                 size="lg" 
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
+                className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white/50 transition-all"
               >
                 <Eye className="mr-2 w-5 h-5" />
                 Ver Dashboard
@@ -106,8 +108,8 @@ const Hero = () => {
       {/* Features Grid */}
       <section className="container px-4 py-16 mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Funcionalidades Completas</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Funcionalidades Completas</h2>
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
             Todas as ferramentas necessárias para gerenciar suas obras com eficiência
           </p>
         </div>
@@ -116,17 +118,17 @@ const Hero = () => {
           {features.map((feature, index) => (
             <Card 
               key={index}
-              className="group cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-300"
+              className="group cursor-pointer bg-white hover:shadow-xl hover:shadow-blue-500/10 border-0 transition-all duration-300"
               onClick={() => navigate(feature.link)}
             >
               <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
                   {feature.icon}
                 </div>
-                <CardTitle className="text-lg">{feature.title}</CardTitle>
+                <CardTitle className="text-lg text-gray-900">{feature.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-sm">{feature.description}</CardDescription>
+                <CardDescription className="text-sm text-gray-600">{feature.description}</CardDescription>
               </CardContent>
             </Card>
           ))}
@@ -134,15 +136,15 @@ const Hero = () => {
       </section>
 
       {/* Security Trust Section */}
-      <section className="container px-4 py-16 mx-auto bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-3xl border border-green-200/50 dark:border-green-800/50">
+      <section className="container px-4 py-16 mx-auto bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700 mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 backdrop-blur-sm mb-4">
               <Shield className="w-4 h-4" />
               <span className="text-sm font-semibold">Segurança Empresarial</span>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Seus Dados Protegidos</h2>
-            <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Seus Dados Protegidos</h2>
+            <p className="text-gray-400 text-lg max-w-3xl mx-auto">
               Segurança de nível empresarial para proteger informações confidenciais da sua empresa
             </p>
           </div>
@@ -170,16 +172,16 @@ const Hero = () => {
             />
           </div>
 
-          <div className="mt-12 p-6 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-green-200 dark:border-green-800">
+          <div className="mt-12 p-6 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-green-400" />
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-2">Proteção de Dados Confidenciais</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-lg mb-2 text-white">Proteção de Dados Confidenciais</h3>
+                <p className="text-sm text-gray-400">
                   Informações sensíveis como dados de funcionários, localização de obras, métricas de produção e custos de materiais 
                   são protegidas por políticas de segurança em nível de linha (RLS). Concorrentes não podem acessar seus dados, 
                   mesmo criando uma conta gratuita.
@@ -189,7 +191,7 @@ const Hero = () => {
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               ✓ Criptografia end-to-end &nbsp;•&nbsp; ✓ Políticas de segurança em nível de linha &nbsp;•&nbsp; ✓ Autenticação JWT
             </p>
           </div>
@@ -200,8 +202,8 @@ const Hero = () => {
       <section className="container px-4 py-16 mx-auto">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Por que ConstruData?</h2>
-            <p className="text-muted-foreground text-lg">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Por que ConstruData?</h2>
+            <p className="text-gray-400 text-lg">
               Recursos que fazem a diferença no dia a dia da sua obra
             </p>
           </div>
@@ -228,17 +230,17 @@ const Hero = () => {
 
       {/* CTA Section */}
       <section className="container px-4 py-20 mx-auto">
-        <div className="max-w-4xl mx-auto text-center bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-12 border border-primary/20">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+        <div className="max-w-4xl mx-auto text-center bg-white/5 backdrop-blur-sm rounded-2xl p-12 border border-white/10">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
             Pronto para transformar sua gestão de obras?
           </h2>
-          <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
             Comece agora e tenha controle total sobre projetos, produção, materiais e equipe
           </p>
           <Button 
             size="lg"
             onClick={() => navigate('/auth')}
-            className="bg-gradient-to-r from-primary to-primary/90 hover:shadow-lg hover:shadow-primary/50 transition-all duration-300"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50 hover:shadow-blue-600/70 transition-all duration-300 border-0"
           >
             Criar Conta Grátis
             <ArrowRight className="ml-2 w-5 h-5" />
@@ -251,19 +253,19 @@ const Hero = () => {
 
 const BenefitCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
   <div className="text-center space-y-4">
-    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mx-auto">
+    <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white mx-auto">
       {icon}
     </div>
-    <h3 className="text-xl font-semibold">{title}</h3>
-    <p className="text-muted-foreground">{description}</p>
+    <h3 className="text-xl font-semibold text-white">{title}</h3>
+    <p className="text-gray-400">{description}</p>
   </div>
 );
 
 const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-  <div className="bg-white/80 dark:bg-slate-900/80 p-6 rounded-xl border border-green-200/50 dark:border-green-800/50 hover:border-green-300 dark:hover:border-green-700 transition-colors">
+  <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10 hover:border-white/20 transition-colors">
     <div className="text-4xl mb-3">{icon}</div>
-    <h3 className="font-semibold mb-2 text-sm">{title}</h3>
-    <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+    <h3 className="font-semibold mb-2 text-sm text-white">{title}</h3>
+    <p className="text-xs text-gray-400 leading-relaxed">{description}</p>
   </div>
 );
 
