@@ -165,7 +165,7 @@ const Hero = () => {
               <Shield className="w-4 h-4 text-primary" />
               <span className="text-primary">Segurança Empresarial</span>
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Seus Dados Protegidos</h2>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-primary">Seus Dados Protegidos</h2>
             <p className="text-primary text-lg max-w-3xl mx-auto">
               Segurança de nível empresarial para proteger informações confidenciais da sua empresa
             </p>
@@ -255,7 +255,7 @@ const Hero = () => {
         <div className="max-w-4xl mx-auto text-center bg-card rounded-3xl p-12 md:p-16 shadow-2xl border border-border/50 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-primary">
               Pronto para transformar sua gestão de obras?
             </h2>
             <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
@@ -289,7 +289,7 @@ const BenefitCard = ({ icon, title, description }: { icon: React.ReactNode; titl
 const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
   <div className="bg-background/50 p-6 rounded-xl border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
     <div className="text-4xl mb-3">{icon}</div>
-    <h3 className="font-semibold mb-2 text-sm text-primary">{title}</h3>
+    <h3 className="font-semibold mb-2 text-sm text-white">{title}</h3>
     <p className="text-xs text-primary/80 leading-relaxed">{description}</p>
   </div>
 );
