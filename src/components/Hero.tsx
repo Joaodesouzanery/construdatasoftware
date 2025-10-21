@@ -64,8 +64,8 @@ const Hero = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
-              <Shield className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold">ConstruData</span>
+              <Building2 className="w-8 h-8 text-primary" />
+              <span className="text-xl font-bold text-primary">ConstruData</span>
             </div>
             <Button 
               onClick={() => navigate('/auth')}
