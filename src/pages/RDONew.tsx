@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Trash2, FileText, BarChart3, Eye, MapPin, Image, Cloud } from "lucide-react";
+import { Building2, Plus, Trash2, FileText, BarChart3, Eye, MapPin, Image, Cloud, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
@@ -62,6 +62,7 @@ const RDONew = () => {
   const [location, setLocation] = useState("");
   const [generalObservations, setGeneralObservations] = useState("");
   const [validationPhotos, setValidationPhotos] = useState<File[]>([]);
+  const [lastCreatedRDOId, setLastCreatedRDOId] = useState<string | null>(null);
 
   // Dialog states
   const [showServiceFrontDialog, setShowServiceFrontDialog] = useState(false);
@@ -313,17 +314,138 @@ const RDONew = () => {
       }
 
       toast.success("RDO criado com sucesso!");
+      setLastCreatedRDOId(dailyReport.id);
       
       // Reset form
       setSelectedServiceFront("");
       setSelectedConstructionSite("");
       setReportDate(new Date().toISOString().split('T')[0]);
       setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "" }]);
+      setTerrainCondition("");
+      setLocation("");
+      setGeneralObservations("");
+      setValidationPhotos([]);
+      setCustomQuestions([]);
       
     } catch (error: any) {
       toast.error("Erro ao criar RDO: " + error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const exportRDOToPDF = async () => {
+    if (!lastCreatedRDOId) {
+      toast.error("Nenhum RDO para exportar");
+      return;
+    }
+
+    try {
+      // Buscar dados do RDO
+      const { data: rdoData, error: rdoError } = await supabase
+        .from('daily_reports')
+        .select(`
+          *,
+          project:projects(name),
+          service_front:service_fronts(name),
+          construction_site:construction_sites(name, address)
+        `)
+        .eq('id', lastCreatedRDOId)
+        .single();
+
+      if (rdoError) throw rdoError;
+
+      // Buscar serviços executados
+      const { data: services, error: servicesError } = await supabase
+        .from('executed_services')
+        .select(`
+          *,
+          service:services_catalog(name)
+        `)
+        .eq('daily_report_id', lastCreatedRDOId);
+
+      if (servicesError) throw servicesError;
+
+      // Gerar PDF
+      const jsPDF = (await import('jspdf')).default;
+      const doc = new jsPDF();
+      
+      let yPos = 20;
+      
+      // Título
+      doc.setFontSize(18);
+      doc.text('Relatório Diário de Obra (RDO)', 20, yPos);
+      yPos += 15;
+      
+      // Informações do projeto
+      doc.setFontSize(12);
+      doc.text(`Projeto: ${rdoData.project?.name || 'N/A'}`, 20, yPos);
+      yPos += 8;
+      doc.text(`Frente de Serviço: ${rdoData.service_front?.name || 'N/A'}`, 20, yPos);
+      yPos += 8;
+      doc.text(`Local: ${rdoData.construction_site?.name || 'N/A'}`, 20, yPos);
+      yPos += 8;
+      doc.text(`Data: ${new Date(rdoData.report_date).toLocaleDateString('pt-BR')}`, 20, yPos);
+      yPos += 15;
+      
+      // Serviços executados
+      doc.setFontSize(14);
+      doc.text('Serviços Executados:', 20, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(11);
+      services?.forEach((service: any, index: number) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(`${index + 1}. ${service.service?.name || 'N/A'}`, 25, yPos);
+        yPos += 6;
+        doc.text(`   Quantidade: ${service.quantity} ${service.unit}`, 25, yPos);
+        yPos += 6;
+        if (service.equipment_used) {
+          doc.text(`   Equipamentos: ${JSON.stringify(service.equipment_used)}`, 25, yPos);
+          yPos += 6;
+        }
+        yPos += 4;
+      });
+      
+      // Campos opcionais
+      if (terrainCondition) {
+        yPos += 5;
+        doc.setFontSize(12);
+        doc.text(`Condição do Terreno: ${terrainCondition}`, 20, yPos);
+        yPos += 8;
+      }
+      
+      if (location) {
+        doc.text(`Localização: ${location}`, 20, yPos);
+        yPos += 8;
+      }
+      
+      if (generalObservations) {
+        yPos += 5;
+        doc.setFontSize(12);
+        doc.text('Observações Gerais:', 20, yPos);
+        yPos += 8;
+        doc.setFontSize(11);
+        const lines = doc.splitTextToSize(generalObservations, 170);
+        lines.forEach((line: string) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(line, 20, yPos);
+          yPos += 6;
+        });
+      }
+      
+      // Salvar PDF
+      doc.save(`RDO_${rdoData.project?.name}_${rdoData.report_date}.pdf`);
+      toast.success("PDF gerado com sucesso!");
+      
+    } catch (error: any) {
+      toast.error("Erro ao gerar PDF: " + error.message);
     }
   };
 
@@ -541,7 +663,7 @@ const RDONew = () => {
                             </div>
 
                             <div className="space-y-2">
-                              <Label>Equipamentos Utilizados</Label>
+                              <Label>Equipamentos Utilizados (opcional)</Label>
                               <Input
                                 value={service.equipment_used}
                                 onChange={(e) => updateExecutedService(index, 'equipment_used', e.target.value)}
@@ -658,7 +780,7 @@ const RDONew = () => {
 
               {/* Condição do Terreno */}
               <div className="space-y-2">
-                <Label htmlFor="terrainCondition">Condição do Terreno</Label>
+                <Label htmlFor="terrainCondition">Condição do Terreno (opcional)</Label>
                 <Select value={terrainCondition} onValueChange={setTerrainCondition}>
                   <SelectTrigger id="terrainCondition">
                     <SelectValue placeholder="Selecione a condição" />
@@ -675,7 +797,7 @@ const RDONew = () => {
 
               {/* Localização */}
               <div className="space-y-2">
-                <Label htmlFor="location">Localização</Label>
+                <Label htmlFor="location">Localização (opcional)</Label>
                 <div className="flex gap-2">
                   <Input
                     id="location"
@@ -693,7 +815,7 @@ const RDONew = () => {
 
               {/* Observações Gerais */}
               <div className="space-y-2">
-                <Label htmlFor="observations">Observações Gerais</Label>
+                <Label htmlFor="observations">Observações Gerais (opcional)</Label>
                 <Textarea
                   id="observations"
                   value={generalObservations}
@@ -707,7 +829,7 @@ const RDONew = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Image className="w-4 h-4" />
-                  Fotos de Validação
+                  Fotos de Validação (opcional)
                 </Label>
                 <p className="text-sm text-muted-foreground mb-2">
                   Tire fotos do local para validar a localização
@@ -757,9 +879,22 @@ const RDONew = () => {
                 </div>
               </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Salvando..." : "Criar RDO"}
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button type="submit" className="flex-1" disabled={isLoading}>
+                      {isLoading ? "Salvando..." : "Criar RDO"}
+                    </Button>
+                    {lastCreatedRDOId && (
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={exportRDOToPDF}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Exportar PDF
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </CardContent>
             </Card>
