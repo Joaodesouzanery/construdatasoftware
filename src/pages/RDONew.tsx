@@ -65,6 +65,8 @@ const RDONew = () => {
   const [generalObservations, setGeneralObservations] = useState("");
   const [validationPhotos, setValidationPhotos] = useState<File[]>([]);
   const [lastCreatedRDOId, setLastCreatedRDOId] = useState<string | null>(null);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
 
   // Dialog states
   const [showServiceFrontDialog, setShowServiceFrontDialog] = useState(false);
@@ -222,11 +224,33 @@ const RDONew = () => {
   const handleGetGPS = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const lat = position.coords.latitude.toFixed(6);
           const lng = position.coords.longitude.toFixed(6);
           setLocation(`${lat}, ${lng}`);
           toast.success("Localização obtida com sucesso!");
+          
+          // Buscar dados climáticos
+          setIsLoadingWeather(true);
+          try {
+            const { data, error } = await supabase.functions.invoke('weather-data', {
+              body: { 
+                latitude: position.coords.latitude, 
+                longitude: position.coords.longitude 
+              }
+            });
+            
+            if (error) throw error;
+            if (data) {
+              setWeatherData(data);
+              toast.success("Dados climáticos obtidos!");
+            }
+          } catch (error: any) {
+            console.error('Erro ao buscar clima:', error);
+            toast.error("Não foi possível obter dados climáticos");
+          } finally {
+            setIsLoadingWeather(false);
+          }
         },
         (error) => {
           toast.error("Erro ao obter localização: " + error.message);
@@ -286,7 +310,15 @@ const RDONew = () => {
           project_id: selectedProject,
           construction_site_id: selectedConstructionSite,
           service_front_id: selectedServiceFront,
-          executed_by_user_id: user.id
+          executed_by_user_id: user.id,
+          temperature: weatherData?.temperature || null,
+          humidity: weatherData?.humidity || null,
+          wind_speed: weatherData?.windSpeed || null,
+          will_rain: weatherData?.willRain || null,
+          weather_description: weatherData?.description || null,
+          terrain_condition: terrainCondition || null,
+          gps_location: location || null,
+          general_observations: generalObservations || null
         }])
         .select()
         .single();
@@ -987,13 +1019,50 @@ const RDONew = () => {
                 <Cloud className="w-5 h-5" />
                 Dados Climáticos
               </CardTitle>
-              <CardDescription>Aguardando localização</CardDescription>
+              <CardDescription>
+                {isLoadingWeather ? "Carregando..." : weatherData ? "Dados atualizados" : "Aguardando localização"}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center py-8">
-              <Cloud className="w-16 h-16 text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground text-center">
-                Selecione uma obra e obtenha a localização para ver os dados climáticos
-              </p>
+            <CardContent>
+              {isLoadingWeather ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Cloud className="w-16 h-16 text-muted-foreground mb-4 animate-pulse" />
+                  <p className="text-sm text-muted-foreground">Obtendo dados climáticos...</p>
+                </div>
+              ) : weatherData ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Temperatura</span>
+                    <span className="text-lg font-semibold">{weatherData.temperature}°C</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Umidade</span>
+                    <span className="text-lg font-semibold">{weatherData.humidity}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Vento</span>
+                    <span className="text-lg font-semibold">{weatherData.windSpeed} km/h</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Previsão de Chuva</span>
+                    <span className={`text-lg font-semibold ${weatherData.willRain ? 'text-destructive' : 'text-green-600'}`}>
+                      {weatherData.willRain ? 'Sim' : 'Não'}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <p className="text-sm text-center text-muted-foreground capitalize">
+                      {weatherData.description}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Cloud className="w-16 h-16 text-muted-foreground mb-4" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    Clique em "Obter GPS" para ver os dados climáticos
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

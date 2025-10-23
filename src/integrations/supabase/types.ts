@@ -149,31 +149,55 @@ export type Database = {
           construction_site_id: string
           created_at: string | null
           executed_by_user_id: string
+          general_observations: string | null
+          gps_location: string | null
+          humidity: number | null
           id: string
           project_id: string
           report_date: string
           service_front_id: string
+          temperature: number | null
+          terrain_condition: string | null
           updated_at: string | null
+          weather_description: string | null
+          will_rain: boolean | null
+          wind_speed: number | null
         }
         Insert: {
           construction_site_id: string
           created_at?: string | null
           executed_by_user_id: string
+          general_observations?: string | null
+          gps_location?: string | null
+          humidity?: number | null
           id?: string
           project_id: string
           report_date?: string
           service_front_id: string
+          temperature?: number | null
+          terrain_condition?: string | null
           updated_at?: string | null
+          weather_description?: string | null
+          will_rain?: boolean | null
+          wind_speed?: number | null
         }
         Update: {
           construction_site_id?: string
           created_at?: string | null
           executed_by_user_id?: string
+          general_observations?: string | null
+          gps_location?: string | null
+          humidity?: number | null
           id?: string
           project_id?: string
           report_date?: string
           service_front_id?: string
+          temperature?: number | null
+          terrain_condition?: string | null
           updated_at?: string | null
+          weather_description?: string | null
+          will_rain?: boolean | null
+          wind_speed?: number | null
         }
         Relationships: [
           {
@@ -677,6 +701,7 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by_user_id: string
+          employee_id: string | null
           id: string
           service_front_id: string
           service_id: string
@@ -687,6 +712,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           created_by_user_id: string
+          employee_id?: string | null
           id?: string
           service_front_id: string
           service_id: string
@@ -697,6 +723,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           created_by_user_id?: string
+          employee_id?: string | null
           id?: string
           service_front_id?: string
           service_id?: string
@@ -705,6 +732,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "production_targets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "production_targets_service_front_id_fkey"
             columns: ["service_front_id"]

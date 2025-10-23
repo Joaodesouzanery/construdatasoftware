@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
-
 const coordinatesSchema = z.object({
   latitude: z.number()
     .min(-90, 'Latitude must be between -90 and 90')
@@ -43,40 +41,55 @@ serve(async (req) => {
 
     const { latitude, longitude } = validationResult.data;
 
-    if (!OPENWEATHER_API_KEY) {
-      throw new Error('API key do OpenWeather não configurada');
-    }
-
-    // Buscar dados climáticos atuais
-    const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=pt_br`;
+    // Usar Open-Meteo API (gratuita, sem necessidade de API key)
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&hourly=precipitation_probability&timezone=America/Sao_Paulo&forecast_days=1`;
     
-    const currentResponse = await fetch(currentWeatherUrl);
+    const response = await fetch(weatherUrl);
     
-    if (!currentResponse.ok) {
+    if (!response.ok) {
       throw new Error('Erro ao buscar dados climáticos');
     }
 
-    const currentData = await currentResponse.json();
+    const data = await response.json();
 
-    // Buscar previsão para verificar chuva
-    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=pt_br`;
-    
-    const forecastResponse = await fetch(forecastUrl);
-    const forecastData = await forecastResponse.json();
+    // Verificar se vai chover (precipitation_probability > 50% nas próximas 6 horas)
+    const nextHours = data.hourly.precipitation_probability.slice(0, 6);
+    const willRain = nextHours.some((prob: number) => prob > 50);
 
-    // Verificar se vai chover nas próximas 6 horas
-    const willRain = forecastData.list
-      .slice(0, 2) // Próximas 6 horas (2 períodos de 3h)
-      .some((period: any) => 
-        period.weather.some((w: any) => w.main.toLowerCase().includes('rain'))
-      );
+    // Mapear weather_code para descrição em português
+    const getWeatherDescription = (code: number): string => {
+      const weatherCodes: { [key: number]: string } = {
+        0: 'Céu limpo',
+        1: 'Principalmente limpo',
+        2: 'Parcialmente nublado',
+        3: 'Nublado',
+        45: 'Nevoeiro',
+        48: 'Nevoeiro com geada',
+        51: 'Garoa leve',
+        53: 'Garoa moderada',
+        55: 'Garoa forte',
+        61: 'Chuva leve',
+        63: 'Chuva moderada',
+        65: 'Chuva forte',
+        71: 'Neve leve',
+        73: 'Neve moderada',
+        75: 'Neve forte',
+        80: 'Pancadas de chuva leve',
+        81: 'Pancadas de chuva moderada',
+        82: 'Pancadas de chuva forte',
+        95: 'Tempestade',
+        96: 'Tempestade com granizo leve',
+        99: 'Tempestade com granizo forte'
+      };
+      return weatherCodes[code] || 'Condição desconhecida';
+    };
 
     const weatherData = {
-      temperature: Math.round(currentData.main.temp),
-      humidity: currentData.main.humidity,
-      windSpeed: Math.round(currentData.wind.speed * 3.6), // Converter m/s para km/h
+      temperature: Math.round(data.current.temperature_2m),
+      humidity: data.current.relative_humidity_2m,
+      windSpeed: Math.round(data.current.wind_speed_10m * 3.6), // Converter m/s para km/h
       willRain: willRain,
-      description: currentData.weather[0].description
+      description: getWeatherDescription(data.current.weather_code)
     };
 
     return new Response(JSON.stringify(weatherData), {

@@ -18,18 +18,21 @@ export const AddTargetDialog = ({ open, onOpenChange, projectId, onSuccess }: Ad
   const [isLoading, setIsLoading] = useState(false);
   const [serviceFronts, setServiceFronts] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     service_front_id: "",
     service_id: "",
     target_quantity: "",
-    target_date: new Date().toISOString().split('T')[0]
+    target_date: new Date().toISOString().split('T')[0],
+    employee_id: ""
   });
 
   useEffect(() => {
     if (open && projectId) {
       loadServiceFronts();
       loadServices();
+      loadEmployees();
     }
   }, [open, projectId]);
 
@@ -52,6 +55,16 @@ export const AddTargetDialog = ({ open, onOpenChange, projectId, onSuccess }: Ad
     if (data) setServices(data);
   };
 
+  const loadEmployees = async () => {
+    const { data } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('status', 'active')
+      .order('name', { ascending: true });
+    
+    if (data) setEmployees(data);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -72,6 +85,7 @@ export const AddTargetDialog = ({ open, onOpenChange, projectId, onSuccess }: Ad
           service_id: formData.service_id,
           target_quantity: parseFloat(formData.target_quantity),
           target_date: formData.target_date,
+          employee_id: formData.employee_id || null,
           created_by_user_id: session?.user.id
         }]);
 
@@ -82,7 +96,8 @@ export const AddTargetDialog = ({ open, onOpenChange, projectId, onSuccess }: Ad
         service_front_id: "",
         service_id: "",
         target_quantity: "",
-        target_date: new Date().toISOString().split('T')[0]
+        target_date: new Date().toISOString().split('T')[0],
+        employee_id: ""
       });
       onSuccess();
       
@@ -164,6 +179,25 @@ export const AddTargetDialog = ({ open, onOpenChange, projectId, onSuccess }: Ad
                 onChange={(e) => setFormData({ ...formData, target_date: e.target.value })}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="employee">Colaborador (opcional)</Label>
+              <Select 
+                value={formData.employee_id} 
+                onValueChange={(value) => setFormData({ ...formData, employee_id: value })}
+              >
+                <SelectTrigger id="employee">
+                  <SelectValue placeholder="Selecione o colaborador" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.name} {emp.role ? `- ${emp.role}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
