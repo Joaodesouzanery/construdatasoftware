@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -133,6 +133,18 @@ const Dashboard = () => {
               <CardTitle className="text-base sm:text-lg">Histórico de RDOs</CardTitle>
               <CardDescription className="text-sm">
                 Visualize e analise RDOs
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/rdo-photos')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-pink-500 to-pink-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Image className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Fotos de Validação</CardTitle>
+              <CardDescription className="text-sm">
+                Consulte fotos dos RDOs
               </CardDescription>
             </CardHeader>
           </Card>
