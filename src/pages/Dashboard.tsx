@@ -3,15 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image, Target, TrendingUp, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>("");
+  const [projectStats, setProjectStats] = useState<any>(null);
+  const [productionStats, setProductionStats] = useState<any>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -23,6 +29,8 @@ const Dashboard = () => {
       }
       
       setUser(session.user);
+      await loadProjects();
+      await loadProductionStats();
       setIsLoading(false);
     };
 
@@ -38,6 +46,122 @@ const Dashboard = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    if (selectedProject) {
+      loadProjectStats(selectedProject);
+    }
+  }, [selectedProject]);
+
+  const loadProjects = async () => {
+    const { data } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+    
+    if (data && data.length > 0) {
+      setProjects(data);
+      setSelectedProject(data[0].id);
+    }
+  };
+
+  const loadProjectStats = async (projectId: string) => {
+    try {
+      // Buscar RDOs do projeto
+      const { data: rdos, error: rdoError } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .eq('project_id', projectId);
+
+      if (rdoError) throw rdoError;
+
+      // Buscar serviços executados
+      const { data: services, error: servicesError } = await supabase
+        .from('executed_services')
+        .select(`
+          *,
+          daily_reports!inner (project_id)
+        `)
+        .eq('daily_reports.project_id', projectId);
+
+      if (servicesError) throw servicesError;
+
+      // Buscar pedidos de material
+      const { data: materials, error: materialsError } = await supabase
+        .from('material_requests')
+        .select('*')
+        .eq('project_id', projectId);
+
+      if (materialsError) throw materialsError;
+
+      // Buscar fotos de validação
+      const { data: photos, error: photosError } = await supabase
+        .from('rdo_validation_photos')
+        .select(`
+          *,
+          daily_reports!inner (project_id)
+        `)
+        .eq('daily_reports.project_id', projectId);
+
+      if (photosError) throw photosError;
+
+      setProjectStats({
+        totalRDOs: rdos?.length || 0,
+        totalServices: services?.length || 0,
+        totalMaterials: materials?.length || 0,
+        totalPhotos: photos?.length || 0,
+        pendingMaterials: materials?.filter(m => m.status === 'pendente').length || 0
+      });
+    } catch (error: any) {
+      console.error('Error loading project stats:', error);
+    }
+  };
+
+  const loadProductionStats = async () => {
+    try {
+      // Últimos 7 dias
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const dateFilter = sevenDaysAgo.toISOString().split('T')[0];
+
+      // Buscar metas e produção
+      const { data: targets, error: targetsError } = await supabase
+        .from('production_targets')
+        .select(`
+          *,
+          services_catalog (name, unit)
+        `)
+        .gte('target_date', dateFilter);
+
+      if (targetsError) throw targetsError;
+
+      const { data: executed, error: executedError } = await supabase
+        .from('executed_services')
+        .select(`
+          *,
+          daily_reports!inner (report_date),
+          services_catalog (name)
+        `)
+        .gte('daily_reports.report_date', dateFilter);
+
+      if (executedError) throw executedError;
+
+      const totalPlanned = targets?.reduce((sum, t) => sum + Number(t.target_quantity), 0) || 0;
+      const totalExecuted = executed?.reduce((sum, e) => sum + Number(e.quantity), 0) || 0;
+      const completionRate = totalPlanned > 0 ? (totalExecuted / totalPlanned) * 100 : 0;
+
+      setProductionStats({
+        totalPlanned,
+        totalExecuted,
+        completionRate: Math.round(completionRate),
+        totalTargets: targets?.length || 0,
+        servicesExecuted: executed?.length || 0
+      });
+    } catch (error: any) {
+      console.error('Error loading production stats:', error);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -99,8 +223,17 @@ const Dashboard = () => {
           </p>
         </div>
 
+        <Tabs defaultValue="geral" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="geral">Dashboard Geral</TabsTrigger>
+            <TabsTrigger value="producao">Dashboard de Produção</TabsTrigger>
+            <TabsTrigger value="projeto">Por Projeto</TabsTrigger>
+          </TabsList>
+
+          {/* Dashboard Geral */}
+          <TabsContent value="geral" className="space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/projects')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
@@ -209,6 +342,251 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
         </div>
+          </TabsContent>
+
+          {/* Dashboard de Produção */}
+          <TabsContent value="producao" className="space-y-6">
+            {productionStats ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Total Planejado</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-primary">
+                        {productionStats.totalPlanned.toFixed(2)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {productionStats.totalTargets} metas definidas
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Total Executado</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-secondary">
+                        {productionStats.totalExecuted.toFixed(2)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {productionStats.servicesExecuted} serviços
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Taxa de Conclusão</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`text-2xl font-bold flex items-center gap-2 ${
+                        productionStats.completionRate >= 100 ? 'text-green-600' : 
+                        productionStats.completionRate >= 80 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {productionStats.completionRate}%
+                        <TrendingUp className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Últimos 7 dias
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Status</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2">
+                        {productionStats.completionRate >= 90 ? (
+                          <>
+                            <Target className="w-8 h-8 text-green-600" />
+                            <div>
+                              <p className="font-semibold text-green-600">Excelente</p>
+                              <p className="text-xs text-muted-foreground">Acima da meta</p>
+                            </div>
+                          </>
+                        ) : productionStats.completionRate >= 70 ? (
+                          <>
+                            <AlertCircle className="w-8 h-8 text-yellow-600" />
+                            <div>
+                              <p className="font-semibold text-yellow-600">Atenção</p>
+                              <p className="text-xs text-muted-foreground">Próximo da meta</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-8 h-8 text-red-600" />
+                            <div>
+                              <p className="font-semibold text-red-600">Crítico</p>
+                              <p className="text-xs text-muted-foreground">Abaixo da meta</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Acesso Rápido</CardTitle>
+                    <CardDescription>Ferramentas de produção</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Button onClick={() => navigate('/production-control')} className="h-auto py-4 flex-col gap-2">
+                        <ClipboardList className="w-6 h-6" />
+                        <span>Ver Controle Completo</span>
+                      </Button>
+                      <Button onClick={() => navigate('/rdo-new')} variant="outline" className="h-auto py-4 flex-col gap-2">
+                        <Plus className="w-6 h-6" />
+                        <span>Novo RDO</span>
+                      </Button>
+                      <Button onClick={() => navigate('/rdo-history')} variant="outline" className="h-auto py-4 flex-col gap-2">
+                        <History className="w-6 h-6" />
+                        <span>Histórico</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Carregando dados de produção...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Dashboard por Projeto */}
+          <TabsContent value="projeto" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Selecione um Projeto</CardTitle>
+                <CardDescription>Visualize estatísticas específicas de cada projeto</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedProject} onValueChange={setSelectedProject}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            {selectedProject && projectStats ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Total de RDOs</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-primary">
+                        {projectStats.totalRDOs}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Relatórios registrados
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Serviços Executados</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-secondary">
+                        {projectStats.totalServices}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total de execuções
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Pedidos de Material</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {projectStats.totalMaterials}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {projectStats.pendingMaterials} pendentes
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Fotos de Validação</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-pink-600">
+                        {projectStats.totalPhotos}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Fotos registradas
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Acesso Rápido ao Projeto</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <Button onClick={() => navigate('/rdo-new')} className="h-auto py-4 flex-col gap-2">
+                        <Plus className="w-6 h-6" />
+                        <span>Novo RDO</span>
+                      </Button>
+                      <Button onClick={() => navigate('/rdo-history')} variant="outline" className="h-auto py-4 flex-col gap-2">
+                        <History className="w-6 h-6" />
+                        <span>Ver RDOs</span>
+                      </Button>
+                      <Button onClick={() => navigate('/rdo-photos')} variant="outline" className="h-auto py-4 flex-col gap-2">
+                        <Image className="w-6 h-6" />
+                        <span>Ver Fotos</span>
+                      </Button>
+                      <Button onClick={() => navigate('/material-requests')} variant="outline" className="h-auto py-4 flex-col gap-2">
+                        <Package className="w-6 h-6" />
+                        <span>Ver Materiais</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Selecione um projeto para ver as estatísticas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
 
 
         {/* Recent Activity */}
