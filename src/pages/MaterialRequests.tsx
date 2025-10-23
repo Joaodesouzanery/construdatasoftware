@@ -24,6 +24,7 @@ interface MaterialRequest {
   requestor_name?: string;
   projects: { name: string };
   service_fronts: { name: string };
+  employee?: { name: string; role?: string };
 }
 
 export default function MaterialRequests() {
@@ -56,7 +57,8 @@ export default function MaterialRequests() {
         .select(`
           *,
           projects (name),
-          service_fronts (name)
+          service_fronts (name),
+          employee:employees (name, role)
         `)
         .order("request_date", { ascending: false });
 
@@ -208,7 +210,7 @@ export default function MaterialRequests() {
                       <TableHead className="min-w-[100px]">Data</TableHead>
                       <TableHead className="min-w-[150px]">Material</TableHead>
                       <TableHead className="min-w-[100px]">Quantidade</TableHead>
-                      <TableHead className="hidden md:table-cell min-w-[120px]">Solicitante</TableHead>
+                      <TableHead className="hidden md:table-cell min-w-[150px]">Colaborador</TableHead>
                       <TableHead className="hidden lg:table-cell min-w-[100px]">Prazo</TableHead>
                       <TableHead className="hidden lg:table-cell min-w-[120px]">Local de Uso</TableHead>
                       <TableHead className="hidden xl:table-cell min-w-[150px]">Projeto</TableHead>
@@ -226,7 +228,18 @@ export default function MaterialRequests() {
                           {request.quantity} {request.unit}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm">
-                          {request.requestor_name || '-'}
+                          {request.employee ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium">{request.employee.name}</span>
+                              {request.employee.role && (
+                                <span className="text-xs text-muted-foreground">{request.employee.role}</span>
+                              )}
+                            </div>
+                          ) : request.requestor_name ? (
+                            <span>{request.requestor_name}</span>
+                          ) : (
+                            '-'
+                          )}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
                           {request.needed_date ? new Date(request.needed_date).toLocaleDateString("pt-BR") : '-'}
