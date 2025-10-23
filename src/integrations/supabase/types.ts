@@ -267,6 +267,7 @@ export type Database = {
           created_at: string | null
           created_by_user_id: string
           daily_report_id: string
+          employee_id: string | null
           equipment_used: Json | null
           id: string
           quantity: number
@@ -277,6 +278,7 @@ export type Database = {
           created_at?: string | null
           created_by_user_id: string
           daily_report_id: string
+          employee_id?: string | null
           equipment_used?: Json | null
           id?: string
           quantity: number
@@ -287,6 +289,7 @@ export type Database = {
           created_at?: string | null
           created_by_user_id?: string
           daily_report_id?: string
+          employee_id?: string | null
           equipment_used?: Json | null
           id?: string
           quantity?: number
@@ -299,6 +302,13 @@ export type Database = {
             columns: ["daily_report_id"]
             isOneToOne: false
             referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "executed_services_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
@@ -755,6 +765,38 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      rdo_validation_photos: {
+        Row: {
+          created_by_user_id: string
+          daily_report_id: string
+          id: string
+          photo_url: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          created_by_user_id: string
+          daily_report_id: string
+          id?: string
+          photo_url: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          created_by_user_id?: string
+          daily_report_id?: string
+          id?: string
+          photo_url?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_validation_photos_daily_report_id_fkey"
+            columns: ["daily_report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rdos: {
         Row: {

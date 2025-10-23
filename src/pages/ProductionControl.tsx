@@ -21,6 +21,8 @@ interface ProductionData {
   unit: string;
   date: string;
   construction_site?: string;
+  employee_name?: string;
+  employee_role?: string;
 }
 
 const ProductionControl = () => {
@@ -109,7 +111,8 @@ const ProductionControl = () => {
           project_id,
           construction_sites (name)
         ),
-        services_catalog (name, unit)
+        services_catalog (name, unit),
+        employee:employees (name, role)
       `)
       .eq('daily_reports.project_id', selectedProject)
       .gte('daily_reports.report_date', dateFilter.start)
@@ -141,7 +144,9 @@ const ProductionControl = () => {
         actual: 0,
         unit: item.services_catalog.unit,
         date: item.daily_reports.report_date,
-        construction_site: item.daily_reports.construction_sites?.name
+        construction_site: item.daily_reports.construction_sites?.name,
+        employee_name: item.employee?.name,
+        employee_role: item.employee?.role
       };
       
       existing.actual += Number(item.quantity);
@@ -233,14 +238,15 @@ const ProductionControl = () => {
   };
 
   const generateCSVReport = (data: ProductionData[]) => {
-    const headers = ['Data', 'Serviço', 'Planejado', 'Realizado', 'Unidade', 'Local'];
+    const headers = ['Data', 'Serviço', 'Planejado', 'Realizado', 'Unidade', 'Local', 'Funcionário'];
     const rows = data.map(item => [
       item.date,
       item.service_name,
       item.planned.toFixed(2),
       item.actual.toFixed(2),
       item.unit,
-      item.construction_site || 'N/A'
+      item.construction_site || 'N/A',
+      item.employee_name || 'N/A'
     ]);
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');

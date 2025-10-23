@@ -21,6 +21,7 @@ interface ExecutedService {
   quantity: string;
   unit: string;
   equipment_used: string;
+  employee_id?: string;
   justification?: string;
 }
 
@@ -43,6 +44,7 @@ const RDONew = () => {
   const [constructionSites, setConstructionSites] = useState<any[]>([]);
   const [servicesCatalog, setServicesCatalog] = useState<any[]>([]);
   const [productionTargets, setProductionTargets] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
 
   // Form state
   const [selectedProject, setSelectedProject] = useState<string>("");
@@ -73,6 +75,7 @@ const RDONew = () => {
     checkAuth();
     loadProjects();
     loadServicesCatalog();
+    loadEmployees();
   }, []);
 
   useEffect(() => {
@@ -132,6 +135,15 @@ const RDONew = () => {
     if (data) setServicesCatalog(data);
   };
 
+  const loadEmployees = async () => {
+    const { data } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('status', 'active')
+      .order('name', { ascending: true });
+    if (data) setEmployees(data);
+  };
+
   const loadProductionTargets = async (serviceFrontId: string) => {
     const { data } = await supabase
       .from('production_targets')
@@ -142,7 +154,7 @@ const RDONew = () => {
   };
 
   const addExecutedService = () => {
-    setExecutedServices([...executedServices, { service_id: "", quantity: "", unit: "", equipment_used: "" }]);
+    setExecutedServices([...executedServices, { service_id: "", quantity: "", unit: "", equipment_used: "", employee_id: "" }]);
   };
 
   const removeExecutedService = (index: number) => {
@@ -281,6 +293,35 @@ const RDONew = () => {
 
       if (reportError) throw reportError;
 
+      // Upload validation photos if any
+      if (validationPhotos.length > 0) {
+        for (const photo of validationPhotos) {
+          const fileName = `${user.id}/${dailyReport.id}/${crypto.randomUUID()}_${photo.name}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('rdo-photos')
+            .upload(fileName, photo);
+
+          if (uploadError) {
+            console.error('Error uploading photo:', uploadError);
+            continue;
+          }
+
+          // Save photo reference in database
+          const { data: photoData } = supabase.storage
+            .from('rdo-photos')
+            .getPublicUrl(fileName);
+
+          await supabase
+            .from('rdo_validation_photos')
+            .insert({
+              daily_report_id: dailyReport.id,
+              photo_url: photoData.publicUrl,
+              created_by_user_id: user.id
+            });
+        }
+      }
+
       // Insert executed services
       for (const service of validServices) {
         const { data: executedService, error: serviceError } = await supabase
@@ -291,6 +332,7 @@ const RDONew = () => {
             quantity: parseFloat(service.quantity),
             unit: service.unit,
             equipment_used: service.equipment_used ? { equipment: service.equipment_used } : null,
+            employee_id: service.employee_id || null,
             created_by_user_id: user.id
           }])
           .select()
@@ -320,7 +362,7 @@ const RDONew = () => {
       setSelectedServiceFront("");
       setSelectedConstructionSite("");
       setReportDate(new Date().toISOString().split('T')[0]);
-      setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "" }]);
+      setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "", employee_id: "" }]);
       setTerrainCondition("");
       setLocation("");
       setGeneralObservations("");
@@ -669,6 +711,25 @@ const RDONew = () => {
                                 onChange={(e) => updateExecutedService(index, 'equipment_used', e.target.value)}
                                 placeholder="Betoneira, Vibrador..."
                               />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Funcionário Responsável (opcional)</Label>
+                              <Select
+                                value={service.employee_id}
+                                onValueChange={(value) => updateExecutedService(index, 'employee_id', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o funcionário" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {employees.map(emp => (
+                                    <SelectItem key={emp.id} value={emp.id}>
+                                      {emp.name} {emp.role ? `- ${emp.role}` : ''}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
 
