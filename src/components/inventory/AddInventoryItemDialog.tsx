@@ -36,7 +36,6 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
   const [formData, setFormData] = useState({
     projectId: "",
     materialName: "",
-    materialCode: "",
     category: "",
     unit: "",
     quantityAvailable: "",
@@ -54,7 +53,6 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
         setFormData({
           projectId: item.project_id,
           materialName: item.material_name,
-          materialCode: item.material_code || "",
           category: item.category || "",
           unit: item.unit || "",
           quantityAvailable: item.quantity_available.toString(),
@@ -89,7 +87,6 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
     setFormData({
       projectId: "",
       materialName: "",
-      materialCode: "",
       category: "",
       unit: "",
       quantityAvailable: "0",
@@ -118,7 +115,6 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
       const dataToSave = {
         project_id: formData.projectId || null,
         material_name: formData.materialName,
-        material_code: formData.materialCode || null,
         category: formData.category || null,
         unit: formData.unit || null,
         quantity_available: parseFloat(formData.quantityAvailable) || 0,
@@ -196,7 +192,7 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="materialName">Nome do Material</Label>
               <Input
                 id="materialName"
@@ -204,16 +200,9 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
                 onChange={(e) => setFormData({ ...formData, materialName: e.target.value })}
                 placeholder="Ex: Cimento CP II"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="materialCode">Código</Label>
-              <Input
-                id="materialCode"
-                value={formData.materialCode}
-                onChange={(e) => setFormData({ ...formData, materialCode: e.target.value })}
-                placeholder="Ex: MAT-001"
-              />
+              <p className="text-xs text-muted-foreground">
+                O código será gerado automaticamente
+              </p>
             </div>
 
             <div className="space-y-2">
