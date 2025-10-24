@@ -443,6 +443,104 @@ export type Database = {
           },
         ]
       }
+      inventory: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          location: string | null
+          material_code: string | null
+          material_name: string
+          minimum_stock: number | null
+          notes: string | null
+          project_id: string
+          quantity_available: number
+          supplier: string | null
+          unit: string | null
+          unit_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          location?: string | null
+          material_code?: string | null
+          material_name: string
+          minimum_stock?: number | null
+          notes?: string | null
+          project_id: string
+          quantity_available?: number
+          supplier?: string | null
+          unit?: string | null
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          location?: string | null
+          material_code?: string | null
+          material_name?: string
+          minimum_stock?: number | null
+          notes?: string | null
+          project_id?: string
+          quantity_available?: number
+          supplier?: string | null
+          unit?: string | null
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          inventory_id: string
+          movement_type: string
+          quantity: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          inventory_id: string
+          movement_type: string
+          quantity: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          inventory_id?: string
+          movement_type?: string
+          quantity?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       justifications: {
         Row: {
           created_at: string | null

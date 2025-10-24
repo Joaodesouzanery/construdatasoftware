@@ -13,6 +13,7 @@ import Production from "./pages/Production";
 import ProductionControl from "./pages/ProductionControl";
 import MaterialRequests from "./pages/MaterialRequests";
 import MaterialControl from "./pages/MaterialControl";
+import Inventory from "./pages/Inventory";
 import RDO from "./pages/RDO";
 import RDONew from "./pages/RDONew";
 import RDOHistory from "./pages/RDOHistory";
@@ -39,6 +40,7 @@ const AppContent = () => {
         <Route path="/production-control" element={<ProductionControl />} />
         <Route path="/material-requests" element={<MaterialRequests />} />
         <Route path="/material-control" element={<MaterialControl />} />
+        <Route path="/inventory" element={<Inventory />} />
         <Route path="/rdo" element={<RDO />} />
         <Route path="/rdo-new" element={<RDONew />} />
         <Route path="/rdo-history" element={<RDOHistory />} />

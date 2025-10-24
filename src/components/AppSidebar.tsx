@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ const menuItems = [
   { title: "Histórico RDO", url: "/rdo-history", icon: History },
   { title: "Fotos de Validação", url: "/rdo-photos", icon: Image },
   { title: "Controle de Produção", url: "/production-control", icon: ClipboardList },
+  { title: "Almoxarifado", url: "/inventory", icon: Warehouse },
   { title: "Pedidos de Material", url: "/material-requests", icon: Package },
   { title: "Controle de Material", url: "/material-control", icon: TrendingDown },
   { title: "Alertas", url: "/alerts", icon: Bell },
