@@ -1106,9 +1106,10 @@ const RDONew = () => {
         open={showServiceFrontDialog}
         onOpenChange={setShowServiceFrontDialog}
         projectId={selectedProject}
-        onSuccess={() => {
-          loadServiceFronts(selectedProject);
+        onSuccess={async () => {
+          await loadServiceFronts(selectedProject);
           setShowServiceFrontDialog(false);
+          toast.success("Frente de serviço adicionada e disponível na lista!");
         }}
       />
 
@@ -1116,18 +1117,20 @@ const RDONew = () => {
         open={showConstructionSiteDialog}
         onOpenChange={setShowConstructionSiteDialog}
         projectId={selectedProject}
-        onSuccess={() => {
-          loadConstructionSites(selectedProject);
+        onSuccess={async () => {
+          await loadConstructionSites(selectedProject);
           setShowConstructionSiteDialog(false);
+          toast.success("Local de obra adicionado e disponível na lista!");
         }}
       />
 
       <AddServiceDialog
         open={showServiceDialog}
         onOpenChange={setShowServiceDialog}
-        onSuccess={() => {
-          loadServicesCatalog();
+        onSuccess={async () => {
+          await loadServicesCatalog();
           setShowServiceDialog(false);
+          toast.success("Serviço adicionado ao catálogo e disponível na lista!");
         }}
       />
 

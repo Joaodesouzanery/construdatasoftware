@@ -149,7 +149,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, projectId, onSuccess }: 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
+              <Label htmlFor="phone">Telefone (Opcional)</Label>
               <Input
                 id="phone"
                 value={phone}
@@ -159,7 +159,7 @@ export const AddEmployeeDialog = ({ open, onOpenChange, projectId, onSuccess }: 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">E-mail (Opcional)</Label>
               <Input
                 id="email"
                 type="email"
