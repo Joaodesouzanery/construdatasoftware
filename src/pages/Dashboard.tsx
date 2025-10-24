@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image, Target, TrendingUp, AlertCircle } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image, Target, TrendingUp, AlertCircle, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -314,6 +314,18 @@ const Dashboard = () => {
               <CardTitle className="text-base sm:text-lg">Controle de Material</CardTitle>
               <CardDescription className="text-sm">
                 Monitore consumo
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/inventory')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-amber-500 to-amber-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Warehouse className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Almoxarifado</CardTitle>
+              <CardDescription className="text-sm">
+                Gerencie estoque
               </CardDescription>
             </CardHeader>
           </Card>

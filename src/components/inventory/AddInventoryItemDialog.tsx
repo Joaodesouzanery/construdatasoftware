@@ -104,8 +104,8 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.projectId || !formData.materialName) {
-      toast.error("Preencha os campos obrigatórios");
+    if (!formData.materialName) {
+      toast.error("Preencha o nome do material");
       return;
     }
 
@@ -116,7 +116,7 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
       if (!userData.user) throw new Error("Usuário não autenticado");
 
       const dataToSave = {
-        project_id: formData.projectId,
+        project_id: formData.projectId || null,
         material_name: formData.materialName,
         material_code: formData.materialCode || null,
         category: formData.category || null,
@@ -181,7 +181,7 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="project">Projeto *</Label>
+              <Label htmlFor="project">Projeto</Label>
               <Select value={formData.projectId} onValueChange={(value) => setFormData({ ...formData, projectId: value })}>
                 <SelectTrigger id="project">
                   <SelectValue placeholder="Selecione o projeto" />
@@ -197,13 +197,12 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="materialName">Nome do Material *</Label>
+              <Label htmlFor="materialName">Nome do Material</Label>
               <Input
                 id="materialName"
                 value={formData.materialName}
                 onChange={(e) => setFormData({ ...formData, materialName: e.target.value })}
                 placeholder="Ex: Cimento CP II"
-                required
               />
             </div>
 

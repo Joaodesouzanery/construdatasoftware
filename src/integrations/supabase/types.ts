@@ -454,7 +454,7 @@ export type Database = {
           material_name: string
           minimum_stock: number | null
           notes: string | null
-          project_id: string
+          project_id: string | null
           quantity_available: number
           supplier: string | null
           unit: string | null
@@ -471,7 +471,7 @@ export type Database = {
           material_name: string
           minimum_stock?: number | null
           notes?: string | null
-          project_id: string
+          project_id?: string | null
           quantity_available?: number
           supplier?: string | null
           unit?: string | null
@@ -488,7 +488,7 @@ export type Database = {
           material_name?: string
           minimum_stock?: number | null
           notes?: string | null
-          project_id?: string
+          project_id?: string | null
           quantity_available?: number
           supplier?: string | null
           unit?: string | null
