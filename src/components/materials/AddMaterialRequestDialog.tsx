@@ -89,7 +89,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.unit || !formData.requestorName) {
+    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.requestorName) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -107,7 +107,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
         requestor_name: formData.requestorName,
         material_name: formData.materialName,
         quantity: parseFloat(formData.quantity),
-        unit: formData.unit,
+        unit: formData.unit || null,
         needed_date: formData.neededDate || null,
         usage_location: formData.usageLocation || null,
         request_date: formData.requestDate,
@@ -243,13 +243,12 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unit">Unidade *</Label>
+                <Label htmlFor="unit">Unidade</Label>
                 <Input
                   id="unit"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   placeholder="m, kg, un"
-                  required
                 />
               </div>
             </div>

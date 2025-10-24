@@ -71,31 +71,52 @@ const RDOPhotos = () => {
   };
 
   const loadPhotos = async () => {
-    let query = supabase
-      .from('rdo_validation_photos')
-      .select(`
-        *,
-        daily_report:daily_reports (
-          id,
-          report_date,
-          project:projects (name),
-          construction_site:construction_sites (name)
-        )
-      `)
-      .order('uploaded_at', { ascending: false });
+    try {
+      // First get all photos with their daily reports
+      const { data: photosData, error: photosError } = await supabase
+        .from('rdo_validation_photos')
+        .select(`
+          *,
+          daily_reports!inner (
+            id,
+            report_date,
+            project_id,
+            projects (name),
+            construction_sites (name)
+          )
+        `)
+        .order('uploaded_at', { ascending: false });
 
-    if (selectedProject !== 'all') {
-      query = query.eq('daily_report.project_id', selectedProject);
-    }
+      if (photosError) {
+        toast.error("Erro ao carregar fotos: " + photosError.message);
+        return;
+      }
 
-    const { data, error } = await query;
+      // Filter by project on the client side if needed
+      let filteredPhotos = photosData || [];
+      if (selectedProject !== 'all') {
+        filteredPhotos = filteredPhotos.filter((photo: any) => 
+          photo.daily_reports?.project_id === selectedProject
+        );
+      }
 
-    if (error) {
+      // Transform data to match expected structure
+      const transformedPhotos = filteredPhotos.map((photo: any) => ({
+        id: photo.id,
+        photo_url: photo.photo_url,
+        uploaded_at: photo.uploaded_at,
+        daily_report: {
+          id: photo.daily_reports.id,
+          report_date: photo.daily_reports.report_date,
+          project: photo.daily_reports.projects,
+          construction_site: photo.daily_reports.construction_sites
+        }
+      }));
+
+      setPhotos(transformedPhotos);
+    } catch (error: any) {
       toast.error("Erro ao carregar fotos: " + error.message);
-      return;
     }
-
-    setPhotos(data || []);
   };
 
   const handleDeletePhoto = async () => {

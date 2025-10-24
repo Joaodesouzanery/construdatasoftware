@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 interface RDOHistoryViewProps {
   projectId: string;
@@ -226,7 +228,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     return Array.from(serviceMap.values());
   };
 
-  const handleExport = () => {
+  const handleExportCSV = () => {
     const filtered = getFilteredData();
     let csvContent = "Data,Local,Frente,Serviço,Quantidade,Unidade,Equipamentos,Executado Por\n";
 
@@ -238,7 +240,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
           rdo.service_fronts?.name || 'N/A',
           es.services_catalog?.name || 'N/A',
           es.quantity,
-          es.unit,
+          es.unit || 'N/A',
           es.equipment_used?.equipment || 'N/A',
           'Sistema'
         ].join(',') + '\n';
@@ -252,7 +254,44 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     a.download = `historico_rdos_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
 
-    toast.success("Histórico exportado com sucesso!");
+    toast.success("Histórico exportado em CSV com sucesso!");
+  };
+
+  const handleExportPDF = () => {
+    const filtered = getFilteredData();
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text("Histórico de RDOs", 14, 22);
+    
+    doc.setFontSize(11);
+    doc.text(`Data de Exportação: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+    doc.text(`Total de RDOs: ${filtered.length}`, 14, 36);
+
+    const tableData: any[] = [];
+    filtered.forEach(rdo => {
+      rdo.executed_services?.forEach((es: any) => {
+        tableData.push([
+          new Date(rdo.report_date).toLocaleDateString('pt-BR'),
+          rdo.construction_sites?.name || 'N/A',
+          rdo.service_fronts?.name || 'N/A',
+          es.services_catalog?.name || 'N/A',
+          es.quantity,
+          es.unit || 'N/A'
+        ]);
+      });
+    });
+
+    (doc as any).autoTable({
+      head: [['Data', 'Local', 'Frente', 'Serviço', 'Qtd', 'Un']],
+      body: tableData,
+      startY: 42,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    doc.save(`historico_rdos_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success("Histórico exportado em PDF com sucesso!");
   };
 
   if (isLoading) {
@@ -331,10 +370,14 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
               </Select>
             </div>
 
-            <div className="flex items-end">
-              <Button onClick={handleExport} className="w-full">
+            <div className="flex items-end gap-2">
+              <Button onClick={handleExportCSV} variant="outline" className="flex-1">
                 <Download className="w-4 h-4 mr-2" />
-                Exportar
+                CSV
+              </Button>
+              <Button onClick={handleExportPDF} className="flex-1">
+                <Download className="w-4 h-4 mr-2" />
+                PDF
               </Button>
             </div>
           </div>

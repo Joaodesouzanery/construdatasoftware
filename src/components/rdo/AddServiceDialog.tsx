@@ -20,8 +20,8 @@ export const AddServiceDialog = ({ open, onOpenChange, onSuccess }: AddServiceDi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim() || !unit.trim()) {
-      toast.error("Preencha todos os campos");
+    if (!name.trim()) {
+      toast.error("Preencha o nome do serviço");
       return;
     }
 
@@ -34,7 +34,7 @@ export const AddServiceDialog = ({ open, onOpenChange, onSuccess }: AddServiceDi
         .from('services_catalog')
         .insert([{
           name,
-          unit,
+          unit: unit.trim() || null,
           created_by_user_id: session?.user.id
         }]);
 
@@ -74,13 +74,12 @@ export const AddServiceDialog = ({ open, onOpenChange, onSuccess }: AddServiceDi
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="unit">Unidade *</Label>
+              <Label htmlFor="unit">Unidade</Label>
               <Input
                 id="unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder="Ex: m², m³, un, ml"
-                required
               />
             </div>
           </div>

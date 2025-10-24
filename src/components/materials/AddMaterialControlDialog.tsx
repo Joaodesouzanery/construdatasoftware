@@ -67,7 +67,7 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantityUsed || !formData.unit) {
+    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantityUsed) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -83,7 +83,7 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
         service_front_id: formData.serviceFrontId,
         material_name: formData.materialName,
         quantity_used: parseFloat(formData.quantityUsed),
-        unit: formData.unit,
+        unit: formData.unit || null,
         usage_date: formData.usageDate,
         recorded_by_user_id: userData.user.id,
       });
@@ -185,13 +185,12 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unit">Unidade *</Label>
+                <Label htmlFor="unit">Unidade</Label>
                 <Input
                   id="unit"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   placeholder="m, kg, un"
-                  required
                 />
               </div>
             </div>
