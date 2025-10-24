@@ -18,6 +18,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [serviceFronts, setServiceFronts] = useState<Array<{ id: string; name: string }>>([]);
   const [employees, setEmployees] = useState<Array<{ id: string; name: string }>>([]);
+  const [inventoryItems, setInventoryItems] = useState<Array<{ id: string; material_name: string; unit: string | null; quantity_available: number }>>([]);
   const [formData, setFormData] = useState({
     projectId: "",
     serviceFrontId: "",
@@ -41,6 +42,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
     if (formData.projectId) {
       fetchServiceFronts(formData.projectId);
       fetchEmployees(formData.projectId);
+      fetchInventoryItems(formData.projectId);
     }
   }, [formData.projectId]);
 
@@ -83,6 +85,34 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
       setEmployees(data || []);
     } catch (error: any) {
       toast.error("Erro ao carregar funcionários: " + error.message);
+    }
+  };
+
+  const fetchInventoryItems = async (projectId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("inventory")
+        .select("id, material_name, unit, quantity_available")
+        .eq("project_id", projectId)
+        .gt("quantity_available", 0)
+        .order("material_name");
+
+      if (error) throw error;
+      setInventoryItems(data || []);
+    } catch (error: any) {
+      toast.error("Erro ao carregar inventário: " + error.message);
+    }
+  };
+
+  const handleSelectInventoryItem = (itemId: string) => {
+    const item = inventoryItems.find(i => i.id === itemId);
+    if (item) {
+      setFormData({
+        ...formData,
+        materialName: item.material_name,
+        unit: item.unit || ""
+      });
+      toast.success(`Material "${item.material_name}" selecionado do almoxarifado`);
     }
   };
 
@@ -217,6 +247,27 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
                 </SelectContent>
               </Select>
             </div>
+
+            {inventoryItems.length > 0 && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="inventoryItem">Buscar no Almoxarifado</Label>
+                <Select onValueChange={handleSelectInventoryItem} disabled={!formData.projectId}>
+                  <SelectTrigger id="inventoryItem">
+                    <SelectValue placeholder="Selecione um material do estoque" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {inventoryItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.material_name} - Disponível: {item.quantity_available} {item.unit || ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Selecione um material do almoxarifado para preencher automaticamente
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="materialName">Material *</Label>

@@ -17,6 +17,8 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [serviceFronts, setServiceFronts] = useState<Array<{ id: string; name: string }>>([]);
+  const [inventoryItems, setInventoryItems] = useState<Array<{ id: string; material_name: string; unit: string | null; quantity_available: number }>>([]);
+  const [selectedInventoryId, setSelectedInventoryId] = useState<string>("");
   const [formData, setFormData] = useState({
     projectId: "",
     serviceFrontId: "",
@@ -35,6 +37,7 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
   useEffect(() => {
     if (formData.projectId) {
       fetchServiceFronts(formData.projectId);
+      fetchInventoryItems(formData.projectId);
     }
   }, [formData.projectId]);
 
@@ -64,6 +67,35 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
     }
   };
 
+  const fetchInventoryItems = async (projectId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("inventory")
+        .select("id, material_name, unit, quantity_available")
+        .eq("project_id", projectId)
+        .gt("quantity_available", 0)
+        .order("material_name");
+
+      if (error) throw error;
+      setInventoryItems(data || []);
+    } catch (error: any) {
+      toast.error("Erro ao carregar inventário: " + error.message);
+    }
+  };
+
+  const handleSelectInventoryItem = (itemId: string) => {
+    const item = inventoryItems.find(i => i.id === itemId);
+    if (item) {
+      setSelectedInventoryId(itemId);
+      setFormData({
+        ...formData,
+        materialName: item.material_name,
+        unit: item.unit || ""
+      });
+      toast.success(`Material "${item.material_name}" selecionado do almoxarifado`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -78,19 +110,60 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase.from("material_control").insert({
+      const quantityUsed = parseFloat(formData.quantityUsed);
+
+      // Register material control
+      const { error: controlError } = await supabase.from("material_control").insert({
         project_id: formData.projectId,
         service_front_id: formData.serviceFrontId,
         material_name: formData.materialName,
-        quantity_used: parseFloat(formData.quantityUsed),
+        quantity_used: quantityUsed,
         unit: formData.unit || null,
         usage_date: formData.usageDate,
         recorded_by_user_id: userData.user.id,
       });
 
-      if (error) throw error;
+      if (controlError) throw controlError;
 
-      toast.success("Consumo registrado com sucesso!");
+      // If material is from inventory, update stock and create movement
+      if (selectedInventoryId) {
+        const inventoryItem = inventoryItems.find(i => i.id === selectedInventoryId);
+        if (inventoryItem) {
+          if (quantityUsed > inventoryItem.quantity_available) {
+            toast.error(`Quantidade em estoque insuficiente. Disponível: ${inventoryItem.quantity_available}`);
+            setIsLoading(false);
+            return;
+          }
+
+          // Update inventory quantity
+          const newQuantity = inventoryItem.quantity_available - quantityUsed;
+          const { error: updateError } = await supabase
+            .from("inventory")
+            .update({ quantity_available: newQuantity })
+            .eq("id", selectedInventoryId);
+
+          if (updateError) throw updateError;
+
+          // Create inventory movement
+          const { error: movementError } = await supabase
+            .from("inventory_movements")
+            .insert({
+              inventory_id: selectedInventoryId,
+              movement_type: "saida",
+              quantity: quantityUsed,
+              reason: "Consumo registrado no controle de material",
+              reference_type: "material_control",
+              created_by_user_id: userData.user.id,
+            });
+
+          if (movementError) throw movementError;
+
+          toast.success("Consumo registrado e estoque atualizado!");
+        }
+      } else {
+        toast.success("Consumo registrado com sucesso!");
+      }
+
       onOpenChange(false);
       onSuccess();
       setFormData({
@@ -101,6 +174,7 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
         unit: "",
         usageDate: new Date().toISOString().split("T")[0],
       });
+      setSelectedInventoryId("");
     } catch (error: any) {
       toast.error("Erro ao registrar consumo: " + error.message);
     } finally {
@@ -159,6 +233,27 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
                 </SelectContent>
               </Select>
             </div>
+
+            {inventoryItems.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="inventoryItem">Buscar no Almoxarifado</Label>
+                <Select onValueChange={handleSelectInventoryItem} disabled={!formData.projectId} value={selectedInventoryId}>
+                  <SelectTrigger id="inventoryItem">
+                    <SelectValue placeholder="Selecione um material do estoque" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {inventoryItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.material_name} - Disponível: {item.quantity_available} {item.unit || ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Selecione do almoxarifado para dar baixa automática no estoque
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="materialName">Material *</Label>
