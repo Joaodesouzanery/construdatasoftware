@@ -302,99 +302,109 @@ const RDONew = () => {
     setIsLoading(true);
     
     try {
-      // Create multiple daily reports (one for each combination of service front and construction site)
-      const reportIds: string[] = [];
+      // Create ONE daily report using the first selected front and construction site
+      // (Note: All selected fronts/sites are included in the observations)
+      const serviceFrontId = selectedServiceFronts[0];
+      const constructionSiteId = selectedConstructionSites[0];
       
-      for (const serviceFrontId of selectedServiceFronts) {
-        for (const constructionSiteId of selectedConstructionSites) {
-          const { data: dailyReport, error: reportError } = await supabase
-            .from('daily_reports')
-            .insert([{
-              report_date: reportDate,
-              project_id: selectedProject,
-              construction_site_id: constructionSiteId,
-              service_front_id: serviceFrontId,
-              executed_by_user_id: user.id,
-              temperature: weatherData?.temperature || null,
-              humidity: weatherData?.humidity || null,
-              wind_speed: weatherData?.windSpeed || null,
-              will_rain: weatherData?.willRain || null,
-              weather_description: weatherData?.description || null,
-              terrain_condition: terrainCondition || null,
-              gps_location: location || null,
-              general_observations: generalObservations || null
-            }])
-            .select()
-            .single();
+      // Add info about all selected fronts/sites to observations
+      const selectedFrontNames = serviceFronts
+        .filter(sf => selectedServiceFronts.includes(sf.id))
+        .map(sf => sf.name)
+        .join(', ');
+      
+      const selectedSiteNames = constructionSites
+        .filter(cs => selectedConstructionSites.includes(cs.id))
+        .map(cs => cs.name)
+        .join(', ');
+      
+      const enhancedObservations = `${generalObservations ? generalObservations + '\n\n' : ''}Frentes de Serviço: ${selectedFrontNames}\nLocais da Obra: ${selectedSiteNames}`;
 
-          if (reportError) throw reportError;
-          reportIds.push(dailyReport.id);
+      const { data: dailyReport, error: reportError } = await supabase
+        .from('daily_reports')
+        .insert([{
+          report_date: reportDate,
+          project_id: selectedProject,
+          construction_site_id: constructionSiteId,
+          service_front_id: serviceFrontId,
+          executed_by_user_id: user.id,
+          temperature: weatherData?.temperature || null,
+          humidity: weatherData?.humidity || null,
+          wind_speed: weatherData?.windSpeed || null,
+          will_rain: weatherData?.willRain || null,
+          weather_description: weatherData?.description || null,
+          terrain_condition: terrainCondition || null,
+          gps_location: location || null,
+          general_observations: enhancedObservations || null
+        }])
+        .select()
+        .single();
+
+      if (reportError) throw reportError;
+      
+      // Upload validation photos
+      if (validationPhotos.length > 0) {
+        for (const photo of validationPhotos) {
+          const fileName = `${user.id}/${dailyReport.id}/${crypto.randomUUID()}_${photo.name}`;
           
-          // Upload validation photos for each report
-          if (validationPhotos.length > 0) {
-            for (const photo of validationPhotos) {
-              const fileName = `${user.id}/${dailyReport.id}/${crypto.randomUUID()}_${photo.name}`;
-              
-              const { error: uploadError } = await supabase.storage
-                .from('rdo-photos')
-                .upload(fileName, photo);
+          const { error: uploadError } = await supabase.storage
+            .from('rdo-photos')
+            .upload(fileName, photo);
 
-              if (uploadError) {
-                console.error('Error uploading photo:', uploadError);
-                continue;
-              }
-
-              const { data: photoData } = supabase.storage
-                .from('rdo-photos')
-                .getPublicUrl(fileName);
-
-              await supabase
-                .from('rdo_validation_photos')
-                .insert({
-                  daily_report_id: dailyReport.id,
-                  photo_url: photoData.publicUrl,
-                  created_by_user_id: user.id
-                });
-            }
+          if (uploadError) {
+            console.error('Error uploading photo:', uploadError);
+            continue;
           }
 
-          // Insert executed services for this report
-          for (const service of validServices) {
-            const { data: executedService, error: serviceError } = await supabase
-              .from('executed_services')
-              .insert([{
-                daily_report_id: dailyReport.id,
-                service_id: service.service_id,
-                quantity: parseFloat(service.quantity),
-                unit: service.unit,
-                equipment_used: service.equipment_used ? { equipment: service.equipment_used } : null,
-                employee_id: service.employee_id || null,
-                created_by_user_id: user.id
-              }])
-              .select()
-              .single();
+          const { data: photoData } = supabase.storage
+            .from('rdo-photos')
+            .getPublicUrl(fileName);
 
-            if (serviceError) throw serviceError;
-
-            // Add justification if below target
-            if (service.justification) {
-              const { error: justError } = await supabase
-                .from('justifications')
-                .insert([{
-                  daily_report_id: dailyReport.id,
-                  executed_service_id: executedService.id,
-                  reason: service.justification,
-                  created_by_user_id: user.id
-                }]);
-
-              if (justError) throw justError;
-            }
-          }
+          await supabase
+            .from('rdo_validation_photos')
+            .insert({
+              daily_report_id: dailyReport.id,
+              photo_url: photoData.publicUrl,
+              created_by_user_id: user.id
+            });
         }
       }
 
-      toast.success(`${reportIds.length} RDO(s) criado(s) com sucesso!`);
-      setLastCreatedRDOId(reportIds[0]);
+      // Insert executed services
+      for (const service of validServices) {
+        const { data: executedService, error: serviceError } = await supabase
+          .from('executed_services')
+          .insert([{
+            daily_report_id: dailyReport.id,
+            service_id: service.service_id,
+            quantity: parseFloat(service.quantity),
+            unit: service.unit,
+            equipment_used: service.equipment_used ? { equipment: service.equipment_used } : null,
+            employee_id: service.employee_id || null,
+            created_by_user_id: user.id
+          }])
+          .select()
+          .single();
+
+        if (serviceError) throw serviceError;
+
+        // Add justification if below target
+        if (service.justification) {
+          const { error: justError } = await supabase
+            .from('justifications')
+            .insert([{
+              daily_report_id: dailyReport.id,
+              executed_service_id: executedService.id,
+              reason: service.justification,
+              created_by_user_id: user.id
+            }]);
+
+          if (justError) throw justError;
+        }
+      }
+
+      toast.success('RDO criado com sucesso!');
+      setLastCreatedRDOId(dailyReport.id);
 
       // Reset form
       setSelectedServiceFronts([]);

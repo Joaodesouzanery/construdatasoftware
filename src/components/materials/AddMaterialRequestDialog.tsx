@@ -110,7 +110,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
       setFormData({
         ...formData,
         materialName: item.material_name,
-        unit: item.unit || ""
+        unit: item.unit || "un" // Default to "un" if unit is null
       });
       toast.success(`Material "${item.material_name}" selecionado do almoxarifado`);
     }
@@ -119,8 +119,15 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.unit || !formData.requestorName) {
+    // Validações adicionais para garantir que campos obrigatórios não estejam vazios
+    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.requestorName) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    // Validação específica para unit - não pode ser string vazia
+    if (!formData.unit || formData.unit.trim() === "") {
+      toast.error("A unidade do material é obrigatória");
       return;
     }
 
@@ -137,7 +144,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
         requestor_name: formData.requestorName,
         material_name: formData.materialName,
         quantity: parseFloat(formData.quantity),
-        unit: formData.unit,
+        unit: formData.unit.trim(),
         needed_date: formData.neededDate || null,
         usage_location: formData.usageLocation || null,
         request_date: formData.requestDate,

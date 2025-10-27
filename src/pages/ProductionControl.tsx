@@ -340,6 +340,8 @@ const ProductionControl = () => {
                         onChange={(e) => {
                           if (e.target.checked) {
                             setSelectedSites(['all']);
+                          } else {
+                            setSelectedSites([]);
                           }
                         }}
                         className="rounded"
@@ -353,13 +355,15 @@ const ProductionControl = () => {
                           checked={selectedSites.includes(site.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedSites(prev => prev.filter(id => id !== 'all').concat(site.id));
+                              setSelectedSites(prev => {
+                                const filtered = prev.filter(id => id !== 'all');
+                                return [...filtered, site.id];
+                              });
                             } else {
                               const newSelected = selectedSites.filter(id => id !== site.id);
                               setSelectedSites(newSelected.length === 0 ? ['all'] : newSelected);
                             }
                           }}
-                          disabled={selectedSites.includes('all')}
                           className="rounded"
                         />
                         <span className="text-sm">{site.name}</span>
