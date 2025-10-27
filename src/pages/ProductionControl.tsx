@@ -34,8 +34,8 @@ const ProductionControl = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [constructionSites, setConstructionSites] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
-  const [selectedSite, setSelectedSite] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<"day" | "week" | "month" | "quarter">("week");
+  const [selectedSites, setSelectedSites] = useState<string[]>(["all"]);
+  const [dateRange, setDateRange] = useState<"daily" | "day" | "week" | "month" | "quarter">("week");
   
   // Data
   const [productionData, setProductionData] = useState<ProductionData[]>([]);
@@ -61,7 +61,7 @@ const ProductionControl = () => {
       loadConstructionSites();
       loadProductionData();
     }
-  }, [selectedProject, selectedSite, dateRange]);
+  }, [selectedProject, selectedSites, dateRange]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -171,9 +171,11 @@ const ProductionControl = () => {
     let production = Array.from(dataMap.values());
 
     // Filter by construction site if selected
-    if (selectedSite !== 'all') {
-      const site = constructionSites.find(s => s.id === selectedSite);
-      production = production.filter(p => p.construction_site === site?.name);
+    if (!selectedSites.includes('all')) {
+      const selectedSiteNames = constructionSites
+        .filter(s => selectedSites.includes(s.id))
+        .map(s => s.name);
+      production = production.filter(p => selectedSiteNames.includes(p.construction_site || ''));
     }
 
     // Calculate summary stats
@@ -197,6 +199,11 @@ const ProductionControl = () => {
     let start = new Date();
 
     switch (dateRange) {
+      case 'daily':
+        start = new Date(end);
+        end.setHours(23, 59, 59, 999);
+        start.setHours(0, 0, 0, 0);
+        break;
       case 'day':
         start = new Date(end);
         break;
@@ -312,7 +319,7 @@ const ProductionControl = () => {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Local da Obra</label>
+                    <label className="text-sm font-medium">Locais da Obra</label>
                     <Button 
                       type="button" 
                       variant="ghost" 
@@ -325,28 +332,50 @@ const ProductionControl = () => {
                       Novo
                     </Button>
                   </div>
-                  <Select value={selectedSite} onValueChange={setSelectedSite}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os locais" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os locais</SelectItem>
-                      {constructionSites.map(site => (
-                        <SelectItem key={site.id} value={site.id}>
-                          {site.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedSites.includes('all')}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSites(['all']);
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm">Todos os locais</span>
+                    </label>
+                    {constructionSites.map(site => (
+                      <label key={site.id} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedSites.includes(site.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedSites(prev => prev.filter(id => id !== 'all').concat(site.id));
+                            } else {
+                              const newSelected = selectedSites.filter(id => id !== site.id);
+                              setSelectedSites(newSelected.length === 0 ? ['all'] : newSelected);
+                            }
+                          }}
+                          disabled={selectedSites.includes('all')}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{site.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Período</label>
-                <Select value={dateRange} onValueChange={(value) => setDateRange(value as "day" | "week" | "month" | "quarter")}>
+                <Select value={dateRange} onValueChange={(value) => setDateRange(value as "daily" | "day" | "week" | "month" | "quarter")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="daily">Diário</SelectItem>
                     <SelectItem value="day">Hoje</SelectItem>
                     <SelectItem value="week">Última Semana</SelectItem>
                     <SelectItem value="month">Último Mês</SelectItem>

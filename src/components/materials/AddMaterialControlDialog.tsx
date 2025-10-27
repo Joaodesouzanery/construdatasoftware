@@ -99,7 +99,7 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantityUsed) {
+    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantityUsed || !formData.unit) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -118,7 +118,7 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
         service_front_id: formData.serviceFrontId,
         material_name: formData.materialName,
         quantity_used: quantityUsed,
-        unit: formData.unit || null,
+        unit: formData.unit,
         usage_date: formData.usageDate,
         recorded_by_user_id: userData.user.id,
       });
@@ -184,13 +184,13 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Registrar Consumo de Material</DialogTitle>
           <DialogDescription>Registre o material utilizado no projeto</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="space-y-4 py-4 overflow-y-auto px-1">
             <div className="space-y-2">
               <Label htmlFor="usageDate">Data de Uso *</Label>
               <Input
@@ -280,12 +280,13 @@ export const AddMaterialControlDialog = ({ open, onOpenChange, onSuccess }: AddM
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unit">Unidade</Label>
+                <Label htmlFor="unit">Unidade *</Label>
                 <Input
                   id="unit"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   placeholder="m, kg, un"
+                  required
                 />
               </div>
             </div>

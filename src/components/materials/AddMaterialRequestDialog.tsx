@@ -119,7 +119,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.requestorName) {
+    if (!formData.projectId || !formData.serviceFrontId || !formData.materialName || !formData.quantity || !formData.unit || !formData.requestorName) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -137,7 +137,7 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
         requestor_name: formData.requestorName,
         material_name: formData.materialName,
         quantity: parseFloat(formData.quantity),
-        unit: formData.unit || null,
+        unit: formData.unit,
         needed_date: formData.neededDate || null,
         usage_location: formData.usageLocation || null,
         request_date: formData.requestDate,
@@ -171,13 +171,13 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Novo Pedido de Material</DialogTitle>
           <DialogDescription>Solicite materiais para o projeto</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="space-y-4 py-4 overflow-y-auto px-1">
             <div className="space-y-2">
               <Label htmlFor="requestDate">Data do Pedido *</Label>
               <Input
@@ -294,12 +294,13 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unit">Unidade</Label>
+                <Label htmlFor="unit">Unidade *</Label>
                 <Input
                   id="unit"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   placeholder="m, kg, un"
+                  required
                 />
               </div>
             </div>

@@ -48,8 +48,8 @@ const RDONew = () => {
 
   // Form state
   const [selectedProject, setSelectedProject] = useState<string>("");
-  const [selectedServiceFront, setSelectedServiceFront] = useState<string>("");
-  const [selectedConstructionSite, setSelectedConstructionSite] = useState<string>("");
+  const [selectedServiceFronts, setSelectedServiceFronts] = useState<string[]>([]);
+  const [selectedConstructionSites, setSelectedConstructionSites] = useState<string[]>([]);
   const [reportDate, setReportDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [executedServices, setExecutedServices] = useState<ExecutedService[]>([
     { service_id: "", quantity: "", unit: "", equipment_used: "" }
@@ -88,10 +88,10 @@ const RDONew = () => {
   }, [selectedProject]);
 
   useEffect(() => {
-    if (selectedServiceFront) {
-      loadProductionTargets(selectedServiceFront);
+    if (selectedServiceFronts.length > 0) {
+      selectedServiceFronts.forEach(frontId => loadProductionTargets(frontId));
     }
-  }, [selectedServiceFront]);
+  }, [selectedServiceFronts]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -276,7 +276,7 @@ const RDONew = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedProject || !selectedServiceFront || !selectedConstructionSite) {
+    if (!selectedProject || selectedServiceFronts.length === 0 || selectedConstructionSites.length === 0) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -302,97 +302,103 @@ const RDONew = () => {
     setIsLoading(true);
     
     try {
-      // Create daily report
-      const { data: dailyReport, error: reportError } = await supabase
-        .from('daily_reports')
-        .insert([{
-          report_date: reportDate,
-          project_id: selectedProject,
-          construction_site_id: selectedConstructionSite,
-          service_front_id: selectedServiceFront,
-          executed_by_user_id: user.id,
-          temperature: weatherData?.temperature || null,
-          humidity: weatherData?.humidity || null,
-          wind_speed: weatherData?.windSpeed || null,
-          will_rain: weatherData?.willRain || null,
-          weather_description: weatherData?.description || null,
-          terrain_condition: terrainCondition || null,
-          gps_location: location || null,
-          general_observations: generalObservations || null
-        }])
-        .select()
-        .single();
+      // Create multiple daily reports (one for each combination of service front and construction site)
+      const reportIds: string[] = [];
+      
+      for (const serviceFrontId of selectedServiceFronts) {
+        for (const constructionSiteId of selectedConstructionSites) {
+          const { data: dailyReport, error: reportError } = await supabase
+            .from('daily_reports')
+            .insert([{
+              report_date: reportDate,
+              project_id: selectedProject,
+              construction_site_id: constructionSiteId,
+              service_front_id: serviceFrontId,
+              executed_by_user_id: user.id,
+              temperature: weatherData?.temperature || null,
+              humidity: weatherData?.humidity || null,
+              wind_speed: weatherData?.windSpeed || null,
+              will_rain: weatherData?.willRain || null,
+              weather_description: weatherData?.description || null,
+              terrain_condition: terrainCondition || null,
+              gps_location: location || null,
+              general_observations: generalObservations || null
+            }])
+            .select()
+            .single();
 
-      if (reportError) throw reportError;
-
-      // Upload validation photos if any
-      if (validationPhotos.length > 0) {
-        for (const photo of validationPhotos) {
-          const fileName = `${user.id}/${dailyReport.id}/${crypto.randomUUID()}_${photo.name}`;
+          if (reportError) throw reportError;
+          reportIds.push(dailyReport.id);
           
-          const { error: uploadError } = await supabase.storage
-            .from('rdo-photos')
-            .upload(fileName, photo);
+          // Upload validation photos for each report
+          if (validationPhotos.length > 0) {
+            for (const photo of validationPhotos) {
+              const fileName = `${user.id}/${dailyReport.id}/${crypto.randomUUID()}_${photo.name}`;
+              
+              const { error: uploadError } = await supabase.storage
+                .from('rdo-photos')
+                .upload(fileName, photo);
 
-          if (uploadError) {
-            console.error('Error uploading photo:', uploadError);
-            continue;
+              if (uploadError) {
+                console.error('Error uploading photo:', uploadError);
+                continue;
+              }
+
+              const { data: photoData } = supabase.storage
+                .from('rdo-photos')
+                .getPublicUrl(fileName);
+
+              await supabase
+                .from('rdo_validation_photos')
+                .insert({
+                  daily_report_id: dailyReport.id,
+                  photo_url: photoData.publicUrl,
+                  created_by_user_id: user.id
+                });
+            }
           }
 
-          // Save photo reference in database
-          const { data: photoData } = supabase.storage
-            .from('rdo-photos')
-            .getPublicUrl(fileName);
+          // Insert executed services for this report
+          for (const service of validServices) {
+            const { data: executedService, error: serviceError } = await supabase
+              .from('executed_services')
+              .insert([{
+                daily_report_id: dailyReport.id,
+                service_id: service.service_id,
+                quantity: parseFloat(service.quantity),
+                unit: service.unit,
+                equipment_used: service.equipment_used ? { equipment: service.equipment_used } : null,
+                employee_id: service.employee_id || null,
+                created_by_user_id: user.id
+              }])
+              .select()
+              .single();
 
-          await supabase
-            .from('rdo_validation_photos')
-            .insert({
-              daily_report_id: dailyReport.id,
-              photo_url: photoData.publicUrl,
-              created_by_user_id: user.id
-            });
+            if (serviceError) throw serviceError;
+
+            // Add justification if below target
+            if (service.justification) {
+              const { error: justError } = await supabase
+                .from('justifications')
+                .insert([{
+                  daily_report_id: dailyReport.id,
+                  executed_service_id: executedService.id,
+                  reason: service.justification,
+                  created_by_user_id: user.id
+                }]);
+
+              if (justError) throw justError;
+            }
+          }
         }
       }
 
-      // Insert executed services
-      for (const service of validServices) {
-        const { data: executedService, error: serviceError } = await supabase
-          .from('executed_services')
-          .insert([{
-            daily_report_id: dailyReport.id,
-            service_id: service.service_id,
-            quantity: parseFloat(service.quantity),
-            unit: service.unit,
-            equipment_used: service.equipment_used ? { equipment: service.equipment_used } : null,
-            employee_id: service.employee_id || null,
-            created_by_user_id: user.id
-          }])
-          .select()
-          .single();
+      toast.success(`${reportIds.length} RDO(s) criado(s) com sucesso!`);
+      setLastCreatedRDOId(reportIds[0]);
 
-        if (serviceError) throw serviceError;
-
-        // Add justification if below target
-        if (service.justification) {
-          const { error: justError } = await supabase
-            .from('justifications')
-            .insert([{
-              daily_report_id: dailyReport.id,
-              executed_service_id: executedService.id,
-              reason: service.justification,
-              created_by_user_id: user.id
-            }]);
-
-          if (justError) throw justError;
-        }
-      }
-
-      toast.success("RDO criado com sucesso!");
-      setLastCreatedRDOId(dailyReport.id);
-      
       // Reset form
-      setSelectedServiceFront("");
-      setSelectedConstructionSite("");
+      setSelectedServiceFronts([]);
+      setSelectedConstructionSites([]);
       setReportDate(new Date().toISOString().split('T')[0]);
       setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "", employee_id: "" }]);
       setTerrainCondition("");
@@ -589,28 +595,37 @@ const RDONew = () => {
                   </CardContent>
                 </Card>
 
-                {/* Quadro 1: Frente de Serviço */}
+                {/* Quadro 1: Frentes de Serviço */}
                 <Card className="border-2 border-primary/20">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">1. Frente de Serviço *</CardTitle>
+                    <CardTitle className="text-base">1. Frentes de Serviço *</CardTitle>
+                    <CardDescription className="text-xs">Selecione uma ou mais frentes</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Select 
-                      value={selectedServiceFront} 
-                      onValueChange={setSelectedServiceFront}
-                      disabled={!selectedProject}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a frente de serviço" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {serviceFronts.map(front => (
-                          <SelectItem key={front.id} value={front.id}>
-                            {front.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2">
+                      {serviceFronts.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Nenhuma frente disponível</p>
+                      ) : (
+                        serviceFronts.map(front => (
+                          <label key={front.id} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedServiceFronts.includes(front.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedServiceFronts([...selectedServiceFronts, front.id]);
+                                } else {
+                                  setSelectedServiceFronts(selectedServiceFronts.filter(id => id !== front.id));
+                                }
+                              }}
+                              disabled={!selectedProject}
+                              className="rounded"
+                            />
+                            <span className="text-sm">{front.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
                     <Button 
                       type="button" 
                       variant="outline" 
@@ -625,28 +640,37 @@ const RDONew = () => {
                   </CardContent>
                 </Card>
 
-                {/* Quadro 2: Local da Obra */}
+                {/* Quadro 2: Locais da Obra */}
                 <Card className="border-2 border-primary/20">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">2. Local da Obra *</CardTitle>
+                    <CardTitle className="text-base">2. Locais da Obra *</CardTitle>
+                    <CardDescription className="text-xs">Selecione um ou mais locais</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Select 
-                      value={selectedConstructionSite} 
-                      onValueChange={setSelectedConstructionSite}
-                      disabled={!selectedProject}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o local da obra" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {constructionSites.map(site => (
-                          <SelectItem key={site.id} value={site.id}>
-                            {site.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2">
+                      {constructionSites.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Nenhum local disponível</p>
+                      ) : (
+                        constructionSites.map(site => (
+                          <label key={site.id} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedConstructionSites.includes(site.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedConstructionSites([...selectedConstructionSites, site.id]);
+                                } else {
+                                  setSelectedConstructionSites(selectedConstructionSites.filter(id => id !== site.id));
+                                }
+                              }}
+                              disabled={!selectedProject}
+                              className="rounded"
+                            />
+                            <span className="text-sm">{site.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
                     <Button 
                       type="button" 
                       variant="outline" 
