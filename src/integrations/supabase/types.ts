@@ -106,6 +106,65 @@ export type Database = {
           },
         ]
       }
+      assets_catalog: {
+        Row: {
+          coordinates: string | null
+          created_at: string | null
+          created_by_user_id: string
+          detailed_location: string | null
+          floor: string | null
+          id: string
+          main_responsible: string | null
+          name: string
+          project_id: string | null
+          sector: string | null
+          technical_notes: string | null
+          tower: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          coordinates?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          detailed_location?: string | null
+          floor?: string | null
+          id?: string
+          main_responsible?: string | null
+          name: string
+          project_id?: string | null
+          sector?: string | null
+          technical_notes?: string | null
+          tower?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          coordinates?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          detailed_location?: string | null
+          floor?: string | null
+          id?: string
+          main_responsible?: string | null
+          name?: string
+          project_id?: string | null
+          sector?: string | null
+          technical_notes?: string | null
+          tower?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_catalog_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       construction_sites: {
         Row: {
           address: string | null
@@ -591,6 +650,100 @@ export type Database = {
           },
         ]
       }
+      maintenance_tasks: {
+        Row: {
+          asset_id: string | null
+          assigned_to_employee_id: string | null
+          assigned_to_user_id: string | null
+          classification: string | null
+          completed_at: string | null
+          completion_notes: string | null
+          created_at: string | null
+          created_by_user_id: string
+          deadline: string | null
+          description: string | null
+          id: string
+          materials_used: Json | null
+          pending_reason: string | null
+          priority: string | null
+          project_id: string | null
+          service_subtype: string | null
+          service_type: string | null
+          status: string
+          task_type: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          assigned_to_employee_id?: string | null
+          assigned_to_user_id?: string | null
+          classification?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          materials_used?: Json | null
+          pending_reason?: string | null
+          priority?: string | null
+          project_id?: string | null
+          service_subtype?: string | null
+          service_type?: string | null
+          status?: string
+          task_type: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          assigned_to_employee_id?: string | null
+          assigned_to_user_id?: string | null
+          classification?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          materials_used?: Json | null
+          pending_reason?: string | null
+          priority?: string | null
+          project_id?: string | null
+          service_subtype?: string | null
+          service_type?: string | null
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_tasks_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_assigned_to_employee_id_fkey"
+            columns: ["assigned_to_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_control: {
         Row: {
           created_at: string | null
@@ -1061,6 +1214,82 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      task_checklist_items: {
+        Row: {
+          completed_at: string | null
+          completed_by_user_id: string | null
+          created_at: string | null
+          description: string
+          id: string
+          is_completed: boolean | null
+          notes: string | null
+          task_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          is_completed?: boolean | null
+          notes?: string | null
+          task_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_completed?: boolean | null
+          notes?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_checklist_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_photos: {
+        Row: {
+          description: string | null
+          id: string
+          photo_url: string
+          task_id: string
+          uploaded_at: string | null
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          photo_url: string
+          task_id: string
+          uploaded_at?: string | null
+          uploaded_by_user_id: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          photo_url?: string
+          task_id?: string
+          uploaded_at?: string | null
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_photos_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

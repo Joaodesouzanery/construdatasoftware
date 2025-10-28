@@ -21,6 +21,8 @@ import RDOPhotos from "./pages/RDOPhotos";
 import Alerts from "./pages/Alerts";
 import Employees from "./pages/Employees";
 import Settings from "./pages/Settings";
+import AssetsCatalog from "./pages/AssetsCatalog";
+import MaintenanceTasks from "./pages/MaintenanceTasks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +50,8 @@ const AppContent = () => {
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/assets-catalog" element={<AssetsCatalog />} />
+        <Route path="/maintenance-tasks" element={<MaintenanceTasks />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
