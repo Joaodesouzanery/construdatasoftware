@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -27,6 +27,12 @@ const menuItems = [
   { title: "Funcionários", url: "/employees", icon: Users },
 ];
 
+const facilityItems = [
+  { title: "Catálogo de Ativos", url: "/assets-catalog", icon: Archive },
+  { title: "Tarefas de Manutenção", url: "/maintenance-tasks", icon: Wrench },
+  { title: "Controle de Consumo", url: "/consumption-control", icon: Gauge },
+];
+
 const settingsItems = [
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
@@ -50,6 +56,28 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {menuItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-medium">Gestão Predial</SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {facilityItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} end className={getNavCls}>

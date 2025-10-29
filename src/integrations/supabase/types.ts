@@ -203,6 +203,56 @@ export type Database = {
           },
         ]
       }
+      consumption_readings: {
+        Row: {
+          created_at: string | null
+          id: string
+          location: string | null
+          meter_type: string
+          meter_value: number
+          notes: string | null
+          project_id: string
+          reading_date: string
+          reading_time: string
+          recorded_by_user_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          meter_type?: string
+          meter_value: number
+          notes?: string | null
+          project_id: string
+          reading_date?: string
+          reading_time: string
+          recorded_by_user_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          meter_type?: string
+          meter_value?: number
+          notes?: string | null
+          project_id?: string
+          reading_date?: string
+          reading_time?: string
+          recorded_by_user_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_readings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_reports: {
         Row: {
           construction_site_id: string
