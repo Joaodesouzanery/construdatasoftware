@@ -24,6 +24,7 @@ import Settings from "./pages/Settings";
 import AssetsCatalog from "./pages/AssetsCatalog";
 import MaintenanceTasks from "./pages/MaintenanceTasks";
 import ConsumptionControl from "./pages/ConsumptionControl";
+import FacilityReports from "./pages/FacilityReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const AppContent = () => {
         <Route path="/assets-catalog" element={<AssetsCatalog />} />
         <Route path="/maintenance-tasks" element={<MaintenanceTasks />} />
         <Route path="/consumption-control" element={<ConsumptionControl />} />
+        <Route path="/facility-reports" element={<FacilityReports />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
