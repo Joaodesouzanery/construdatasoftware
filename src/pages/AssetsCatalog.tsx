@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Package, Edit, Trash2, ArrowLeft, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AddAssetDialog } from "@/components/facility/AddAssetDialog";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 
 interface Asset {
   id: string;
@@ -64,6 +65,26 @@ const AssetsCatalog = () => {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  const tutorialSteps = [
+    {
+      title: "Criar um Novo Ativo",
+      description: 'Clique no botão "Novo Ativo" para registrar um novo local físico ou equipamento. Preencha todos os campos necessários, incluindo nome, tipo, localização detalhada e responsável.',
+    },
+    {
+      title: "Visualizar Ativos",
+      description: "Navegue pela tabela para ver todos os ativos cadastrados. Use a busca e os filtros para encontrar ativos específicos.",
+    },
+    {
+      title: "Editar um Ativo",
+      description: "Clique no ícone de edição para atualizar as informações de um ativo. Você pode modificar qualquer campo conforme necessário.",
+    },
+    {
+      title: "Excluir um Ativo",
+      description: "Use o ícone de lixeira para remover um ativo. Será solicitada confirmação antes da exclusão definitiva.",
+    },
+  ];
 
   useEffect(() => {
     checkAuth();
@@ -168,19 +189,30 @@ const AssetsCatalog = () => {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Catálogo de Ativos</h1>
-            <p className="text-muted-foreground">
-              Gerencie locais e equipamentos
-            </p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Catálogo de Ativos</h1>
+              <p className="text-muted-foreground">
+                Gerencie locais e equipamentos
+              </p>
+            </div>
           </div>
-          <Button onClick={() => {
-            setSelectedAsset(null);
-            setShowAddDialog(true);
-          }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Ativo
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowTutorial(true)}>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              Tutorial
+            </Button>
+            <Button onClick={() => {
+              setSelectedAsset(null);
+              setShowAddDialog(true);
+            }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Ativo
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -329,6 +361,13 @@ const AssetsCatalog = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TutorialDialog
+        open={showTutorial}
+        onOpenChange={setShowTutorial}
+        title="Tutorial - Catálogo de Ativos"
+        steps={tutorialSteps}
+      />
     </div>
   );
 };

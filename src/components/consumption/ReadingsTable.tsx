@@ -16,7 +16,10 @@ interface ReadingsTableProps {
   onUpdate: () => void;
 }
 
-export function ReadingsTable({ readings }: ReadingsTableProps) {
+export function ReadingsTable({ readings, onUpdate }: ReadingsTableProps) {
+  const [editingReading, setEditingReading] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   const getMeterTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       water: "Água",
@@ -24,6 +27,16 @@ export function ReadingsTable({ readings }: ReadingsTableProps) {
       gas: "Gás",
     };
     return labels[type] || type;
+  };
+
+  const handleEdit = (reading: any) => {
+    setEditingReading(reading);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    onUpdate();
+    setIsEditDialogOpen(false);
   };
 
   return (

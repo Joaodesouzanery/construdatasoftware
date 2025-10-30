@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Filter, Search, Building2, Eye } from "lucide-react";
+import { Plus, Filter, Search, Building2, Eye, FileDown, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialRequestDialog } from "@/components/materials/AddMaterialRequestDialog";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import { format } from "date-fns";
 
 interface MaterialRequest {
   id: string;
@@ -111,6 +114,41 @@ export default function MaterialRequests() {
     req.material_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Header
+      doc.setFontSize(18);
+      doc.text("Relatório de Pedidos de Material", pageWidth / 2, 20, { align: "center" });
+
+      // Table data
+      const tableData = filteredRequests.map((request) => [
+        format(new Date(request.request_date), "dd/MM/yyyy"),
+        request.material_name,
+        `${request.quantity} ${request.unit}`,
+        request.requestor_name || request.employee?.name || "-",
+        request.status.toUpperCase(),
+        request.projects.name,
+        request.service_fronts.name,
+      ]);
+
+      (doc as any).autoTable({
+        startY: 30,
+        head: [["Data", "Material", "Qtd", "Solicitante", "Status", "Projeto", "Frente"]],
+        body: tableData,
+        theme: "grid",
+      });
+
+      doc.save(`pedidos-material-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar PDF");
+      console.error(error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -127,14 +165,25 @@ export default function MaterialRequests() {
 
       <main className="container mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold">Gerencie as solicitações de materiais</h2>
-            <p className="text-sm text-muted-foreground">Acompanhe e aprove pedidos</p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold">Gerencie as solicitações de materiais</h2>
+              <p className="text-sm text-muted-foreground">Acompanhe e aprove pedidos</p>
+            </div>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Pedido
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportToPDF} className="w-full sm:w-auto">
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar PDF
+            </Button>
+            <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Pedido
+            </Button>
+          </div>
         </div>
 
       <Card>

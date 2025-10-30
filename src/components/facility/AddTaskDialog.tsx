@@ -413,7 +413,7 @@ export const AddTaskDialog = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="priority">Prioridade</Label>
                 <Select
@@ -430,24 +430,6 @@ export const AddTaskDialog = ({
                     <SelectItem value="média">Média</SelectItem>
                     <SelectItem value="alta">Alta</SelectItem>
                     <SelectItem value="urgente">Urgente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="classification">Classificação</Label>
-                <Select
-                  value={formData.classification}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, classification: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1</SelectItem>
-                    <SelectItem value="2">2</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

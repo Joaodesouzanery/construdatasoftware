@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, ArrowLeft, HelpCircle } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ReportFilters } from "@/components/facility/reports/ReportFilters";
@@ -15,12 +16,34 @@ import { generateFacilityReport } from "@/lib/reportGenerator";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 
 export default function FacilityReports() {
+  const navigate = useNavigate();
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [reportPeriod, setReportPeriod] = useState<"daily" | "monthly">("daily");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  const tutorialSteps = [
+    {
+      title: "Selecionar Projeto",
+      description: "Primeiro, escolha o projeto para o qual deseja gerar o relatório. Os dados serão filtrados automaticamente.",
+    },
+    {
+      title: "Escolher Período",
+      description: 'Selecione se deseja um relatório "Diário" ou "Mensal", e escolha a data correspondente.',
+    },
+    {
+      title: "Visualizar Dados",
+      description: "O sistema mostrará automaticamente resumos de tarefas, materiais, consumo e gráficos de desempenho.",
+    },
+    {
+      title: "Exportar Relatório",
+      description: 'Clique em "Exportar PDF" para gerar um documento completo com todos os dados consolidados do período selecionado.',
+    },
+  ];
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -143,6 +166,9 @@ export default function FacilityReports() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />
+                <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
                 <div>
                   <h1 className="text-3xl font-bold">Relatórios de Gestão Predial</h1>
                   <p className="text-muted-foreground">
@@ -150,13 +176,19 @@ export default function FacilityReports() {
                   </p>
                 </div>
               </div>
-              <Button 
-                onClick={handleGeneratePDF}
-                disabled={!selectedProject || isLoading || isGenerating}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {isGenerating ? "Gerando..." : "Exportar PDF"}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowTutorial(true)}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Tutorial
+                </Button>
+                <Button 
+                  onClick={handleGeneratePDF}
+                  disabled={!selectedProject || isLoading || isGenerating}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isGenerating ? "Gerando..." : "Exportar PDF"}
+                </Button>
+              </div>
             </div>
 
             <ReportFilters
@@ -197,6 +229,13 @@ export default function FacilityReports() {
                 <PerformanceCharts tasks={reportData.tasks} />
               </div>
             ) : null}
+
+            <TutorialDialog
+              open={showTutorial}
+              onOpenChange={setShowTutorial}
+              title="Tutorial - Relatórios de Gestão Predial"
+              steps={tutorialSteps}
+            />
           </div>
         </main>
       </div>

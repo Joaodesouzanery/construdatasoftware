@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo } from "lucide-react";
+import { Plus, ListTodo, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -100,11 +100,16 @@ const MaintenanceTasks = () => {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Painel de Tarefas</h1>
-            <p className="text-muted-foreground">
-              Gerencie manutenções preventivas e corretivas
-            </p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Painel de Tarefas</h1>
+              <p className="text-muted-foreground">
+                Gerencie manutenções preventivas e corretivas
+              </p>
+            </div>
           </div>
           <Button onClick={() => {
             setSelectedTask(null);
