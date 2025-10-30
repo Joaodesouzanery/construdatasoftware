@@ -89,6 +89,11 @@ export default function ConsumptionControl() {
 
   const exportToPDF = () => {
     try {
+      if (!readings || readings.length === 0) {
+        toast.error("Não há leituras para exportar");
+        return;
+      }
+
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -100,7 +105,7 @@ export default function ConsumptionControl() {
       doc.text(format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }), pageWidth / 2, 28, { align: "center" });
 
       // Table data
-      const tableData = (readings || []).map((reading: any) => [
+      const tableData = readings.map((reading: any) => [
         format(new Date(reading.reading_date), "dd/MM/yyyy"),
         reading.reading_time,
         reading.meter_type === "water" ? "Água" : reading.meter_type === "energy" ? "Energia" : "Gás",
@@ -118,8 +123,8 @@ export default function ConsumptionControl() {
 
       doc.save(`controle-consumo-${format(selectedDate, "yyyy-MM-dd")}.pdf`);
       toast.success("PDF exportado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao exportar PDF");
+    } catch (error: any) {
+      toast.error("Erro ao exportar PDF: " + (error.message || "Erro desconhecido"));
       console.error(error);
     }
   };

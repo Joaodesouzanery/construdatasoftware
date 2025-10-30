@@ -116,6 +116,11 @@ export default function MaterialRequests() {
 
   const exportToPDF = () => {
     try {
+      if (!filteredRequests || filteredRequests.length === 0) {
+        toast.error("Não há pedidos para exportar");
+        return;
+      }
+
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -130,8 +135,8 @@ export default function MaterialRequests() {
         `${request.quantity} ${request.unit}`,
         request.requestor_name || request.employee?.name || "-",
         request.status.toUpperCase(),
-        request.projects.name,
-        request.service_fronts.name,
+        request.projects?.name || "-",
+        request.service_fronts?.name || "-",
       ]);
 
       (doc as any).autoTable({
@@ -143,8 +148,8 @@ export default function MaterialRequests() {
 
       doc.save(`pedidos-material-${format(new Date(), "yyyy-MM-dd")}.pdf`);
       toast.success("PDF exportado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao exportar PDF");
+    } catch (error: any) {
+      toast.error("Erro ao exportar PDF: " + (error.message || "Erro desconhecido"));
       console.error(error);
     }
   };
