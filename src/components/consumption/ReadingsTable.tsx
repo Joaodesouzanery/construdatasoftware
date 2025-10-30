@@ -1,4 +1,13 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -7,9 +16,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { Edit } from "lucide-react";
+import { EditReadingDialog } from "./EditReadingDialog";
 
 interface ReadingsTableProps {
   readings: any[];
@@ -58,6 +68,7 @@ export function ReadingsTable({ readings, onUpdate }: ReadingsTableProps) {
                 <TableHead>Valor</TableHead>
                 <TableHead>Local</TableHead>
                 <TableHead>Projeto</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -79,6 +90,15 @@ export function ReadingsTable({ readings, onUpdate }: ReadingsTableProps) {
                   </TableCell>
                   <TableCell>{reading.location || "-"}</TableCell>
                   <TableCell>{reading.projects?.name}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(reading)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -89,6 +109,13 @@ export function ReadingsTable({ readings, onUpdate }: ReadingsTableProps) {
           </div>
         )}
       </CardContent>
+
+      <EditReadingDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        reading={editingReading}
+        onSuccess={handleEditSuccess}
+      />
     </Card>
   );
 }
