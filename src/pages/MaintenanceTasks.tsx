@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, ListTodo, ArrowLeft } from "lucide-react";
+import { Plus, ListTodo, ArrowLeft, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddTaskDialog } from "@/components/facility/AddTaskDialog";
 import { TaskKanbanBoard } from "@/components/facility/TaskKanbanBoard";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 
 interface Task {
   id: string;
@@ -34,6 +35,7 @@ const MaintenanceTasks = () => {
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {
@@ -106,13 +108,19 @@ const MaintenanceTasks = () => {
               </p>
             </div>
           </div>
-          <Button onClick={() => {
-            setSelectedTask(null);
-            setShowAddDialog(true);
-          }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Tarefa
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowTutorial(true)}>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              Tutorial
+            </Button>
+            <Button onClick={() => {
+              setSelectedTask(null);
+              setShowAddDialog(true);
+            }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Tarefa
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -180,6 +188,30 @@ const MaintenanceTasks = () => {
         task={selectedTask}
         defaultTaskType="preventiva"
         onSuccess={loadTasks}
+      />
+
+      <TutorialDialog
+        open={showTutorial}
+        onOpenChange={setShowTutorial}
+        title="Tutorial: Tarefas de Manutenção"
+        steps={[
+          {
+            title: "Criar Nova Tarefa",
+            description: "Clique em 'Nova Tarefa' e escolha entre Manutenção Preventiva ou Corretiva. Preencha título, descrição, prioridade e prazo."
+          },
+          {
+            title: "Atribuir Tarefas",
+            description: "Você pode atribuir tarefas a funcionários específicos ou deixar sem atribuição. Selecione também o ativo relacionado se necessário."
+          },
+          {
+            title: "Gerenciar Status",
+            description: "As tarefas são organizadas em colunas: Pendente, Em Processo, Aguardando e Concluída. Arraste entre colunas ou clique para editar."
+          },
+          {
+            title: "Filtrar por Tipo",
+            description: "Cada tarefa mostra um badge indicando se é Preventiva ou Corretiva, facilitando a organização."
+          }
+        ]}
       />
     </div>
   );

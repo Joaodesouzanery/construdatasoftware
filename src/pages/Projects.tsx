@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImportDataDialog } from "@/components/projects/ImportDataDialog";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Projects = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
 
   const [formData, setFormData] = useState({

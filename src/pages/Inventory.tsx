@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Search, Package, AlertTriangle, TrendingUp, TrendingDown, Edit, Trash2, ArrowUpDown } from "lucide-react";
+import { Building2, Plus, Search, Package, AlertTriangle, TrendingUp, TrendingDown, Edit, Trash2, ArrowUpDown, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AddInventoryItemDialog } from "@/components/inventory/AddInventoryItemDialog";
 import { InventoryMovementDialog } from "@/components/inventory/InventoryMovementDialog";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +57,7 @@ const Inventory = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showMovementDialog, setShowMovementDialog] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
 

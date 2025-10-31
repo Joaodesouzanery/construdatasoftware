@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Upload, Search, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Upload, Search, Pencil, Trash2, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "@/components/employees/AddEmployeeDialog";
 import { ImportEmployeesDialog } from "@/components/employees/ImportEmployeesDialog";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 
 interface Employee {
   id: string;
@@ -37,6 +38,7 @@ export default function Employees() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     checkAuth();

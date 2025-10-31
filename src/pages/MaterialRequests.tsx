@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Filter, Search, Building2, Eye, FileDown, ArrowLeft } from "lucide-react";
+import { Plus, Filter, Search, Building2, Eye, FileDown, ArrowLeft, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialRequestDialog } from "@/components/materials/AddMaterialRequestDialog";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { format } from "date-fns";
@@ -36,6 +37,7 @@ export default function MaterialRequests() {
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -180,6 +182,10 @@ export default function MaterialRequests() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowTutorial(true)} className="w-full sm:w-auto">
+              <HelpCircle className="mr-2 h-4 w-4" />
+              Tutorial
+            </Button>
             <Button variant="outline" onClick={exportToPDF} className="w-full sm:w-auto">
               <FileDown className="mr-2 h-4 w-4" />
               Exportar PDF
@@ -334,6 +340,30 @@ export default function MaterialRequests() {
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSuccess={fetchRequests}
+      />
+      
+      <TutorialDialog
+        open={showTutorial}
+        onOpenChange={setShowTutorial}
+        title="Tutorial: Pedidos de Material"
+        steps={[
+          {
+            title: "Criar Novo Pedido",
+            description: "Clique em 'Novo Pedido' e selecione o projeto, frente de serviço e material desejado. Você pode buscar materiais do almoxarifado ou adicionar novos."
+          },
+          {
+            title: "Gerenciar Status",
+            description: "Use os filtros para visualizar pedidos por status (Pendente, Aprovado, Rejeitado, Entregue). Altere o status diretamente na coluna 'Ações'."
+          },
+          {
+            title: "Buscar Pedidos",
+            description: "Utilize a barra de busca para encontrar pedidos específicos pelo nome do material."
+          },
+          {
+            title: "Exportar Relatório",
+            description: "Clique em 'Exportar PDF' para gerar um relatório completo dos pedidos de material."
+          }
+        ]}
       />
       </main>
     </div>

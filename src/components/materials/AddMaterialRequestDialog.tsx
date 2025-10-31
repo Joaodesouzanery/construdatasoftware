@@ -198,16 +198,22 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
 
             <div className="space-y-2">
               <Label htmlFor="project">Projeto *</Label>
-              <Select value={formData.projectId} onValueChange={(value) => setFormData({ ...formData, projectId: value, serviceFrontId: "" })}>
+              <Select value={formData.projectId} onValueChange={(value) => setFormData({ ...formData, projectId: value, serviceFrontId: "", employeeId: "" })}>
                 <SelectTrigger id="project">
-                  <SelectValue placeholder="Selecione o projeto" />
+                  <SelectValue placeholder={projects.length === 0 ? "Nenhum projeto encontrado" : "Selecione o projeto"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
+                  {projects.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Nenhum projeto disponível. Crie um projeto primeiro.
+                    </div>
+                  ) : (
+                    projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -216,14 +222,20 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
               <Label htmlFor="serviceFront">Frente de Serviço *</Label>
               <Select value={formData.serviceFrontId} onValueChange={(value) => setFormData({ ...formData, serviceFrontId: value })} disabled={!formData.projectId}>
                 <SelectTrigger id="serviceFront">
-                  <SelectValue placeholder="Selecione a frente" />
+                  <SelectValue placeholder={!formData.projectId ? "Selecione um projeto primeiro" : serviceFronts.length === 0 ? "Nenhuma frente encontrada" : "Selecione a frente"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {serviceFronts.map((front) => (
-                    <SelectItem key={front.id} value={front.id}>
-                      {front.name}
-                    </SelectItem>
-                  ))}
+                  {serviceFronts.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Nenhuma frente de serviço disponível para este projeto.
+                    </div>
+                  ) : (
+                    serviceFronts.map((front) => (
+                      <SelectItem key={front.id} value={front.id}>
+                        {front.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -243,14 +255,20 @@ export const AddMaterialRequestDialog = ({ open, onOpenChange, onSuccess }: AddM
               <Label htmlFor="employee">Funcionário Solicitante (Opcional)</Label>
               <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })} disabled={!formData.projectId}>
                 <SelectTrigger id="employee">
-                  <SelectValue placeholder="Selecione o funcionário" />
+                  <SelectValue placeholder={!formData.projectId ? "Selecione um projeto primeiro" : "Selecione o funcionário (opcional)"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </SelectItem>
-                  ))}
+                  {employees.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Nenhum funcionário cadastrado neste projeto.
+                    </div>
+                  ) : (
+                    employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
