@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Plus, ListTodo, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddTaskDialog } from "@/components/facility/AddTaskDialog";
 import { TaskKanbanBoard } from "@/components/facility/TaskKanbanBoard";
 
@@ -36,7 +35,6 @@ const MaintenanceTasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [taskType, setTaskType] = useState<"preventiva" | "corretiva">("preventiva");
 
   useEffect(() => {
     checkAuth();
@@ -81,11 +79,8 @@ const MaintenanceTasks = () => {
     }
   };
 
-  const preventiveTasks = tasks.filter((t) => t.task_type === "preventiva");
-  const correctiveTasks = tasks.filter((t) => t.task_type === "corretiva");
-
-  const getStatusCount = (taskList: Task[], status: string) => {
-    return taskList.filter((t) => t.status === status).length;
+  const getStatusCount = (status: string) => {
+    return tasks.filter((t) => t.status === status).length;
   };
 
   if (loading) {
@@ -139,7 +134,7 @@ const MaintenanceTasks = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {getStatusCount(tasks, "pendente")}
+                {getStatusCount("pendente")}
               </div>
             </CardContent>
           </Card>
@@ -150,7 +145,7 @@ const MaintenanceTasks = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {getStatusCount(tasks, "em_processo")}
+                {getStatusCount("em_processo")}
               </div>
             </CardContent>
           </Card>
@@ -161,51 +156,29 @@ const MaintenanceTasks = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {getStatusCount(tasks, "concluida")}
+                {getStatusCount("concluida")}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="preventiva" onValueChange={(v) => setTaskType(v as any)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="preventiva">
-              Manutenções Preventivas
-            </TabsTrigger>
-            <TabsTrigger value="corretiva">
-              Manutenções Corretivas
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="preventiva" className="mt-6">
-            <TaskKanbanBoard
-              tasks={preventiveTasks}
-              onTaskUpdate={loadTasks}
-              onTaskClick={(task) => {
-                setSelectedTask(task);
-                setShowAddDialog(true);
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value="corretiva" className="mt-6">
-            <TaskKanbanBoard
-              tasks={correctiveTasks}
-              onTaskUpdate={loadTasks}
-              onTaskClick={(task) => {
-                setSelectedTask(task);
-                setShowAddDialog(true);
-              }}
-            />
-          </TabsContent>
-        </Tabs>
+        <div className="mt-6">
+          <TaskKanbanBoard
+            tasks={tasks}
+            onTaskUpdate={loadTasks}
+            onTaskClick={(task) => {
+              setSelectedTask(task);
+              setShowAddDialog(true);
+            }}
+          />
+        </div>
       </div>
 
       <AddTaskDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         task={selectedTask}
-        defaultTaskType={taskType}
+        defaultTaskType="preventiva"
         onSuccess={loadTasks}
       />
     </div>

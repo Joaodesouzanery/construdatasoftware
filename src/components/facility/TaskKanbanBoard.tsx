@@ -124,13 +124,18 @@ export const TaskKanbanBoard = ({
                   onClick={() => onTaskClick(task)}
                 >
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      {task.title}
-                    </CardTitle>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <CardTitle className="text-sm font-medium">
+                        {task.title}
+                      </CardTitle>
+                      <Badge variant={task.task_type === "preventiva" ? "secondary" : "outline"} className="text-xs">
+                        {task.task_type === "preventiva" ? "Preventiva" : "Corretiva"}
+                      </Badge>
+                    </div>
                     {task.priority && (
                       <Badge
                         variant={getPriorityColor(task.priority)}
-                        className="w-fit mt-2"
+                        className="w-fit"
                       >
                         {task.priority}
                       </Badge>

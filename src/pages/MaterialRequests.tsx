@@ -61,7 +61,7 @@ export default function MaterialRequests() {
           *,
           projects (name),
           service_fronts (name),
-          employee:employees (name, role)
+          employee:employees!material_requests_requested_by_employee_id_fkey (name, role)
         `)
         .order("request_date", { ascending: false });
 

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image, Target, TrendingUp, AlertCircle, Warehouse } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image, Target, TrendingUp, AlertCircle, Warehouse, Wrench, Droplets, BarChart3, Package2 } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -354,6 +354,60 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
         </div>
+
+        {/* Facility Management Section */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Gestão Predial</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/assets-catalog')}>
+              <CardHeader>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-teal-500 to-teal-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                  <Package2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <CardTitle className="text-base sm:text-lg">Catálogo de Ativos</CardTitle>
+                <CardDescription className="text-sm">
+                  Gerencie equipamentos
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/maintenance-tasks')}>
+              <CardHeader>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                  <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <CardTitle className="text-base sm:text-lg">Tarefas de Manutenção</CardTitle>
+                <CardDescription className="text-sm">
+                  Controle de manutenções
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/consumption-control')}>
+              <CardHeader>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                  <Droplets className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <CardTitle className="text-base sm:text-lg">Controle de Consumo</CardTitle>
+                <CardDescription className="text-sm">
+                  Monitore utilidades
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/facility-reports')}>
+              <CardHeader>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-violet-500 to-violet-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                  <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <CardTitle className="text-base sm:text-lg">Relatórios Prediais</CardTitle>
+                <CardDescription className="text-sm">
+                  Análises e gráficos
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
           </TabsContent>
 
           {/* Dashboard de Produção */}
@@ -601,19 +655,19 @@ const Dashboard = () => {
         </Tabs>
 
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Atividades Recentes</CardTitle>
-            <CardDescription className="text-sm">
+        {/* Recent Activity - Compact */}
+        <Card className="mt-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Atividades Recentes</CardTitle>
+            <CardDescription className="text-xs">
               Suas últimas ações no sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 sm:py-12 text-muted-foreground">
-              <FileText className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-50" />
-              <p className="text-sm sm:text-base">Nenhuma atividade recente</p>
-              <p className="text-xs sm:text-sm">Comece criando sua primeira obra</p>
+            <div className="text-center py-4 text-muted-foreground">
+              <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">Nenhuma atividade recente</p>
+              <p className="text-xs">Comece criando sua primeira obra</p>
             </div>
           </CardContent>
         </Card>
