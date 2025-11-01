@@ -353,6 +353,18 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
           </Card>
+
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/connection-reports')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Relatório de Ligações</CardTitle>
+              <CardDescription className="text-sm">
+                Relatórios de ligação de água
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
 
         {/* Facility Management Section */}

@@ -165,6 +165,68 @@ export type Database = {
           },
         ]
       }
+      connection_reports: {
+        Row: {
+          address: string
+          address_complement: string | null
+          client_name: string
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          observations: string | null
+          os_number: string
+          photos_urls: string[] | null
+          project_id: string | null
+          report_date: string
+          service_type: string
+          team_name: string
+          updated_at: string | null
+          water_meter_number: string
+        }
+        Insert: {
+          address: string
+          address_complement?: string | null
+          client_name: string
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          observations?: string | null
+          os_number: string
+          photos_urls?: string[] | null
+          project_id?: string | null
+          report_date?: string
+          service_type: string
+          team_name: string
+          updated_at?: string | null
+          water_meter_number: string
+        }
+        Update: {
+          address?: string
+          address_complement?: string | null
+          client_name?: string
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          observations?: string | null
+          os_number?: string
+          photos_urls?: string[] | null
+          project_id?: string | null
+          report_date?: string
+          service_type?: string
+          team_name?: string
+          updated_at?: string | null
+          water_meter_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       construction_sites: {
         Row: {
           address: string | null
