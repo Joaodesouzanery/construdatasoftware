@@ -173,6 +173,7 @@ export type Database = {
           created_at: string | null
           created_by_user_id: string
           id: string
+          logo_url: string | null
           observations: string | null
           os_number: string
           photos_urls: string[] | null
@@ -190,6 +191,7 @@ export type Database = {
           created_at?: string | null
           created_by_user_id: string
           id?: string
+          logo_url?: string | null
           observations?: string | null
           os_number: string
           photos_urls?: string[] | null
@@ -207,6 +209,7 @@ export type Database = {
           created_at?: string | null
           created_by_user_id?: string
           id?: string
+          logo_url?: string | null
           observations?: string | null
           os_number?: string
           photos_urls?: string[] | null

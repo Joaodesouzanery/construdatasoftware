@@ -25,6 +25,7 @@ interface ConnectionReport {
   service_type: string;
   observations: string | null;
   photos_urls: string[];
+  logo_url: string | null;
   created_at: string;
 }
 

@@ -66,6 +66,7 @@ export function AddConnectionReportDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [photos, setPhotos] = useState<File[]>([]);
+  const [logo, setLogo] = useState<File | null>(null);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   const { data: session } = useQuery({
@@ -117,6 +118,40 @@ export function AddConnectionReportDialog({
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setLogo(e.target.files[0]);
+    }
+  };
+
+  const removeLogo = () => {
+    setLogo(null);
+  };
+
+  const uploadLogo = async (userId: string): Promise<string | null> => {
+    if (!logo) return null;
+
+    try {
+      const fileExt = logo.name.split(".").pop();
+      const fileName = `${userId}/logo-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("connection-report-photos")
+        .upload(fileName, logo);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("connection-report-photos")
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      throw error;
+    }
+  };
+
   const uploadPhotos = async (userId: string): Promise<string[]> => {
     if (photos.length === 0) return [];
 
@@ -154,6 +189,7 @@ export function AddConnectionReportDialog({
     mutationFn: async (values: FormValues) => {
       if (!session?.user?.id) throw new Error("No user session");
 
+      const logoUrl = await uploadLogo(session.user.id);
       const photoUrls = await uploadPhotos(session.user.id);
 
       const { error } = await supabase.from("connection_reports").insert({
@@ -169,6 +205,7 @@ export function AddConnectionReportDialog({
         service_type: values.service_type,
         observations: values.observations || null,
         photos_urls: photoUrls,
+        logo_url: logoUrl,
       });
 
       if (error) throw error;
@@ -181,6 +218,7 @@ export function AddConnectionReportDialog({
       });
       form.reset();
       setPhotos([]);
+      setLogo(null);
       onOpenChange(false);
     },
     onError: (error) => {
@@ -284,6 +322,45 @@ export function AddConnectionReportDialog({
                 </FormItem>
               )}
             />
+
+            <div className="space-y-2">
+              <FormLabel>Logo da Empresa (Opcional)</FormLabel>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById("logo-upload")?.click()}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {logo ? "Alterar Logo" : "Adicionar Logo"}
+                </Button>
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoChange}
+                />
+              </div>
+              {logo && (
+                <div className="relative w-32 h-32 border rounded">
+                  <img
+                    src={URL.createObjectURL(logo)}
+                    alt="Logo preview"
+                    className="w-full h-full object-contain p-2"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6"
+                    onClick={removeLogo}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
 
             <FormField
               control={form.control}
