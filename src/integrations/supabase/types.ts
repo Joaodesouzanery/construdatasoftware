@@ -765,6 +765,106 @@ export type Database = {
           },
         ]
       }
+      maintenance_qr_codes: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          is_active: boolean | null
+          location_description: string | null
+          location_name: string
+          project_id: string
+          qr_code_data: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          is_active?: boolean | null
+          location_description?: string | null
+          location_name: string
+          project_id: string
+          qr_code_data: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          location_description?: string | null
+          location_name?: string
+          project_id?: string
+          qr_code_data?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_qr_codes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          issue_description: string
+          photos_urls: string[] | null
+          qr_code_id: string
+          requester_contact: string | null
+          requester_name: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by_user_id: string | null
+          status: string
+          updated_at: string | null
+          urgency_level: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          issue_description: string
+          photos_urls?: string[] | null
+          qr_code_id: string
+          requester_contact?: string | null
+          requester_name: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by_user_id?: string | null
+          status?: string
+          updated_at?: string | null
+          urgency_level?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          issue_description?: string
+          photos_urls?: string[] | null
+          qr_code_id?: string
+          requester_contact?: string | null
+          requester_name?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by_user_id?: string | null
+          status?: string
+          updated_at?: string | null
+          urgency_level?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_qr_code_id_fkey"
+            columns: ["qr_code_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_qr_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_tasks: {
         Row: {
           asset_id: string | null
@@ -971,6 +1071,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_requests_requested_by_employee_id_fkey"
+            columns: ["requested_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {

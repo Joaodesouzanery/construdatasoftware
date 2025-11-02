@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building2, ClipboardList, Camera, Eye, BarChart3, Package, Users, Bell, TrendingUp, Shield, Clock } from "lucide-react";
+import { ArrowRight, Building2, ClipboardList, Camera, Eye, BarChart3, Package, Users, Bell, TrendingUp, Shield, Clock, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -54,6 +54,12 @@ const Hero = () => {
       title: "Registro Multimídia",
       description: "Anexe fotos, vídeos e áudios com validação georreferenciada",
       link: "/rdo/new"
+    },
+    {
+      icon: <QrCode className="w-6 h-6" />,
+      title: "QR Code Manutenção",
+      description: "Gere QR Codes para locais e receba solicitações de manutenção",
+      link: "/maintenance-qr-codes"
     }
   ];
 

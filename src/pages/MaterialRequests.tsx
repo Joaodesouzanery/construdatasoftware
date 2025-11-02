@@ -28,7 +28,7 @@ interface MaterialRequest {
   requestor_name?: string;
   projects: { name: string };
   service_fronts: { name: string };
-  employee?: { name: string; role?: string };
+  employees?: { name: string; role?: string };
 }
 
 export default function MaterialRequests() {
@@ -63,7 +63,7 @@ export default function MaterialRequests() {
           *,
           projects (name),
           service_fronts (name),
-          employee:employees!material_requests_requested_by_employee_id_fkey (name, role)
+          employees!material_requests_requested_by_employee_id_fkey (name, role)
         `)
         .order("request_date", { ascending: false });
 
@@ -135,7 +135,7 @@ export default function MaterialRequests() {
         format(new Date(request.request_date), "dd/MM/yyyy"),
         request.material_name,
         `${request.quantity} ${request.unit}`,
-        request.requestor_name || request.employee?.name || "-",
+        request.requestor_name || request.employees?.name || "-",
         request.status.toUpperCase(),
         request.projects?.name || "-",
         request.service_fronts?.name || "-",
@@ -288,11 +288,11 @@ export default function MaterialRequests() {
                           {request.quantity} {request.unit}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm">
-                          {request.employee ? (
+                          {request.employees ? (
                             <div className="flex flex-col">
-                              <span className="font-medium">{request.employee.name}</span>
-                              {request.employee.role && (
-                                <span className="text-xs text-muted-foreground">{request.employee.role}</span>
+                              <span className="font-medium">{request.employees.name}</span>
+                              {request.employees.role && (
+                                <span className="text-xs text-muted-foreground">{request.employees.role}</span>
                               )}
                             </div>
                           ) : request.requestor_name ? (
