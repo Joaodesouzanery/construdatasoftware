@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import teamManagementImg from "@/assets/features/team-management.jpg";
 
 const TeamManagement = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const TeamManagement = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={teamManagementImg}
               alt="Gestão de Equipe"
               className="w-full h-96 object-cover"
             />

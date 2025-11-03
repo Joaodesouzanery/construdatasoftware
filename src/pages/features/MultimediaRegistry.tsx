@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import multimediaRegistryImg from "@/assets/features/multimedia-registry.jpg";
 
 const MultimediaRegistry = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const MultimediaRegistry = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={multimediaRegistryImg}
               alt="Registro Multimídia"
               className="w-full h-96 object-cover"
             />

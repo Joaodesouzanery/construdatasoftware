@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import intelligentAlertsImg from "@/assets/features/intelligent-alerts.jpg";
 
 const IntelligentAlerts = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const IntelligentAlerts = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={intelligentAlertsImg}
               alt="Alertas Inteligentes"
               className="w-full h-96 object-cover"
             />

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import materialRequestsImg from "@/assets/features/material-requests.jpg";
 
 const MaterialRequestsFeature = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const MaterialRequestsFeature = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={materialRequestsImg}
               alt="Pedidos de Material"
               className="w-full h-96 object-cover"
             />

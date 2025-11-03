@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import rdoDigitalImg from "@/assets/features/rdo-digital.jpg";
 
 const RDODigital = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const RDODigital = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={rdoDigitalImg}
               alt="RDO Digital"
               className="w-full h-96 object-cover"
             />

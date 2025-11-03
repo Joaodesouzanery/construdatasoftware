@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -33,6 +33,8 @@ const facilityItems = [
   { title: "Tarefas de Manutenção", url: "/maintenance-tasks", icon: Wrench },
   { title: "Controle de Consumo", url: "/consumption-control", icon: Gauge },
   { title: "Relatórios", url: "/facility-reports", icon: FileBarChart },
+  { title: "QR Code Manutenção", url: "/maintenance-qr-codes", icon: QrCode },
+  { title: "Solicitações Manutenção", url: "/maintenance-requests", icon: ClipboardX },
 ];
 
 const settingsItems = [

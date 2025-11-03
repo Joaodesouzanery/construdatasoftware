@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import materialControlImg from "@/assets/features/material-control.jpg";
 
 const MaterialControlFeature = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const MaterialControlFeature = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={materialControlImg}
               alt="Controle de Material"
               className="w-full h-96 object-cover"
             />

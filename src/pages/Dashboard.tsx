@@ -18,6 +18,7 @@ const Dashboard = () => {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [projectStats, setProjectStats] = useState<any>(null);
   const [productionStats, setProductionStats] = useState<any>(null);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -31,6 +32,7 @@ const Dashboard = () => {
       setUser(session.user);
       await loadProjects();
       await loadProductionStats();
+      await loadRecentActivities();
       setIsLoading(false);
     };
 
@@ -160,6 +162,72 @@ const Dashboard = () => {
       });
     } catch (error: any) {
       console.error('Error loading production stats:', error);
+    }
+  };
+
+  const loadRecentActivities = async () => {
+    try {
+      const activities: any[] = [];
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      // Buscar RDOs recentes
+      const { data: rdos } = await supabase
+        .from('daily_reports')
+        .select('id, created_at, projects(name)')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      rdos?.forEach(rdo => {
+        activities.push({
+          type: 'rdo',
+          title: 'Novo RDO criado',
+          description: `Projeto: ${rdo.projects?.name || 'Sem projeto'}`,
+          date: rdo.created_at,
+          icon: ClipboardList
+        });
+      });
+
+      // Buscar pedidos de material recentes
+      const { data: materials } = await supabase
+        .from('material_requests')
+        .select('id, created_at, material_name, projects(name)')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      materials?.forEach(mat => {
+        activities.push({
+          type: 'material',
+          title: 'Pedido de material',
+          description: `${mat.material_name} - ${mat.projects?.name || 'Sem projeto'}`,
+          date: mat.created_at,
+          icon: Package
+        });
+      });
+
+      // Buscar alertas recentes
+      const { data: alerts } = await supabase
+        .from('alerts')
+        .select('id, created_at, alert_type')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      alerts?.forEach(alert => {
+        activities.push({
+          type: 'alert',
+          title: 'Alerta criado',
+          description: `Tipo: ${alert.alert_type}`,
+          date: alert.created_at,
+          icon: Bell
+        });
+      });
+
+      // Ordenar por data e pegar os 10 mais recentes
+      activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRecentActivities(activities.slice(0, 10));
+    } catch (error) {
+      console.error('Error loading recent activities:', error);
     }
   };
 
@@ -676,11 +744,38 @@ const Dashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-4 text-muted-foreground">
-              <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-xs">Nenhuma atividade recente</p>
-              <p className="text-xs">Comece criando sua primeira obra</p>
-            </div>
+            {recentActivities.length > 0 ? (
+              <div className="space-y-3">
+                {recentActivities.map((activity, index) => {
+                  const Icon = activity.icon;
+                  return (
+                    <div key={index} className="flex items-start gap-3 pb-3 border-b last:border-0">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{activity.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{activity.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(activity.date).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">
+                <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-xs">Nenhuma atividade recente</p>
+                <p className="text-xs">Comece criando sua primeira obra</p>
+              </div>
+            )}
           </CardContent>
         </Card>
           </main>

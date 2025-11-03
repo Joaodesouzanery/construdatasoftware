@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import projectManagementImg from "@/assets/features/project-management.jpg";
 
 const ProjectManagement = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const ProjectManagement = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={projectManagementImg}
               alt="Gestão de Projetos"
               className="w-full h-96 object-cover"
             />

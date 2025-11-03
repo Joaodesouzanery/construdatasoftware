@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import qrcodeMaintenanceImg from "@/assets/features/qrcode-maintenance.jpg";
 
 const QRCodeMaintenance = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const QRCodeMaintenance = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={qrcodeMaintenanceImg}
               alt="QR Code Manutenção"
               className="w-full h-96 object-cover"
             />

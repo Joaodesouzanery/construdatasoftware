@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import productionControlImg from "@/assets/features/production-control.jpg";
 
 const ProductionControl = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const ProductionControl = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={productionControlImg}
               alt="Controle de Produção"
               className="w-full h-96 object-cover"
             />

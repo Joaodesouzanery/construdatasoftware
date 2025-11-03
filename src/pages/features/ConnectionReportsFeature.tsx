@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import connectionReportsImg from "@/assets/features/connection-reports.jpg";
 
 const ConnectionReportsFeature = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const ConnectionReportsFeature = () => {
 
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
             <img
-              src="/placeholder.svg"
+              src={connectionReportsImg}
               alt="Relatório de Ligações"
               className="w-full h-96 object-cover"
             />
