@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building2, ClipboardList, Camera, Eye, BarChart3, Package, Users, Bell, TrendingUp, Shield, Clock, QrCode } from "lucide-react";
+import { ArrowRight, Building2, ClipboardList, Camera, BarChart3, Package, Users, Bell, TrendingUp, Shield, Clock, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -11,55 +11,61 @@ const Hero = () => {
       icon: <Building2 className="w-6 h-6" />,
       title: "Gestão de Projetos",
       description: "Controle obras com status 'Em andamento' sem data final definida",
-      link: "/projects"
+      link: "/features/project-management"
     },
     {
       icon: <BarChart3 className="w-6 h-6" />,
       title: "Controle de Produção",
       description: "Acompanhe metas diárias, semanais e mensais com análise em tempo real",
-      link: "/production-control"
+      link: "/features/production-control"
     },
     {
       icon: <ClipboardList className="w-6 h-6" />,
       title: "RDO Digital",
       description: "Relatórios Diários de Obra com fotos, clima e validação por GPS",
-      link: "/rdo"
+      link: "/features/rdo-digital"
     },
     {
       icon: <Package className="w-6 h-6" />,
       title: "Pedidos de Material",
       description: "Solicite materiais com rastreamento de solicitante e status",
-      link: "/material-requests"
+      link: "/features/material-requests"
     },
     {
       icon: <TrendingUp className="w-6 h-6" />,
       title: "Controle de Material",
       description: "Compare requisições vs consumo real por frente de serviço",
-      link: "/material-control"
+      link: "/features/material-control"
     },
     {
       icon: <Users className="w-6 h-6" />,
       title: "Gestão de Equipe",
       description: "Cadastre funcionários, empresas e controle acessos",
-      link: "/employees"
+      link: "/features/team-management"
     },
     {
       icon: <Bell className="w-6 h-6" />,
       title: "Alertas Inteligentes",
       description: "Notificações com justificativas obrigatórias para desvios",
-      link: "/alerts"
+      link: "/features/intelligent-alerts"
     },
     {
       icon: <Camera className="w-6 h-6" />,
       title: "Registro Multimídia",
       description: "Anexe fotos, vídeos e áudios com validação georreferenciada",
-      link: "/rdo/new"
+      link: "/features/multimedia-registry"
     },
     {
       icon: <QrCode className="w-6 h-6" />,
       title: "QR Code Manutenção",
       description: "Gere QR Codes para locais e receba solicitações de manutenção",
-      link: "/maintenance-qr-codes"
+      link: "/features/qrcode-maintenance"
+    },
+    {
+      icon: <ClipboardList className="w-6 h-6" />,
+      title: "Relatório de Ligações",
+      description: "Crie relatórios completos de ligações com fotos e exportação em PDF",
+      link: "/features/connection-reports"
     }
   ];
 
@@ -96,14 +102,6 @@ const Hero = () => {
               >
                 Começar Agora
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button 
-                size="lg" 
-                onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70 transition-all duration-300 border-0"
-              >
-                <Eye className="mr-2 w-5 h-5" />
-                Ver Dashboard
               </Button>
             </div>
           </div>

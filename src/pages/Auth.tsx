@@ -277,24 +277,6 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
           
-          <div className="mt-6 pt-6 border-t space-y-3">
-            <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground mb-3">
-                Ou explore o sistema sem criar uma conta
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              className="w-full border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all"
-              onClick={() => navigate('/dashboard?demo=true')}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Testar com Dados Fictícios
-            </Button>
-            <p className="text-xs text-center text-muted-foreground px-2">
-              Explore todas as funcionalidades com dados de exemplo, sem precisar criar uma conta
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

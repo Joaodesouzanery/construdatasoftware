@@ -26,6 +26,19 @@ import MaintenanceTasks from "./pages/MaintenanceTasks";
 import ConsumptionControl from "./pages/ConsumptionControl";
 import FacilityReports from "./pages/FacilityReports";
 import ConnectionReports from "./pages/ConnectionReports";
+import MaintenanceQRCodes from "./pages/MaintenanceQRCodes";
+import MaintenanceRequest from "./pages/MaintenanceRequest";
+import MaintenanceRequests from "./pages/MaintenanceRequests";
+import ProjectManagement from "./pages/features/ProjectManagement";
+import ProductionControlFeature from "./pages/features/ProductionControl";
+import RDODigital from "./pages/features/RDODigital";
+import MaterialRequestsFeature from "./pages/features/MaterialRequests";
+import MaterialControlFeature from "./pages/features/MaterialControl";
+import TeamManagement from "./pages/features/TeamManagement";
+import IntelligentAlerts from "./pages/features/IntelligentAlerts";
+import MultimediaRegistry from "./pages/features/MultimediaRegistry";
+import QRCodeMaintenance from "./pages/features/QRCodeMaintenance";
+import ConnectionReportsFeature from "./pages/features/ConnectionReportsFeature";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +71,22 @@ const AppContent = () => {
         <Route path="/consumption-control" element={<ConsumptionControl />} />
         <Route path="/facility-reports" element={<FacilityReports />} />
         <Route path="/connection-reports" element={<ConnectionReports />} />
+        <Route path="/maintenance-qr-codes" element={<MaintenanceQRCodes />} />
+        <Route path="/maintenance-request/:qrCodeId" element={<MaintenanceRequest />} />
+        <Route path="/maintenance-requests" element={<MaintenanceRequests />} />
+        
+        {/* Feature pages */}
+        <Route path="/features/project-management" element={<ProjectManagement />} />
+        <Route path="/features/production-control" element={<ProductionControlFeature />} />
+        <Route path="/features/rdo-digital" element={<RDODigital />} />
+        <Route path="/features/material-requests" element={<MaterialRequestsFeature />} />
+        <Route path="/features/material-control" element={<MaterialControlFeature />} />
+        <Route path="/features/team-management" element={<TeamManagement />} />
+        <Route path="/features/intelligent-alerts" element={<IntelligentAlerts />} />
+        <Route path="/features/multimedia-registry" element={<MultimediaRegistry />} />
+        <Route path="/features/qrcode-maintenance" element={<QRCodeMaintenance />} />
+        <Route path="/features/connection-reports" element={<ConnectionReportsFeature />} />
+        
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
