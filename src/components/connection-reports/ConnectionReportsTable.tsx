@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -9,9 +10,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, Pencil } from "lucide-react";
 import { generateConnectionReportPDF } from "@/lib/connectionReportGenerator";
 import { useToast } from "@/hooks/use-toast";
+import { EditConnectionReportDialog } from "./EditConnectionReportDialog";
 
 interface ConnectionReport {
   id: string;
@@ -26,6 +28,7 @@ interface ConnectionReport {
   observations: string | null;
   photos_urls: string[];
   logo_url: string | null;
+  project_id: string | null;
   created_at: string;
 }
 
@@ -35,6 +38,8 @@ interface ConnectionReportsTableProps {
 
 export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps) {
   const { toast } = useToast();
+  const [editingReport, setEditingReport] = useState<ConnectionReport | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const handleExportPDF = async (report: ConnectionReport) => {
     try {
@@ -57,6 +62,11 @@ export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps)
         variant: "destructive",
       });
     }
+  };
+
+  const handleEdit = (report: ConnectionReport) => {
+    setEditingReport(report);
+    setShowEditDialog(true);
   };
 
   return (
@@ -100,19 +110,35 @@ export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps)
                 )}
               </TableCell>
               <TableCell className="text-right">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleExportPDF(report)}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Exportar PDF
-                </Button>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(report)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleExportPDF(report)}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar PDF
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      <EditConnectionReportDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        report={editingReport}
+      />
     </div>
   );
 }

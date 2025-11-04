@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -52,19 +52,39 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface AddConnectionReportDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface ConnectionReport {
+  id: string;
+  team_name: string;
+  report_date: string;
+  address: string;
+  address_complement: string | null;
+  client_name: string;
+  water_meter_number: string;
+  os_number: string;
+  service_type: string;
+  observations: string | null;
+  photos_urls: string[];
+  logo_url: string | null;
+  project_id: string | null;
 }
 
-export function AddConnectionReportDialog({
+interface EditConnectionReportDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  report: ConnectionReport | null;
+}
+
+export function EditConnectionReportDialog({
   open,
   onOpenChange,
-}: AddConnectionReportDialogProps) {
+  report,
+}: EditConnectionReportDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [photos, setPhotos] = useState<File[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [logo, setLogo] = useState<File | null>(null);
+  const [existingLogo, setExistingLogo] = useState<string | null>(null);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   const { data: session } = useQuery({
@@ -105,6 +125,27 @@ export function AddConnectionReportDialog({
     },
   });
 
+  useEffect(() => {
+    if (report) {
+      form.reset({
+        project_id: report.project_id || undefined,
+        team_name: report.team_name || "",
+        report_date: report.report_date ? new Date(report.report_date) : new Date(),
+        address: report.address || "",
+        address_complement: report.address_complement || "",
+        client_name: report.client_name || "",
+        water_meter_number: report.water_meter_number || "",
+        os_number: report.os_number || "",
+        service_type: report.service_type || "",
+        observations: report.observations || "",
+      });
+      setExistingPhotos(report.photos_urls || []);
+      setExistingLogo(report.logo_url || null);
+      setPhotos([]);
+      setLogo(null);
+    }
+  }, [report, form]);
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newPhotos = Array.from(e.target.files);
@@ -114,6 +155,10 @@ export function AddConnectionReportDialog({
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingPhoto = (index: number) => {
+    setExistingPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,8 +171,12 @@ export function AddConnectionReportDialog({
     setLogo(null);
   };
 
+  const removeExistingLogo = () => {
+    setExistingLogo(null);
+  };
+
   const uploadLogo = async (userId: string): Promise<string | null> => {
-    if (!logo) return null;
+    if (!logo) return existingLogo;
 
     try {
       const fileExt = logo.name.split(".").pop();
@@ -151,17 +200,17 @@ export function AddConnectionReportDialog({
   };
 
   const uploadPhotos = async (userId: string): Promise<string[]> => {
-    if (photos.length === 0) return [];
+    if (photos.length === 0) return existingPhotos;
 
     setUploadingPhotos(true);
-    const uploadedUrls: string[] = [];
+    const uploadedUrls: string[] = [...existingPhotos];
 
     try {
       for (const photo of photos) {
         const fileExt = photo.name.split(".").pop();
         const fileName = `${userId}/${Date.now()}-${Math.random()}.${fileExt}`;
 
-        const { error: uploadError, data } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("connection-report-photos")
           .upload(fileName, photo);
 
@@ -183,28 +232,30 @@ export function AddConnectionReportDialog({
     }
   };
 
-  const createMutation = useMutation({
+  const updateMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      if (!session?.user?.id) throw new Error("No user session");
+      if (!session?.user?.id || !report) throw new Error("No user session or report");
 
       const logoUrl = await uploadLogo(session.user.id);
       const photoUrls = await uploadPhotos(session.user.id);
 
-      const { error } = await supabase.from("connection_reports").insert({
-        created_by_user_id: session.user.id,
-        project_id: values.project_id,
-        team_name: values.team_name,
-        report_date: format(values.report_date, "yyyy-MM-dd"),
-        address: values.address,
-        address_complement: values.address_complement || null,
-        client_name: values.client_name,
-        water_meter_number: values.water_meter_number,
-        os_number: values.os_number,
-        service_type: values.service_type,
-        observations: values.observations || null,
-        photos_urls: photoUrls,
-        logo_url: logoUrl,
-      });
+      const { error } = await supabase
+        .from("connection_reports")
+        .update({
+          project_id: values.project_id || null,
+          team_name: values.team_name || null,
+          report_date: values.report_date ? format(values.report_date, "yyyy-MM-dd") : null,
+          address: values.address || null,
+          address_complement: values.address_complement || null,
+          client_name: values.client_name || null,
+          water_meter_number: values.water_meter_number || null,
+          os_number: values.os_number || null,
+          service_type: values.service_type || null,
+          observations: values.observations || null,
+          photos_urls: photoUrls,
+          logo_url: logoUrl,
+        })
+        .eq("id", report.id);
 
       if (error) throw error;
     },
@@ -212,17 +263,14 @@ export function AddConnectionReportDialog({
       queryClient.invalidateQueries({ queryKey: ["connection-reports"] });
       toast({
         title: "Sucesso!",
-        description: "Relatório de ligação criado com sucesso.",
+        description: "Relatório de ligação atualizado com sucesso.",
       });
-      form.reset();
-      setPhotos([]);
-      setLogo(null);
       onOpenChange(false);
     },
     onError: (error) => {
       toast({
         title: "Erro",
-        description: "Erro ao criar relatório de ligação.",
+        description: "Erro ao atualizar relatório de ligação.",
         variant: "destructive",
       });
       console.error(error);
@@ -230,14 +278,14 @@ export function AddConnectionReportDialog({
   });
 
   const onSubmit = (values: FormValues) => {
-    createMutation.mutate(values);
+    updateMutation.mutate(values);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Relatório de Ligação</DialogTitle>
+          <DialogTitle>Editar Relatório de Ligação</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -327,24 +375,42 @@ export function AddConnectionReportDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => document.getElementById("logo-upload")?.click()}
+                  onClick={() => document.getElementById("logo-upload-edit")?.click()}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  {logo ? "Alterar Logo" : "Adicionar Logo"}
+                  {logo || existingLogo ? "Alterar Logo" : "Adicionar Logo"}
                 </Button>
                 <input
-                  id="logo-upload"
+                  id="logo-upload-edit"
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handleLogoChange}
                 />
               </div>
+              {existingLogo && !logo && (
+                <div className="relative w-32 h-32 border rounded">
+                  <img
+                    src={existingLogo}
+                    alt="Logo atual"
+                    className="w-full h-full object-contain p-2"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6"
+                    onClick={removeExistingLogo}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
               {logo && (
                 <div className="relative w-32 h-32 border rounded">
                   <img
                     src={URL.createObjectURL(logo)}
-                    alt="Logo preview"
+                    alt="Nova logo"
                     className="w-full h-full object-contain p-2"
                   />
                   <Button
@@ -450,13 +516,13 @@ export function AddConnectionReportDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => document.getElementById("photo-upload")?.click()}
+                  onClick={() => document.getElementById("photo-upload-edit")?.click()}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Adicionar Fotos
+                  Adicionar Mais Fotos
                 </Button>
                 <input
-                  id="photo-upload"
+                  id="photo-upload-edit"
                   type="file"
                   accept="image/*"
                   multiple
@@ -464,26 +530,54 @@ export function AddConnectionReportDialog({
                   onChange={handlePhotoChange}
                 />
               </div>
+              {existingPhotos.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Fotos atuais:</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {existingPhotos.map((photoUrl, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={photoUrl}
+                          alt={`Foto ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => removeExistingPhoto(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {photos.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {photos.map((photo, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={URL.createObjectURL(photo)}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6"
-                        onClick={() => removePhoto(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Novas fotos:</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {photos.map((photo, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(photo)}
+                          alt={`Nova foto ${index + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => removePhoto(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -497,8 +591,8 @@ export function AddConnectionReportDialog({
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Observações gerais sobre o relatório"
-                      rows={4}
+                      placeholder="Observações adicionais sobre o serviço..."
+                      className="min-h-[100px]"
                     />
                   </FormControl>
                   <FormMessage />
@@ -516,15 +610,15 @@ export function AddConnectionReportDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={createMutation.isPending || uploadingPhotos}
+                disabled={updateMutation.isPending || uploadingPhotos}
               >
-                {createMutation.isPending || uploadingPhotos ? (
+                {updateMutation.isPending || uploadingPhotos ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {uploadingPhotos ? "Enviando fotos..." : "Criando..."}
+                    {uploadingPhotos ? "Enviando fotos..." : "Atualizando..."}
                   </>
                 ) : (
-                  "Criar Relatório"
+                  "Atualizar Relatório"
                 )}
               </Button>
             </div>
