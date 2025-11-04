@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, MapPin, Camera, Cloud, Thermometer, Droplets, Wind, Plus, Eye } from "lucide-react";
+import { Building2, MapPin, Camera, Cloud, Thermometer, Droplets, Wind, Plus, Eye, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useWeatherData } from "@/hooks/useWeatherData";
@@ -127,6 +127,9 @@ const RDO = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" onClick={() => navigate('/dashboard')}>
               <Building2 className="w-6 h-6 mr-2" />
               <span className="font-bold">ConstruData</span>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X, HelpCircle } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X, HelpCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImportDataDialog } from "@/components/projects/ImportDataDialog";
@@ -298,6 +298,9 @@ const Projects = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" onClick={() => navigate('/dashboard')}>
                 <Building2 className="w-6 h-6 mr-2" />
                 <span className="font-bold">ConstruData</span>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Building2, Download, Filter, TrendingUp, Users, FileText, Eye } from "lucide-react";
+import { Building2, Download, Filter, TrendingUp, Users, FileText, Eye, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -149,6 +149,9 @@ const Production = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" onClick={() => navigate('/dashboard')}>
                 <Building2 className="w-6 h-6 mr-2" />
                 <span className="font-bold">ConstruData</span>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, HelpCircle } from "lucide-react";
+import { Plus, FileText, HelpCircle, ArrowLeft } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useNavigate } from "react-router-dom";
@@ -64,14 +64,24 @@ export default function ConnectionReports() {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <main className="flex-1 p-6 overflow-auto">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Relatório de Ligações</h1>
-              <p className="text-muted-foreground">
-                Gerencie os relatórios de ligações de água
-              </p>
-            </div>
-            <div className="flex gap-2">
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/dashboard")}
+              className="mb-4"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Button>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Relatório de Ligações</h1>
+                <p className="text-muted-foreground">
+                  Gerencie os relatórios de ligações de água
+                </p>
+              </div>
+              <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => setShowTutorial(true)}
@@ -83,6 +93,7 @@ export default function ConnectionReports() {
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Relatório
               </Button>
+              </div>
             </div>
           </div>
 
