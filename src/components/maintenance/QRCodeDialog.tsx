@@ -20,15 +20,19 @@ export const QRCodeDialog = ({ open, onOpenChange, qrCode }: QRCodeDialogProps) 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (open && canvasRef.current) {
+    if (open && canvasRef.current && qrCode.qr_code_data) {
       generateQRCode();
     }
-  }, [open, qrCode.qr_code_data]);
+  }, [open, qrCode.qr_code_data, qrCode]);
 
   const generateQRCode = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !qrCode.qr_code_data) {
+      console.error("Canvas ref or QR code data not available");
+      return;
+    }
 
     try {
+      console.log("Generating QR Code for:", qrCode.qr_code_data);
       await QRCode.toCanvas(canvasRef.current, qrCode.qr_code_data, {
         width: 300,
         margin: 2,
@@ -36,7 +40,9 @@ export const QRCodeDialog = ({ open, onOpenChange, qrCode }: QRCodeDialogProps) 
           dark: "#000000",
           light: "#FFFFFF",
         },
+        errorCorrectionLevel: 'H',
       });
+      console.log("QR Code generated successfully");
     } catch (error) {
       console.error("Error generating QR code:", error);
     }
@@ -143,7 +149,9 @@ export const QRCodeDialog = ({ open, onOpenChange, qrCode }: QRCodeDialogProps) 
         </DialogHeader>
 
         <div className="flex flex-col items-center space-y-4 py-4">
-          <canvas ref={canvasRef} className="border-2 border-gray-200 rounded-lg" />
+          <div className="bg-white p-4 rounded-lg">
+            <canvas ref={canvasRef} className="border-2 border-gray-200 rounded-lg" style={{ minWidth: '300px', minHeight: '300px' }} />
+          </div>
           
           <div className="text-center text-sm text-muted-foreground">
             <p>Escaneie este QR Code para solicitar manutenção</p>
