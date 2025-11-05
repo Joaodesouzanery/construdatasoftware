@@ -1,5 +1,7 @@
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 import {
   Sidebar,
   SidebarContent,
@@ -38,12 +40,40 @@ const facilityItems = [
 ];
 
 const settingsItems = [
+  { title: "Backup", url: "/backup", icon: Archive },
   { title: "Configurações", url: "/settings", icon: Settings },
+];
+
+const adminItems = [
+  { title: "Painel Admin", url: "/admin", icon: Shield },
 ];
 
 export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkIfAdmin();
+  }, []);
+
+  const checkIfAdmin = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("user_roles")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+      
+      setIsAdmin(!!data);
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+    }
+  };
 
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive 
@@ -96,6 +126,30 @@ export function AppSidebar() {
             </CollapsibleContent>
           </SidebarGroup>
         </Collapsible>
+
+        {isAdmin && (
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-sm font-medium">Administração</SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {adminItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <NavLink to={item.url} end className={getNavCls}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
+        )}
 
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>

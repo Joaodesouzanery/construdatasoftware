@@ -39,6 +39,8 @@ import IntelligentAlerts from "./pages/features/IntelligentAlerts";
 import MultimediaRegistry from "./pages/features/MultimediaRegistry";
 import QRCodeMaintenance from "./pages/features/QRCodeMaintenance";
 import ConnectionReportsFeature from "./pages/features/ConnectionReportsFeature";
+import Admin from "./pages/Admin";
+import Backup from "./pages/Backup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -86,6 +88,10 @@ const AppContent = () => {
         <Route path="/features/multimedia-registry" element={<MultimediaRegistry />} />
         <Route path="/features/qrcode-maintenance" element={<QRCodeMaintenance />} />
         <Route path="/features/connection-reports" element={<ConnectionReportsFeature />} />
+        
+        {/* Admin and System routes */}
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/backup" element={<Backup />} />
         
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
