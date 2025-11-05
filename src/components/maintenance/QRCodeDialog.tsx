@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import QRCode from "qrcode";
 
 interface QRCodeDialogProps {
@@ -17,23 +17,17 @@ interface QRCodeDialogProps {
 }
 
 export const QRCodeDialog = ({ open, onOpenChange, qrCode }: QRCodeDialogProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
 
   useEffect(() => {
-    if (open && canvasRef.current && qrCode.qr_code_data) {
+    if (open && qrCode.qr_code_data) {
       generateQRCode();
     }
-  }, [open, qrCode.qr_code_data, qrCode]);
+  }, [open, qrCode.qr_code_data]);
 
   const generateQRCode = async () => {
-    if (!canvasRef.current || !qrCode.qr_code_data) {
-      console.error("Canvas ref or QR code data not available");
-      return;
-    }
-
     try {
-      console.log("Generating QR Code for:", qrCode.qr_code_data);
-      await QRCode.toCanvas(canvasRef.current, qrCode.qr_code_data, {
+      const dataUrl = await QRCode.toDataURL(qrCode.qr_code_data, {
         width: 300,
         margin: 2,
         color: {
@@ -42,29 +36,26 @@ export const QRCodeDialog = ({ open, onOpenChange, qrCode }: QRCodeDialogProps) 
         },
         errorCorrectionLevel: 'H',
       });
-      console.log("QR Code generated successfully");
+      setQrCodeDataUrl(dataUrl);
     } catch (error) {
       console.error("Error generating QR code:", error);
     }
   };
 
   const handleDownload = () => {
-    if (!canvasRef.current) return;
+    if (!qrCodeDataUrl) return;
 
-    const url = canvasRef.current.toDataURL("image/png");
     const link = document.createElement("a");
     link.download = `qr-code-${qrCode.location_name.replace(/\s+/g, "-")}.png`;
-    link.href = url;
+    link.href = qrCodeDataUrl;
     link.click();
   };
 
   const handlePrint = () => {
-    if (!canvasRef.current) return;
+    if (!qrCodeDataUrl) return;
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-
-    const imageUrl = canvasRef.current.toDataURL("image/png");
     
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -117,7 +108,7 @@ export const QRCodeDialog = ({ open, onOpenChange, qrCode }: QRCodeDialogProps) 
             <h1>${qrCode.location_name}</h1>
             <p><strong>Projeto:</strong> ${qrCode.projects.name}</p>
             ${qrCode.location_description ? `<p>${qrCode.location_description}</p>` : ''}
-            <img src="${imageUrl}" alt="QR Code" />
+            <img src="${qrCodeDataUrl}" alt="QR Code" />
             <div class="instructions">
               <p><strong>Escaneie este QR Code para solicitar manutenção</strong></p>
               <p>Aponte a câmera do celular para o código acima</p>
@@ -149,23 +140,43 @@ export const QRCodeDialog = ({ open, onOpenChange, qrCode }: QRCodeDialogProps) 
         </DialogHeader>
 
         <div className="flex flex-col items-center space-y-4 py-4">
-          <div className="bg-white p-4 rounded-lg">
-            <canvas ref={canvasRef} className="border-2 border-gray-200 rounded-lg" style={{ minWidth: '300px', minHeight: '300px' }} />
-          </div>
+          {qrCodeDataUrl ? (
+            <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+              <img 
+                src={qrCodeDataUrl} 
+                alt="QR Code" 
+                className="w-[300px] h-[300px]"
+              />
+            </div>
+          ) : (
+            <div className="w-[300px] h-[300px] flex items-center justify-center bg-gray-100 rounded-lg">
+              <p className="text-muted-foreground">Gerando QR Code...</p>
+            </div>
+          )}
           
           <div className="text-center text-sm text-muted-foreground">
             <p>Escaneie este QR Code para solicitar manutenção</p>
-            <p className="text-xs mt-1">
-              Link: <span className="font-mono text-xs break-all">{qrCode.qr_code_data}</span>
+            <p className="text-xs mt-1 max-w-md break-all">
+              Link: <span className="font-mono">{qrCode.qr_code_data}</span>
             </p>
           </div>
 
           <div className="flex gap-2 w-full">
-            <Button onClick={handleDownload} variant="outline" className="flex-1">
+            <Button 
+              onClick={handleDownload} 
+              variant="outline" 
+              className="flex-1"
+              disabled={!qrCodeDataUrl}
+            >
               <Download className="mr-2 h-4 w-4" />
               Baixar PNG
             </Button>
-            <Button onClick={handlePrint} className="flex-1">
+            <Button 
+              onClick={handlePrint} 
+              className="flex-1"
+              disabled={!qrCodeDataUrl}
+            >
+              <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
           </div>
