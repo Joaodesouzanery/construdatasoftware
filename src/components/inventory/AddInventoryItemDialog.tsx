@@ -253,6 +253,9 @@ export const AddInventoryItemDialog = ({ open, onOpenChange, item, onSuccess }: 
                 onChange={(e) => setFormData({ ...formData, minimumStock: e.target.value })}
                 placeholder="0"
               />
+              <p className="text-xs text-muted-foreground">
+                Define quando este material será considerado de estoque baixo
+              </p>
             </div>
 
             <div className="space-y-2">

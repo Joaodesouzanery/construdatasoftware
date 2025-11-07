@@ -217,6 +217,9 @@ const Inventory = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">{lowStockItems.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Itens abaixo do estoque mínimo
+              </p>
             </CardContent>
           </Card>
 
