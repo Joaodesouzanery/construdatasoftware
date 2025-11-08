@@ -133,112 +133,124 @@ const Hero = () => {
               <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
                 O Problema vs. Nossa Solução
               </h3>
-              <p className="text-gray-400 text-lg">
+              <p className="text-gray-400 text-base md:text-lg">
                 Transformando Frustração em Vantagem Competitiva
               </p>
             </div>
 
-            {/* Table Comparison */}
-            <div className="overflow-x-auto">
-              <div className="min-w-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
-                {/* Table Header */}
-                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10">
-                  <div className="bg-red-950/50 p-6 border-r border-white/10">
-                    <h4 className="text-xl font-bold text-red-400 flex items-center gap-2">
-                      <span className="text-2xl">❌</span>
-                      A Frustração Atual
-                    </h4>
-                    <p className="text-sm text-gray-400 mt-1">O que a Engenharia Reclama</p>
-                  </div>
-                  <div className="bg-green-950/50 p-6">
-                    <h4 className="text-xl font-bold text-green-400 flex items-center gap-2">
-                      <span className="text-2xl">✅</span>
-                      Nossa Solução
-                    </h4>
-                    <p className="text-sm text-gray-400 mt-1">O que Entregamos</p>
-                  </div>
+            {/* Mobile: Card Stack / Desktop: Table */}
+            <div className="space-y-4 md:space-y-0">
+              {/* Headers - Hidden on mobile, shown as table on desktop */}
+              <div className="hidden md:grid md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-red-950/50 p-4 md:p-6 rounded-2xl border border-red-500/20">
+                  <h4 className="text-lg md:text-xl font-bold text-red-400 flex items-center gap-2">
+                    <span className="text-xl md:text-2xl">❌</span>
+                    A Frustração Atual
+                  </h4>
+                  <p className="text-xs md:text-sm text-gray-400 mt-1">O que a Engenharia Reclama</p>
                 </div>
-
-                {/* Row 1 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
-                  <div className="p-6 border-r border-white/10">
-                    <h5 className="font-semibold text-red-400 mb-2">1. Custo de Licença Exorbitante</h5>
-                    <p className="text-sm text-gray-300">
-                      Licenças anuais que consomem orçamentos e tornam o crescimento insustentável.
-                    </p>
-                  </div>
-                  <div className="p-6 bg-green-950/20">
-                    <h5 className="font-semibold text-green-400 mb-2">Custo-Benefício Inteligente</h5>
-                    <p className="text-sm text-gray-300">
-                      Oferecemos um modelo de precificação justo e transparente, eliminando o peso financeiro das licenças tradicionais. Invista no seu projeto, não em softwares inchados.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Row 2 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
-                  <div className="p-6 border-r border-white/10">
-                    <h5 className="font-semibold text-red-400 mb-2">2. Desempenho Lento e Bugs Crônicos</h5>
-                    <p className="text-sm text-gray-300">
-                      Softwares que travam, demoram a processar e exigem hardware de ponta, roubando horas preciosas de trabalho.
-                    </p>
-                  </div>
-                  <div className="p-6 bg-green-950/20">
-                    <h5 className="font-semibold text-green-400 mb-2">Velocidade e Estabilidade Incomparáveis</h5>
-                    <p className="text-sm text-gray-300">
-                      Nossa plataforma é construída para ser leve e eficiente, garantindo processamento rápido e um ambiente de trabalho livre de bugs. Mais tempo projetando, menos tempo esperando.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Row 3 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
-                  <div className="p-6 border-r border-white/10">
-                    <h5 className="font-semibold text-red-400 mb-2">3. Usabilidade Complexa e Curva de Aprendizado Desnecessária</h5>
-                    <p className="text-sm text-gray-300">
-                      Interfaces confusas e funcionalidades escondidas que exigem treinamento exaustivo e afastam novos talentos.
-                    </p>
-                  </div>
-                  <div className="p-6 bg-green-950/20">
-                    <h5 className="font-semibold text-green-400 mb-2">Intuitividade e Foco no Engenheiro</h5>
-                    <p className="text-sm text-gray-300">
-                      Desenvolvemos uma interface limpa e lógica, pensada por engenheiros para engenheiros. Reduza a curva de aprendizado e coloque sua equipe para produzir em tempo recorde.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Row 4 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
-                  <div className="p-6 border-r border-white/10">
-                    <h5 className="font-semibold text-red-400 mb-2">4. Falta de Inovação e Resposta ao Feedback da Comunidade</h5>
-                    <p className="text-sm text-gray-300">
-                      Softwares que não evoluem e ignoram as necessidades reais dos usuários, mantendo o status quo.
-                    </p>
-                  </div>
-                  <div className="p-6 bg-green-950/20">
-                    <h5 className="font-semibold text-green-400 mb-2">Evolução Contínua e Parceria</h5>
-                    <p className="text-sm text-gray-300">
-                      Nossa solução é desenvolvida em colaboração com a comunidade de engenharia. Implementamos atualizações rápidas e significativas, garantindo que você tenha sempre a ferramenta mais moderna e alinhada com as práticas de mercado.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Row 5 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 hover:bg-white/5 transition-colors">
-                  <div className="p-6 border-r border-white/10">
-                    <h5 className="font-semibold text-red-400 mb-2">5. Risco de Erro devido ao uso superficial de ferramentas complexas</h5>
-                    <p className="text-sm text-gray-300">
-                      A complexidade do software leva a erros de modelagem e simulação, comprometendo a segurança e o resultado final do projeto.
-                    </p>
-                  </div>
-                  <div className="p-6 bg-green-950/20">
-                    <h5 className="font-semibold text-green-400 mb-2">Validação Integrada e Confiabilidade</h5>
-                    <p className="text-sm text-gray-300">
-                      Incorporamos mecanismos de validação e guias de boas práticas que garantem a correta aplicação dos princípios de engenharia. Transforme a complexidade em precisão e elimine o risco de erros caros.
-                    </p>
-                  </div>
+                <div className="bg-green-950/50 p-4 md:p-6 rounded-2xl border border-green-500/20">
+                  <h4 className="text-lg md:text-xl font-bold text-green-400 flex items-center gap-2">
+                    <span className="text-xl md:text-2xl">✅</span>
+                    Nossa Solução
+                  </h4>
+                  <p className="text-xs md:text-sm text-gray-400 mt-1">O que Entregamos</p>
                 </div>
               </div>
+
+              {/* Comparison Items */}
+              {[
+                {
+                  number: "1",
+                  problem: "Custo de Licença Exorbitante",
+                  problemDesc: "Licenças anuais que consomem orçamentos e tornam o crescimento insustentável.",
+                  solution: "Custo-Benefício Inteligente",
+                  solutionDesc: "Oferecemos um modelo de precificação justo e transparente, eliminando o peso financeiro das licenças tradicionais. Invista no seu projeto, não em softwares inchados."
+                },
+                {
+                  number: "2",
+                  problem: "Desempenho Lento e Bugs Crônicos",
+                  problemDesc: "Softwares que travam, demoram a processar e exigem hardware de ponta, roubando horas preciosas de trabalho.",
+                  solution: "Velocidade e Estabilidade Incomparáveis",
+                  solutionDesc: "Nossa plataforma é construída para ser leve e eficiente, garantindo processamento rápido e um ambiente de trabalho livre de bugs. Mais tempo projetando, menos tempo esperando."
+                },
+                {
+                  number: "3",
+                  problem: "Usabilidade Complexa e Curva de Aprendizado Desnecessária",
+                  problemDesc: "Interfaces confusas e funcionalidades escondidas que exigem treinamento exaustivo e afastam novos talentos.",
+                  solution: "Intuitividade e Foco no Engenheiro",
+                  solutionDesc: "Desenvolvemos uma interface limpa e lógica, pensada por engenheiros para engenheiros. Reduza a curva de aprendizado e coloque sua equipe para produzir em tempo recorde."
+                },
+                {
+                  number: "4",
+                  problem: "Falta de Inovação e Resposta ao Feedback da Comunidade",
+                  problemDesc: "Softwares que não evoluem e ignoram as necessidades reais dos usuários, mantendo o status quo.",
+                  solution: "Evolução Contínua e Parceria",
+                  solutionDesc: "Nossa solução é desenvolvida em colaboração com a comunidade de engenharia. Implementamos atualizações rápidas e significativas, garantindo que você tenha sempre a ferramenta mais moderna e alinhada com as práticas de mercado."
+                },
+                {
+                  number: "5",
+                  problem: "Risco de Erro devido ao uso superficial de ferramentas complexas",
+                  problemDesc: "A complexidade do software leva a erros de modelagem e simulação, comprometendo a segurança e o resultado final do projeto.",
+                  solution: "Validação Integrada e Confiabilidade",
+                  solutionDesc: "Incorporamos mecanismos de validação e guias de boas práticas que garantem a correta aplicação dos princípios de engenharia. Transforme a complexidade em precisão e elimine o risco de erros caros."
+                }
+              ].map((item) => (
+                <div key={item.number} className="space-y-3 md:space-y-0">
+                  {/* Mobile: Stacked Cards */}
+                  <div className="md:hidden space-y-3">
+                    {/* Problem Card */}
+                    <div className="bg-red-950/30 backdrop-blur-sm p-4 rounded-xl border border-red-500/20">
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className="text-lg">❌</span>
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-red-400 text-sm mb-1">
+                            {item.number}. {item.problem}
+                          </h5>
+                          <p className="text-xs text-gray-300 leading-relaxed">
+                            {item.problemDesc}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Solution Card */}
+                    <div className="bg-green-950/30 backdrop-blur-sm p-4 rounded-xl border border-green-500/20">
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className="text-lg">✅</span>
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-green-400 text-sm mb-1">
+                            {item.solution}
+                          </h5>
+                          <p className="text-xs text-gray-300 leading-relaxed">
+                            {item.solutionDesc}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop: Side by Side */}
+                  <div className="hidden md:grid md:grid-cols-2 gap-4">
+                    <div className="bg-red-950/20 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-red-500/10 hover:bg-red-950/30 transition-colors">
+                      <h5 className="font-semibold text-red-400 mb-2 text-sm md:text-base">
+                        {item.number}. {item.problem}
+                      </h5>
+                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
+                        {item.problemDesc}
+                      </p>
+                    </div>
+                    <div className="bg-green-950/20 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-green-500/10 hover:bg-green-950/30 transition-colors">
+                      <h5 className="font-semibold text-green-400 mb-2 text-sm md:text-base">
+                        {item.solution}
+                      </h5>
+                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
+                        {item.solutionDesc}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
