@@ -138,151 +138,107 @@ const Hero = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Problem 1 */}
-              <Card className="bg-red-950/30 border-red-900/50 hover:border-red-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-red-400 flex items-start gap-2">
-                    <span className="text-2xl">❌</span>
-                    <span>Custo de Licença Exorbitante</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Licenças anuais que consomem orçamentos e tornam o crescimento insustentável.
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Table Comparison */}
+            <div className="overflow-x-auto">
+              <div className="min-w-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
+                {/* Table Header */}
+                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10">
+                  <div className="bg-red-950/50 p-6 border-r border-white/10">
+                    <h4 className="text-xl font-bold text-red-400 flex items-center gap-2">
+                      <span className="text-2xl">❌</span>
+                      A Frustração Atual
+                    </h4>
+                    <p className="text-sm text-gray-400 mt-1">O que a Engenharia Reclama</p>
+                  </div>
+                  <div className="bg-green-950/50 p-6">
+                    <h4 className="text-xl font-bold text-green-400 flex items-center gap-2">
+                      <span className="text-2xl">✅</span>
+                      Nossa Solução
+                    </h4>
+                    <p className="text-sm text-gray-400 mt-1">O que Entregamos</p>
+                  </div>
+                </div>
 
-              <Card className="bg-green-950/30 border-green-900/50 hover:border-green-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-green-400 flex items-start gap-2">
-                    <span className="text-2xl">✅</span>
-                    <span>Custo-Benefício Inteligente</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Oferecemos um modelo de precificação justo e transparente, eliminando o peso financeiro das licenças tradicionais. Invista no seu projeto, não em softwares inchados.
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Row 1 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
+                  <div className="p-6 border-r border-white/10">
+                    <h5 className="font-semibold text-red-400 mb-2">1. Custo de Licença Exorbitante</h5>
+                    <p className="text-sm text-gray-300">
+                      Licenças anuais que consomem orçamentos e tornam o crescimento insustentável.
+                    </p>
+                  </div>
+                  <div className="p-6 bg-green-950/20">
+                    <h5 className="font-semibold text-green-400 mb-2">Custo-Benefício Inteligente</h5>
+                    <p className="text-sm text-gray-300">
+                      Oferecemos um modelo de precificação justo e transparente, eliminando o peso financeiro das licenças tradicionais. Invista no seu projeto, não em softwares inchados.
+                    </p>
+                  </div>
+                </div>
 
-              {/* Problem 2 */}
-              <Card className="bg-red-950/30 border-red-900/50 hover:border-red-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-red-400 flex items-start gap-2">
-                    <span className="text-2xl">❌</span>
-                    <span>Desempenho Lento e Bugs Crônicos</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Softwares que travam, demoram a processar e exigem hardware de ponta, roubando horas preciosas de trabalho.
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Row 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
+                  <div className="p-6 border-r border-white/10">
+                    <h5 className="font-semibold text-red-400 mb-2">2. Desempenho Lento e Bugs Crônicos</h5>
+                    <p className="text-sm text-gray-300">
+                      Softwares que travam, demoram a processar e exigem hardware de ponta, roubando horas preciosas de trabalho.
+                    </p>
+                  </div>
+                  <div className="p-6 bg-green-950/20">
+                    <h5 className="font-semibold text-green-400 mb-2">Velocidade e Estabilidade Incomparáveis</h5>
+                    <p className="text-sm text-gray-300">
+                      Nossa plataforma é construída para ser leve e eficiente, garantindo processamento rápido e um ambiente de trabalho livre de bugs. Mais tempo projetando, menos tempo esperando.
+                    </p>
+                  </div>
+                </div>
 
-              <Card className="bg-green-950/30 border-green-900/50 hover:border-green-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-green-400 flex items-start gap-2">
-                    <span className="text-2xl">✅</span>
-                    <span>Velocidade e Estabilidade Incomparáveis</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Nossa plataforma é construída para ser leve e eficiente, garantindo processamento rápido e um ambiente de trabalho livre de bugs. Mais tempo projetando, menos tempo esperando.
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Row 3 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
+                  <div className="p-6 border-r border-white/10">
+                    <h5 className="font-semibold text-red-400 mb-2">3. Usabilidade Complexa e Curva de Aprendizado Desnecessária</h5>
+                    <p className="text-sm text-gray-300">
+                      Interfaces confusas e funcionalidades escondidas que exigem treinamento exaustivo e afastam novos talentos.
+                    </p>
+                  </div>
+                  <div className="p-6 bg-green-950/20">
+                    <h5 className="font-semibold text-green-400 mb-2">Intuitividade e Foco no Engenheiro</h5>
+                    <p className="text-sm text-gray-300">
+                      Desenvolvemos uma interface limpa e lógica, pensada por engenheiros para engenheiros. Reduza a curva de aprendizado e coloque sua equipe para produzir em tempo recorde.
+                    </p>
+                  </div>
+                </div>
 
-              {/* Problem 3 */}
-              <Card className="bg-red-950/30 border-red-900/50 hover:border-red-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-red-400 flex items-start gap-2">
-                    <span className="text-2xl">❌</span>
-                    <span>Usabilidade Complexa e Curva de Aprendizado Desnecessária</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Interfaces confusas e funcionalidades escondidas que exigem treinamento exaustivo e afastam novos talentos.
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Row 4 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 border-b border-white/10 hover:bg-white/5 transition-colors">
+                  <div className="p-6 border-r border-white/10">
+                    <h5 className="font-semibold text-red-400 mb-2">4. Falta de Inovação e Resposta ao Feedback da Comunidade</h5>
+                    <p className="text-sm text-gray-300">
+                      Softwares que não evoluem e ignoram as necessidades reais dos usuários, mantendo o status quo.
+                    </p>
+                  </div>
+                  <div className="p-6 bg-green-950/20">
+                    <h5 className="font-semibold text-green-400 mb-2">Evolução Contínua e Parceria</h5>
+                    <p className="text-sm text-gray-300">
+                      Nossa solução é desenvolvida em colaboração com a comunidade de engenharia. Implementamos atualizações rápidas e significativas, garantindo que você tenha sempre a ferramenta mais moderna e alinhada com as práticas de mercado.
+                    </p>
+                  </div>
+                </div>
 
-              <Card className="bg-green-950/30 border-green-900/50 hover:border-green-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-green-400 flex items-start gap-2">
-                    <span className="text-2xl">✅</span>
-                    <span>Intuitividade e Foco no Engenheiro</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Desenvolvemos uma interface limpa e lógica, pensada por engenheiros para engenheiros. Reduza a curva de aprendizado e coloque sua equipe para produzir em tempo recorde.
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Problem 4 */}
-              <Card className="bg-red-950/30 border-red-900/50 hover:border-red-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-red-400 flex items-start gap-2">
-                    <span className="text-2xl">❌</span>
-                    <span>Falta de Inovação e Resposta ao Feedback da Comunidade</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Softwares que não evoluem e ignoram as necessidades reais dos usuários, mantendo o status quo.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-green-950/30 border-green-900/50 hover:border-green-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-green-400 flex items-start gap-2">
-                    <span className="text-2xl">✅</span>
-                    <span>Evolução Contínua e Parceria</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Nossa solução é desenvolvida em colaboração com a comunidade de engenharia. Implementamos atualizações rápidas e significativas, garantindo que você tenha sempre a ferramenta mais moderna e alinhada com as práticas de mercado.
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Problem 5 */}
-              <Card className="bg-red-950/30 border-red-900/50 hover:border-red-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-red-400 flex items-start gap-2">
-                    <span className="text-2xl">❌</span>
-                    <span>Risco de Erro devido ao uso superficial de ferramentas complexas</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    A complexidade do software leva a erros de modelagem e simulação, comprometendo a segurança e o resultado final do projeto.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-green-950/30 border-green-900/50 hover:border-green-800/70 transition-colors">
-                <CardHeader>
-                  <CardTitle className="text-lg text-green-400 flex items-start gap-2">
-                    <span className="text-2xl">✅</span>
-                    <span>Validação Integrada e Confiabilidade</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm">
-                    Incorporamos mecanismos de validação e guias de boas práticas que garantem a correta aplicação dos princípios de engenharia. Transforme a complexidade em precisão e elimine o risco de erros caros.
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Row 5 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 hover:bg-white/5 transition-colors">
+                  <div className="p-6 border-r border-white/10">
+                    <h5 className="font-semibold text-red-400 mb-2">5. Risco de Erro devido ao uso superficial de ferramentas complexas</h5>
+                    <p className="text-sm text-gray-300">
+                      A complexidade do software leva a erros de modelagem e simulação, comprometendo a segurança e o resultado final do projeto.
+                    </p>
+                  </div>
+                  <div className="p-6 bg-green-950/20">
+                    <h5 className="font-semibold text-green-400 mb-2">Validação Integrada e Confiabilidade</h5>
+                    <p className="text-sm text-gray-300">
+                      Incorporamos mecanismos de validação e guias de boas práticas que garantem a correta aplicação dos princípios de engenharia. Transforme a complexidade em precisão e elimine o risco de erros caros.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
