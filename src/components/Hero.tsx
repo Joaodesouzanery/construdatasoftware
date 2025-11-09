@@ -377,7 +377,7 @@ const Hero = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <BenefitCard
               icon={<Clock className="w-8 h-8" />}
               title="Controle em Tempo Real"
@@ -392,6 +392,36 @@ const Hero = () => {
               icon={<TrendingUp className="w-8 h-8" />}
               title="Análise Comparativa"
               description="Compare pedidos vs consumo real de materiais por frente de serviço"
+            />
+            <BenefitCard
+              icon={<Camera className="w-8 h-8" />}
+              title="Validação Georreferenciada"
+              description="Todas as fotos, vídeos e áudios são validados por GPS, garantindo autenticidade dos registros"
+            />
+            <BenefitCard
+              icon={<QrCode className="w-8 h-8" />}
+              title="QR Code para Manutenção"
+              description="Gere QR Codes para equipamentos e locais, facilitando solicitações de manutenção na obra"
+            />
+            <BenefitCard
+              icon={<Users className="w-8 h-8" />}
+              title="Gestão Centralizada de Equipes"
+              description="Controle de funcionários, empresas terceirizadas e permissões de acesso em um só lugar"
+            />
+            <BenefitCard
+              icon={<Package className="w-8 h-8" />}
+              title="Rastreamento de Materiais"
+              description="Controle completo desde a solicitação até o consumo, com histórico e responsáveis identificados"
+            />
+            <BenefitCard
+              icon={<BarChart3 className="w-8 h-8" />}
+              title="Relatórios Consolidados"
+              description="Exporte relatórios completos em PDF com dados de produção, materiais e equipe"
+            />
+            <BenefitCard
+              icon={<Bell className="w-8 h-8" />}
+              title="Notificações Inteligentes"
+              description="Receba alertas automáticos sobre desvios, pendências e eventos importantes da obra"
             />
           </div>
         </div>
