@@ -91,7 +91,7 @@ const Hero = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-              Plataforma completa para gestão de obras com Controle de Produção, RDO e Alertas Inteligentes
+              Transforme a gestão da sua obra com controle em tempo real, decisões baseadas em dados e economia comprovada
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
