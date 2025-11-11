@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Search, Package, AlertTriangle, TrendingUp, TrendingDown, Edit, Trash2, ArrowUpDown, HelpCircle, ArrowLeft } from "lucide-react";
+import { Building2, Plus, Search, Package, AlertTriangle, TrendingUp, TrendingDown, Edit, Trash2, ArrowUpDown, HelpCircle, ArrowLeft, FileDown, FileSpreadsheet, X, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { AddInventoryItemDialog } from "@/components/inventory/AddInventoryItemDialog";
 import { InventoryMovementDialog } from "@/components/inventory/InventoryMovementDialog";
@@ -29,6 +29,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface InventoryItem {
   id: string;
@@ -55,11 +60,15 @@ const Inventory = () => {
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showMovementDialog, setShowMovementDialog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [showFiltersPopover, setShowFiltersPopover] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -149,16 +158,142 @@ const Inventory = () => {
     setShowMovementDialog(true);
   };
 
-  const filteredItems = inventoryItems.filter(item =>
-    item.material_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.material_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredItems = inventoryItems.filter(item => {
+    // Search filter
+    const matchesSearch = item.material_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.material_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Category filter
+    const matchesCategory = selectedCategories.length === 0 || 
+      (item.category && selectedCategories.includes(item.category));
+    
+    // Project filter
+    const matchesProject = selectedProjects.length === 0 || 
+      selectedProjects.includes(item.project_id);
+    
+    // Status filter
+    const isLowStock = item.quantity_available <= item.minimum_stock;
+    const matchesStatus = selectedStatuses.length === 0 || 
+      (selectedStatuses.includes('low') && isLowStock) ||
+      (selectedStatuses.includes('normal') && !isLowStock);
+    
+    return matchesSearch && matchesCategory && matchesProject && matchesStatus;
+  });
 
   const categories = Array.from(new Set(inventoryItems.map(item => item.category).filter(Boolean)));
   const lowStockItems = filteredItems.filter(item => item.quantity_available <= item.minimum_stock);
 
   const totalValue = filteredItems.reduce((sum, item) => sum + (item.quantity_available * item.unit_cost), 0);
+
+  const hasActiveFilters = selectedCategories.length > 0 || 
+    selectedProjects.length > 0 || 
+    selectedStatuses.length > 0 ||
+    searchTerm !== '';
+
+  const clearAllFilters = () => {
+    setSelectedCategories([]);
+    setSelectedProjects([]);
+    setSelectedStatuses([]);
+    setSearchTerm('');
+  };
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const toggleProject = (projectId: string) => {
+    setSelectedProjects(prev => 
+      prev.includes(projectId) 
+        ? prev.filter(p => p !== projectId)
+        : [...prev, projectId]
+    );
+  };
+
+  const toggleStatus = (status: string) => {
+    setSelectedStatuses(prev => 
+      prev.includes(status) 
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
+  };
+
+  const selectAllCategories = () => {
+    setSelectedCategories(categories as string[]);
+  };
+
+  const selectAllProjects = () => {
+    setSelectedProjects(projects.map(p => p.id));
+  };
+
+  const selectAllStatuses = () => {
+    setSelectedStatuses(['low', 'normal']);
+  };
+
+  const exportToExcel = () => {
+    const csvContent = [
+      ['Código', 'Material', 'Categoria', 'Projeto', 'Quantidade', 'Unidade', 'Estoque Mínimo', 'Localização', 'Fornecedor', 'Custo Unitário', 'Status'],
+      ...filteredItems.map(item => [
+        item.material_code || '',
+        item.material_name,
+        item.category || '',
+        item.projects.name,
+        item.quantity_available,
+        item.unit || '',
+        item.minimum_stock,
+        item.location || '',
+        item.supplier || '',
+        item.unit_cost,
+        item.quantity_available <= item.minimum_stock ? 'Baixo' : 'Normal'
+      ])
+    ];
+
+    const csv = csvContent.map(row => row.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `almoxarifado_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`;
+    link.click();
+    toast.success('Planilha exportada com sucesso!');
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Relatório de Almoxarifado', 14, 22);
+    
+    doc.setFontSize(11);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 32);
+    doc.text(`Total de Itens: ${filteredItems.length}`, 14, 38);
+    doc.text(`Itens com Estoque Baixo: ${lowStockItems.length}`, 14, 44);
+    doc.text(`Valor Total: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, 50);
+
+    const tableData = filteredItems.map(item => [
+      item.material_code || '-',
+      item.material_name,
+      item.category || '-',
+      item.projects.name,
+      item.quantity_available.toString(),
+      item.unit || '-',
+      item.quantity_available <= item.minimum_stock ? 'Baixo' : 'Normal'
+    ]);
+
+    (doc as any).autoTable({
+      startY: 60,
+      head: [['Código', 'Material', 'Categoria', 'Projeto', 'Qtd', 'Un.', 'Status']],
+      body: tableData,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [59, 130, 246] }
+    });
+
+    doc.save(`almoxarifado_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
+    toast.success('PDF exportado com sucesso!');
+  };
 
   if (isLoading) {
     return (
@@ -186,13 +321,23 @@ const Inventory = () => {
               </Button>
               <h1 className="text-xl font-semibold">Almoxarifado</h1>
             </div>
-            <Button onClick={() => {
-              setSelectedItem(null);
-              setShowAddDialog(true);
-            }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Material
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={exportToExcel}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Excel
+              </Button>
+              <Button variant="outline" onClick={exportToPDF}>
+                <FileDown className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
+              <Button onClick={() => {
+                setSelectedItem(null);
+                setShowAddDialog(true);
+              }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Material
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -249,44 +394,169 @@ const Inventory = () => {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, código ou fornecedor..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-4 items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, código ou fornecedor..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                <Popover open={showFiltersPopover} onOpenChange={setShowFiltersPopover}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Filter className="h-4 w-4" />
+                      Filtros Avançados
+                      {hasActiveFilters && (
+                        <Badge variant="secondary" className="ml-2">
+                          {[selectedCategories.length, selectedProjects.length, selectedStatuses.length].filter(n => n > 0).reduce((a, b) => a + b, 0)}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="end">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold">Categorias</Label>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={selectAllCategories}
+                            className="h-auto p-0 text-xs"
+                          >
+                            Selecionar todas
+                          </Button>
+                        </div>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {categories.map((category) => (
+                            <div key={category} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`cat-${category}`}
+                                checked={selectedCategories.includes(category as string)}
+                                onCheckedChange={() => toggleCategory(category as string)}
+                              />
+                              <Label htmlFor={`cat-${category}`} className="text-sm cursor-pointer">
+                                {category}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold">Projetos</Label>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={selectAllProjects}
+                            className="h-auto p-0 text-xs"
+                          >
+                            Selecionar todos
+                          </Button>
+                        </div>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {projects.map((project) => (
+                            <div key={project.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`proj-${project.id}`}
+                                checked={selectedProjects.includes(project.id)}
+                                onCheckedChange={() => toggleProject(project.id)}
+                              />
+                              <Label htmlFor={`proj-${project.id}`} className="text-sm cursor-pointer">
+                                {project.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold">Status do Estoque</Label>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={selectAllStatuses}
+                            className="h-auto p-0 text-xs"
+                          >
+                            Selecionar todos
+                          </Button>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="status-low"
+                              checked={selectedStatuses.includes('low')}
+                              onCheckedChange={() => toggleStatus('low')}
+                            />
+                            <Label htmlFor="status-low" className="text-sm cursor-pointer">
+                              Estoque Baixo
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="status-normal"
+                              checked={selectedStatuses.includes('normal')}
+                              onCheckedChange={() => toggleStatus('normal')}
+                            />
+                            <Label htmlFor="status-normal" className="text-sm cursor-pointer">
+                              Estoque Normal
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" onClick={clearAllFilters} className="gap-2">
+                    <X className="h-4 w-4" />
+                    Limpar Filtros
+                  </Button>
+                )}
               </div>
 
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os projetos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os projetos</SelectItem>
-                  {projects.map(project => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedCategories.map(cat => (
+                    <Badge key={cat} variant="secondary" className="gap-1">
+                      {cat}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => toggleCategory(cat)}
+                      />
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as categorias" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as categorias</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category || ''}>
-                      {category}
-                    </SelectItem>
+                  {selectedProjects.map(projId => {
+                    const project = projects.find(p => p.id === projId);
+                    return (
+                      <Badge key={projId} variant="secondary" className="gap-1">
+                        {project?.name}
+                        <X 
+                          className="h-3 w-3 cursor-pointer" 
+                          onClick={() => toggleProject(projId)}
+                        />
+                      </Badge>
+                    );
+                  })}
+                  {selectedStatuses.map(status => (
+                    <Badge key={status} variant="secondary" className="gap-1">
+                      {status === 'low' ? 'Estoque Baixo' : 'Estoque Normal'}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => toggleStatus(status)}
+                      />
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
