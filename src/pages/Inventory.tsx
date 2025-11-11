@@ -63,6 +63,10 @@ const Inventory = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [minQuantity, setMinQuantity] = useState<string>('');
+  const [maxQuantity, setMaxQuantity] = useState<string>('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showMovementDialog, setShowMovementDialog] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -178,10 +182,25 @@ const Inventory = () => {
       (selectedStatuses.includes('low') && isLowStock) ||
       (selectedStatuses.includes('normal') && !isLowStock);
     
-    return matchesSearch && matchesCategory && matchesProject && matchesStatus;
+    // Unit filter
+    const matchesUnit = selectedUnits.length === 0 || 
+      (item.unit && selectedUnits.includes(item.unit));
+    
+    // Location filter
+    const matchesLocation = selectedLocations.length === 0 || 
+      (item.location && selectedLocations.includes(item.location));
+    
+    // Quantity filter
+    const matchesMinQuantity = !minQuantity || item.quantity_available >= parseFloat(minQuantity);
+    const matchesMaxQuantity = !maxQuantity || item.quantity_available <= parseFloat(maxQuantity);
+    
+    return matchesSearch && matchesCategory && matchesProject && matchesStatus && 
+           matchesUnit && matchesLocation && matchesMinQuantity && matchesMaxQuantity;
   });
 
   const categories = Array.from(new Set(inventoryItems.map(item => item.category).filter(Boolean)));
+  const units = Array.from(new Set(inventoryItems.map(item => item.unit).filter(Boolean)));
+  const locations = Array.from(new Set(inventoryItems.map(item => item.location).filter(Boolean)));
   const lowStockItems = filteredItems.filter(item => item.quantity_available <= item.minimum_stock);
 
   const totalValue = filteredItems.reduce((sum, item) => sum + (item.quantity_available * item.unit_cost), 0);
@@ -189,12 +208,20 @@ const Inventory = () => {
   const hasActiveFilters = selectedCategories.length > 0 || 
     selectedProjects.length > 0 || 
     selectedStatuses.length > 0 ||
+    selectedUnits.length > 0 ||
+    selectedLocations.length > 0 ||
+    minQuantity !== '' ||
+    maxQuantity !== '' ||
     searchTerm !== '';
 
   const clearAllFilters = () => {
     setSelectedCategories([]);
     setSelectedProjects([]);
     setSelectedStatuses([]);
+    setSelectedUnits([]);
+    setSelectedLocations([]);
+    setMinQuantity('');
+    setMaxQuantity('');
     setSearchTerm('');
   };
 
@@ -222,6 +249,22 @@ const Inventory = () => {
     );
   };
 
+  const toggleUnit = (unit: string) => {
+    setSelectedUnits(prev => 
+      prev.includes(unit) 
+        ? prev.filter(u => u !== unit)
+        : [...prev, unit]
+    );
+  };
+
+  const toggleLocation = (location: string) => {
+    setSelectedLocations(prev => 
+      prev.includes(location) 
+        ? prev.filter(l => l !== location)
+        : [...prev, location]
+    );
+  };
+
   const selectAllCategories = () => {
     setSelectedCategories(categories as string[]);
   };
@@ -232,6 +275,14 @@ const Inventory = () => {
 
   const selectAllStatuses = () => {
     setSelectedStatuses(['low', 'normal']);
+  };
+
+  const selectAllUnits = () => {
+    setSelectedUnits(units as string[]);
+  };
+
+  const selectAllLocations = () => {
+    setSelectedLocations(locations as string[]);
   };
 
   const exportToExcel = () => {
@@ -418,8 +469,34 @@ const Inventory = () => {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80" align="end">
+                  <PopoverContent className="w-96 max-h-[600px] overflow-y-auto" align="end">
                     <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Quantidade</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label htmlFor="min-qty" className="text-xs text-muted-foreground">Mínimo</Label>
+                            <Input
+                              id="min-qty"
+                              type="number"
+                              placeholder="Ex: 500"
+                              value={minQuantity}
+                              onChange={(e) => setMinQuantity(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="max-qty" className="text-xs text-muted-foreground">Máximo</Label>
+                            <Input
+                              id="max-qty"
+                              type="number"
+                              placeholder="Ex: 1000"
+                              value={maxQuantity}
+                              onChange={(e) => setMaxQuantity(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label className="font-semibold">Categorias</Label>
@@ -432,7 +509,7 @@ const Inventory = () => {
                             Selecionar todas
                           </Button>
                         </div>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
                           {categories.map((category) => (
                             <div key={category} className="flex items-center space-x-2">
                               <Checkbox
@@ -442,6 +519,62 @@ const Inventory = () => {
                               />
                               <Label htmlFor={`cat-${category}`} className="text-sm cursor-pointer">
                                 {category}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold">Unidades</Label>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={selectAllUnits}
+                            className="h-auto p-0 text-xs"
+                          >
+                            Selecionar todas
+                          </Button>
+                        </div>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {units.map((unit) => (
+                            <div key={unit} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`unit-${unit}`}
+                                checked={selectedUnits.includes(unit as string)}
+                                onCheckedChange={() => toggleUnit(unit as string)}
+                              />
+                              <Label htmlFor={`unit-${unit}`} className="text-sm cursor-pointer">
+                                {unit}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold">Localizações</Label>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={selectAllLocations}
+                            className="h-auto p-0 text-xs"
+                          >
+                            Selecionar todas
+                          </Button>
+                        </div>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {locations.map((location) => (
+                            <div key={location} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`loc-${location}`}
+                                checked={selectedLocations.includes(location as string)}
+                                onCheckedChange={() => toggleLocation(location as string)}
+                              />
+                              <Label htmlFor={`loc-${location}`} className="text-sm cursor-pointer">
+                                {location}
                               </Label>
                             </div>
                           ))}
@@ -460,7 +593,7 @@ const Inventory = () => {
                             Selecionar todos
                           </Button>
                         </div>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
                           {projects.map((project) => (
                             <div key={project.id} className="flex items-center space-x-2">
                               <Checkbox
@@ -525,12 +658,48 @@ const Inventory = () => {
 
               {hasActiveFilters && (
                 <div className="flex flex-wrap gap-2">
+                  {minQuantity && (
+                    <Badge variant="secondary" className="gap-1">
+                      Qtd mín: {minQuantity}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setMinQuantity('')}
+                      />
+                    </Badge>
+                  )}
+                  {maxQuantity && (
+                    <Badge variant="secondary" className="gap-1">
+                      Qtd máx: {maxQuantity}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setMaxQuantity('')}
+                      />
+                    </Badge>
+                  )}
                   {selectedCategories.map(cat => (
                     <Badge key={cat} variant="secondary" className="gap-1">
                       {cat}
                       <X 
                         className="h-3 w-3 cursor-pointer" 
                         onClick={() => toggleCategory(cat)}
+                      />
+                    </Badge>
+                  ))}
+                  {selectedUnits.map(unit => (
+                    <Badge key={unit} variant="secondary" className="gap-1">
+                      {unit}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => toggleUnit(unit)}
+                      />
+                    </Badge>
+                  ))}
+                  {selectedLocations.map(loc => (
+                    <Badge key={loc} variant="secondary" className="gap-1">
+                      {loc}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => toggleLocation(loc)}
                       />
                     </Badge>
                   ))}
