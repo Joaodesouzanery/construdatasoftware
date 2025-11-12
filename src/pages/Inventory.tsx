@@ -73,6 +73,16 @@ const Inventory = () => {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  
+  // Temporary filter states for the popover
+  const [tempSelectedCategories, setTempSelectedCategories] = useState<string[]>([]);
+  const [tempSelectedProjects, setTempSelectedProjects] = useState<string[]>([]);
+  const [tempSelectedStatuses, setTempSelectedStatuses] = useState<string[]>([]);
+  const [tempSelectedUnits, setTempSelectedUnits] = useState<string[]>([]);
+  const [tempSelectedLocations, setTempSelectedLocations] = useState<string[]>([]);
+  const [tempMinQuantity, setTempMinQuantity] = useState<string>('');
+  const [tempMaxQuantity, setTempMaxQuantity] = useState<string>('');
 
   useEffect(() => {
     checkAuth();
@@ -168,6 +178,10 @@ const Inventory = () => {
       item.material_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
     
+    // Low stock filter
+    const isLowStock = item.quantity_available <= item.minimum_stock;
+    if (showLowStockOnly && !isLowStock) return false;
+    
     // Category filter
     const matchesCategory = selectedCategories.length === 0 || 
       (item.category && selectedCategories.includes(item.category));
@@ -177,7 +191,6 @@ const Inventory = () => {
       selectedProjects.includes(item.project_id);
     
     // Status filter
-    const isLowStock = item.quantity_available <= item.minimum_stock;
     const matchesStatus = selectedStatuses.length === 0 || 
       (selectedStatuses.includes('low') && isLowStock) ||
       (selectedStatuses.includes('normal') && !isLowStock);
@@ -212,7 +225,8 @@ const Inventory = () => {
     selectedLocations.length > 0 ||
     minQuantity !== '' ||
     maxQuantity !== '' ||
-    searchTerm !== '';
+    searchTerm !== '' ||
+    showLowStockOnly;
 
   const clearAllFilters = () => {
     setSelectedCategories([]);
@@ -223,10 +237,43 @@ const Inventory = () => {
     setMinQuantity('');
     setMaxQuantity('');
     setSearchTerm('');
+    setShowLowStockOnly(false);
+  };
+
+  const applyFilters = () => {
+    setSelectedCategories(tempSelectedCategories);
+    setSelectedProjects(tempSelectedProjects);
+    setSelectedStatuses(tempSelectedStatuses);
+    setSelectedUnits(tempSelectedUnits);
+    setSelectedLocations(tempSelectedLocations);
+    setMinQuantity(tempMinQuantity);
+    setMaxQuantity(tempMaxQuantity);
+    setShowFiltersPopover(false);
+  };
+
+  const clearTempFilters = () => {
+    setTempSelectedCategories([]);
+    setTempSelectedProjects([]);
+    setTempSelectedStatuses([]);
+    setTempSelectedUnits([]);
+    setTempSelectedLocations([]);
+    setTempMinQuantity('');
+    setTempMaxQuantity('');
+  };
+
+  const openFiltersPopover = () => {
+    setTempSelectedCategories(selectedCategories);
+    setTempSelectedProjects(selectedProjects);
+    setTempSelectedStatuses(selectedStatuses);
+    setTempSelectedUnits(selectedUnits);
+    setTempSelectedLocations(selectedLocations);
+    setTempMinQuantity(minQuantity);
+    setTempMaxQuantity(maxQuantity);
+    setShowFiltersPopover(true);
   };
 
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
+    setTempSelectedCategories(prev => 
       prev.includes(category) 
         ? prev.filter(c => c !== category)
         : [...prev, category]
@@ -234,7 +281,7 @@ const Inventory = () => {
   };
 
   const toggleProject = (projectId: string) => {
-    setSelectedProjects(prev => 
+    setTempSelectedProjects(prev => 
       prev.includes(projectId) 
         ? prev.filter(p => p !== projectId)
         : [...prev, projectId]
@@ -242,7 +289,7 @@ const Inventory = () => {
   };
 
   const toggleStatus = (status: string) => {
-    setSelectedStatuses(prev => 
+    setTempSelectedStatuses(prev => 
       prev.includes(status) 
         ? prev.filter(s => s !== status)
         : [...prev, status]
@@ -250,7 +297,7 @@ const Inventory = () => {
   };
 
   const toggleUnit = (unit: string) => {
-    setSelectedUnits(prev => 
+    setTempSelectedUnits(prev => 
       prev.includes(unit) 
         ? prev.filter(u => u !== unit)
         : [...prev, unit]
@@ -258,7 +305,7 @@ const Inventory = () => {
   };
 
   const toggleLocation = (location: string) => {
-    setSelectedLocations(prev => 
+    setTempSelectedLocations(prev => 
       prev.includes(location) 
         ? prev.filter(l => l !== location)
         : [...prev, location]
@@ -266,41 +313,45 @@ const Inventory = () => {
   };
 
   const selectAllCategories = () => {
-    setSelectedCategories(categories as string[]);
+    setTempSelectedCategories(categories as string[]);
   };
 
   const selectAllProjects = () => {
-    setSelectedProjects(projects.map(p => p.id));
+    setTempSelectedProjects(projects.map(p => p.id));
   };
 
   const selectAllStatuses = () => {
-    setSelectedStatuses(['low', 'normal']);
+    setTempSelectedStatuses(['low', 'normal']);
   };
 
   const selectAllUnits = () => {
-    setSelectedUnits(units as string[]);
+    setTempSelectedUnits(units as string[]);
   };
 
   const selectAllLocations = () => {
-    setSelectedLocations(locations as string[]);
+    setTempSelectedLocations(locations as string[]);
   };
 
   const exportToExcel = () => {
     const csvContent = [
-      ['Código', 'Material', 'Categoria', 'Projeto', 'Quantidade', 'Unidade', 'Estoque Mínimo', 'Localização', 'Fornecedor', 'Custo Unitário', 'Status'],
-      ...filteredItems.map(item => [
-        item.material_code || '',
-        item.material_name,
-        item.category || '',
-        item.projects.name,
-        item.quantity_available,
-        item.unit || '',
-        item.minimum_stock,
-        item.location || '',
-        item.supplier || '',
-        item.unit_cost,
-        item.quantity_available <= item.minimum_stock ? 'Baixo' : 'Normal'
-      ])
+      ['Código', 'Material', 'Categoria', 'Projeto', 'Quantidade', 'Unidade', 'Estoque Mínimo', 'O que Precisa Comprar', 'Localização', 'Fornecedor', 'Custo Unitário', 'Status'],
+      ...filteredItems.map(item => {
+        const needsToBuy = Math.max(0, item.minimum_stock - item.quantity_available);
+        return [
+          item.material_code || '',
+          item.material_name,
+          item.category || '',
+          item.projects.name,
+          item.quantity_available,
+          item.unit || '',
+          item.minimum_stock,
+          needsToBuy,
+          item.location || '',
+          item.supplier || '',
+          item.unit_cost,
+          item.quantity_available <= item.minimum_stock ? 'Baixo' : 'Normal'
+        ];
+      })
     ];
 
     const csv = csvContent.map(row => row.join(',')).join('\n');
@@ -324,21 +375,26 @@ const Inventory = () => {
     doc.text(`Itens com Estoque Baixo: ${lowStockItems.length}`, 14, 44);
     doc.text(`Valor Total: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, 50);
 
-    const tableData = filteredItems.map(item => [
-      item.material_code || '-',
-      item.material_name,
-      item.category || '-',
-      item.projects.name,
-      item.quantity_available.toString(),
-      item.unit || '-',
-      item.quantity_available <= item.minimum_stock ? 'Baixo' : 'Normal'
-    ]);
+    const tableData = filteredItems.map(item => {
+      const needsToBuy = Math.max(0, item.minimum_stock - item.quantity_available);
+      return [
+        item.material_code || '-',
+        item.material_name,
+        item.category || '-',
+        item.projects.name,
+        item.quantity_available.toString(),
+        item.minimum_stock.toString(),
+        needsToBuy.toString(),
+        item.unit || '-',
+        item.quantity_available <= item.minimum_stock ? 'Baixo' : 'Normal'
+      ];
+    });
 
     (doc as any).autoTable({
       startY: 60,
-      head: [['Código', 'Material', 'Categoria', 'Projeto', 'Qtd', 'Un.', 'Status']],
+      head: [['Código', 'Material', 'Categoria', 'Projeto', 'Qtd', 'Mín', 'Comprar', 'Un.', 'Status']],
       body: tableData,
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       headStyles: { fillColor: [59, 130, 246] }
     });
 
@@ -446,8 +502,8 @@ const Inventory = () => {
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="flex flex-col gap-4">
-              <div className="flex gap-4 items-center">
-                <div className="relative flex-1">
+              <div className="flex gap-4 items-center flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por nome, código ou fornecedor..."
@@ -457,31 +513,47 @@ const Inventory = () => {
                   />
                 </div>
 
+                <Button
+                  variant={showLowStockOnly ? "default" : "outline"}
+                  onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+                  className="gap-2"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  Estoque Baixo
+                  <Badge variant={showLowStockOnly ? "secondary" : "outline"} className="ml-1">
+                    {lowStockItems.length}
+                  </Badge>
+                </Button>
+
                 <Popover open={showFiltersPopover} onOpenChange={setShowFiltersPopover}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2" onClick={openFiltersPopover}>
                       <Filter className="h-4 w-4" />
                       Filtros Avançados
-                      {hasActiveFilters && (
+                      {(selectedCategories.length > 0 || selectedProjects.length > 0 || selectedStatuses.length > 0 || selectedUnits.length > 0 || selectedLocations.length > 0 || minQuantity || maxQuantity) && (
                         <Badge variant="secondary" className="ml-2">
-                          {[selectedCategories.length, selectedProjects.length, selectedStatuses.length].filter(n => n > 0).reduce((a, b) => a + b, 0)}
+                          {[selectedCategories.length, selectedProjects.length, selectedStatuses.length, selectedUnits.length, selectedLocations.length, minQuantity ? 1 : 0, maxQuantity ? 1 : 0].filter(n => n > 0).reduce((a, b) => a + b, 0)}
                         </Badge>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-96 max-h-[600px] overflow-y-auto" align="end">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="font-semibold">Quantidade</Label>
-                        <div className="grid grid-cols-2 gap-2">
+                  <PopoverContent className="w-[500px] max-h-[600px] overflow-y-auto" align="end">
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-semibold mb-3">Filtros Avançados</h4>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label className="font-semibold text-sm">Quantidade</Label>
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label htmlFor="min-qty" className="text-xs text-muted-foreground">Mínimo</Label>
                             <Input
                               id="min-qty"
                               type="number"
                               placeholder="Ex: 500"
-                              value={minQuantity}
-                              onChange={(e) => setMinQuantity(e.target.value)}
+                              value={tempMinQuantity}
+                              onChange={(e) => setTempMinQuantity(e.target.value)}
                             />
                           </div>
                           <div>
@@ -490,16 +562,16 @@ const Inventory = () => {
                               id="max-qty"
                               type="number"
                               placeholder="Ex: 1000"
-                              value={maxQuantity}
-                              onChange={(e) => setMaxQuantity(e.target.value)}
+                              value={tempMaxQuantity}
+                              onChange={(e) => setTempMaxQuantity(e.target.value)}
                             />
                           </div>
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <Label className="font-semibold">Categorias</Label>
+                          <Label className="font-semibold text-sm">Categorias</Label>
                           <Button
                             variant="link"
                             size="sm"
@@ -509,25 +581,29 @@ const Inventory = () => {
                             Selecionar todas
                           </Button>
                         </div>
-                        <div className="space-y-2 max-h-32 overflow-y-auto">
-                          {categories.map((category) => (
-                            <div key={category} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`cat-${category}`}
-                                checked={selectedCategories.includes(category as string)}
-                                onCheckedChange={() => toggleCategory(category as string)}
-                              />
-                              <Label htmlFor={`cat-${category}`} className="text-sm cursor-pointer">
-                                {category}
-                              </Label>
-                            </div>
-                          ))}
+                        <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                          {categories.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-2">Nenhuma categoria</p>
+                          ) : (
+                            categories.map((category) => (
+                              <div key={category} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`cat-${category}`}
+                                  checked={tempSelectedCategories.includes(category as string)}
+                                  onCheckedChange={() => toggleCategory(category as string)}
+                                />
+                                <Label htmlFor={`cat-${category}`} className="text-sm cursor-pointer">
+                                  {category}
+                                </Label>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <Label className="font-semibold">Unidades</Label>
+                          <Label className="font-semibold text-sm">Unidades</Label>
                           <Button
                             variant="link"
                             size="sm"
@@ -537,25 +613,29 @@ const Inventory = () => {
                             Selecionar todas
                           </Button>
                         </div>
-                        <div className="space-y-2 max-h-32 overflow-y-auto">
-                          {units.map((unit) => (
-                            <div key={unit} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`unit-${unit}`}
-                                checked={selectedUnits.includes(unit as string)}
-                                onCheckedChange={() => toggleUnit(unit as string)}
-                              />
-                              <Label htmlFor={`unit-${unit}`} className="text-sm cursor-pointer">
-                                {unit}
-                              </Label>
-                            </div>
-                          ))}
+                        <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                          {units.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-2">Nenhuma unidade</p>
+                          ) : (
+                            units.map((unit) => (
+                              <div key={unit} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`unit-${unit}`}
+                                  checked={tempSelectedUnits.includes(unit as string)}
+                                  onCheckedChange={() => toggleUnit(unit as string)}
+                                />
+                                <Label htmlFor={`unit-${unit}`} className="text-sm cursor-pointer">
+                                  {unit}
+                                </Label>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <Label className="font-semibold">Localizações</Label>
+                          <Label className="font-semibold text-sm">Localizações</Label>
                           <Button
                             variant="link"
                             size="sm"
@@ -565,25 +645,29 @@ const Inventory = () => {
                             Selecionar todas
                           </Button>
                         </div>
-                        <div className="space-y-2 max-h-32 overflow-y-auto">
-                          {locations.map((location) => (
-                            <div key={location} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`loc-${location}`}
-                                checked={selectedLocations.includes(location as string)}
-                                onCheckedChange={() => toggleLocation(location as string)}
-                              />
-                              <Label htmlFor={`loc-${location}`} className="text-sm cursor-pointer">
-                                {location}
-                              </Label>
-                            </div>
-                          ))}
+                        <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                          {locations.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-2">Nenhuma localização</p>
+                          ) : (
+                            locations.map((location) => (
+                              <div key={location} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`loc-${location}`}
+                                  checked={tempSelectedLocations.includes(location as string)}
+                                  onCheckedChange={() => toggleLocation(location as string)}
+                                />
+                                <Label htmlFor={`loc-${location}`} className="text-sm cursor-pointer">
+                                  {location}
+                                </Label>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <Label className="font-semibold">Projetos</Label>
+                          <Label className="font-semibold text-sm">Projetos</Label>
                           <Button
                             variant="link"
                             size="sm"
@@ -593,25 +677,29 @@ const Inventory = () => {
                             Selecionar todos
                           </Button>
                         </div>
-                        <div className="space-y-2 max-h-32 overflow-y-auto">
-                          {projects.map((project) => (
-                            <div key={project.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`proj-${project.id}`}
-                                checked={selectedProjects.includes(project.id)}
-                                onCheckedChange={() => toggleProject(project.id)}
-                              />
-                              <Label htmlFor={`proj-${project.id}`} className="text-sm cursor-pointer">
-                                {project.name}
-                              </Label>
-                            </div>
-                          ))}
+                        <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+                          {projects.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-2">Nenhum projeto</p>
+                          ) : (
+                            projects.map((project) => (
+                              <div key={project.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`proj-${project.id}`}
+                                  checked={tempSelectedProjects.includes(project.id)}
+                                  onCheckedChange={() => toggleProject(project.id)}
+                                />
+                                <Label htmlFor={`proj-${project.id}`} className="text-sm cursor-pointer">
+                                  {project.name}
+                                </Label>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <Label className="font-semibold">Status do Estoque</Label>
+                          <Label className="font-semibold text-sm">Status do Estoque</Label>
                           <Button
                             variant="link"
                             size="sm"
@@ -621,11 +709,11 @@ const Inventory = () => {
                             Selecionar todos
                           </Button>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 border rounded-md p-2">
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="status-low"
-                              checked={selectedStatuses.includes('low')}
+                              checked={tempSelectedStatuses.includes('low')}
                               onCheckedChange={() => toggleStatus('low')}
                             />
                             <Label htmlFor="status-low" className="text-sm cursor-pointer">
@@ -635,7 +723,7 @@ const Inventory = () => {
                           <div className="flex items-center space-x-2">
                             <Checkbox
                               id="status-normal"
-                              checked={selectedStatuses.includes('normal')}
+                              checked={tempSelectedStatuses.includes('normal')}
                               onCheckedChange={() => toggleStatus('normal')}
                             />
                             <Label htmlFor="status-normal" className="text-sm cursor-pointer">
@@ -643,6 +731,22 @@ const Inventory = () => {
                             </Label>
                           </div>
                         </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-4 border-t">
+                        <Button
+                          variant="outline"
+                          onClick={clearTempFilters}
+                          className="flex-1"
+                        >
+                          Limpar Filtros
+                        </Button>
+                        <Button
+                          onClick={applyFilters}
+                          className="flex-1"
+                        >
+                          Aplicar Filtros
+                        </Button>
                       </div>
                     </div>
                   </PopoverContent>
@@ -658,6 +762,15 @@ const Inventory = () => {
 
               {hasActiveFilters && (
                 <div className="flex flex-wrap gap-2">
+                  {showLowStockOnly && (
+                    <Badge variant="secondary" className="gap-1">
+                      Filtro: Estoque Baixo
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setShowLowStockOnly(false)}
+                      />
+                    </Badge>
+                  )}
                   {minQuantity && (
                     <Badge variant="secondary" className="gap-1">
                       Qtd mín: {minQuantity}
@@ -761,6 +874,8 @@ const Inventory = () => {
                       <TableHead>Categoria</TableHead>
                       <TableHead>Projeto</TableHead>
                       <TableHead>Quantidade</TableHead>
+                      <TableHead>Estoque Mínimo</TableHead>
+                      <TableHead>O que Precisa Comprar</TableHead>
                       <TableHead>Unidade</TableHead>
                       <TableHead>Localização</TableHead>
                       <TableHead>Status</TableHead>
@@ -768,65 +883,76 @@ const Inventory = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-mono text-sm">
-                          {item.material_code || '-'}
-                        </TableCell>
-                        <TableCell className="font-medium">{item.material_name}</TableCell>
-                        <TableCell>
-                          {item.category ? (
-                            <Badge variant="outline">{item.category}</Badge>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell>{item.projects.name}</TableCell>
-                        <TableCell>
-                          <span className={item.quantity_available <= item.minimum_stock ? 'text-destructive font-semibold' : ''}>
-                            {item.quantity_available}
-                          </span>
-                        </TableCell>
-                        <TableCell>{item.unit || '-'}</TableCell>
-                        <TableCell>{item.location || '-'}</TableCell>
-                        <TableCell>
-                          {item.quantity_available <= item.minimum_stock ? (
-                            <Badge variant="destructive">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              Baixo
-                            </Badge>
-                          ) : (
-                            <Badge variant="default">Normal</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMovement(item)}
-                              title="Movimentar estoque"
-                            >
-                              <ArrowUpDown className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(item)}
-                              title="Editar"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setItemToDelete(item)}
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredItems.map((item) => {
+                      const needsToBuy = Math.max(0, item.minimum_stock - item.quantity_available);
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono text-sm">
+                            {item.material_code || '-'}
+                          </TableCell>
+                          <TableCell className="font-medium">{item.material_name}</TableCell>
+                          <TableCell>
+                            {item.category ? (
+                              <Badge variant="outline">{item.category}</Badge>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell>{item.projects.name}</TableCell>
+                          <TableCell>
+                            <span className={item.quantity_available <= item.minimum_stock ? 'text-destructive font-semibold' : ''}>
+                              {item.quantity_available}
+                            </span>
+                          </TableCell>
+                          <TableCell>{item.minimum_stock}</TableCell>
+                          <TableCell>
+                            {needsToBuy > 0 ? (
+                              <span className="text-destructive font-semibold">{needsToBuy}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>{item.unit || '-'}</TableCell>
+                          <TableCell>{item.location || '-'}</TableCell>
+                          <TableCell>
+                            {item.quantity_available <= item.minimum_stock ? (
+                              <Badge variant="destructive">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                Baixo
+                              </Badge>
+                            ) : (
+                              <Badge variant="default">Normal</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMovement(item)}
+                                title="Movimentar estoque"
+                              >
+                                <ArrowUpDown className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(item)}
+                                title="Editar"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setItemToDelete(item)}
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
