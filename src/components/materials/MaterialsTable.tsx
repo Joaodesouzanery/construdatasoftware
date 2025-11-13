@@ -7,17 +7,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, TrendingUp } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface MaterialsTableProps {
   materials: any[];
   isLoading: boolean;
   onEdit: (material: any) => void;
   onDelete: (id: string) => void;
+  selectedMaterials: string[];
+  onSelectionChange: (selected: string[]) => void;
 }
 
-export const MaterialsTable = ({ materials, isLoading, onEdit, onDelete }: MaterialsTableProps) => {
+export const MaterialsTable = ({ materials, isLoading, onEdit, onDelete, selectedMaterials, onSelectionChange }: MaterialsTableProps) => {
+  const toggleSelection = (id: string) => {
+    if (selectedMaterials.includes(id)) {
+      onSelectionChange(selectedMaterials.filter(m => m !== id));
+    } else {
+      onSelectionChange([...selectedMaterials, id]);
+    }
+  };
+
+  const toggleAll = () => {
+    if (selectedMaterials.length === materials.length) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(materials.map(m => m.id));
+    }
+  };
   if (isLoading) {
     return <div className="text-center py-8">Carregando...</div>;
   }
@@ -35,6 +53,12 @@ export const MaterialsTable = ({ materials, isLoading, onEdit, onDelete }: Mater
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12">
+              <Checkbox
+                checked={selectedMaterials.length === materials.length}
+                onCheckedChange={toggleAll}
+              />
+            </TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>Marca</TableHead>
             <TableHead>Cor</TableHead>
@@ -54,6 +78,12 @@ export const MaterialsTable = ({ materials, isLoading, onEdit, onDelete }: Mater
             
             return (
               <TableRow key={material.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedMaterials.includes(material.id)}
+                    onCheckedChange={() => toggleSelection(material.id)}
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{material.name}</TableCell>
                 <TableCell>{material.brand || "-"}</TableCell>
                 <TableCell>{material.color || "-"}</TableCell>

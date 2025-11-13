@@ -78,6 +78,8 @@ const AppContent = () => {
         <Route path="/maintenance-qr-codes" element={<MaintenanceQRCodes />} />
         <Route path="/maintenance-request/:qrCodeId" element={<MaintenanceRequest />} />
         <Route path="/maintenance-requests" element={<MaintenanceRequests />} />
+        <Route path="/materials" element={<Materials />} />
+        <Route path="/budgets" element={<Budgets />} />
         
         {/* Feature pages */}
         <Route path="/features/project-management" element={<ProjectManagement />} />

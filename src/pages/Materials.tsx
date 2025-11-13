@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload, Download } from "lucide-react";
+import { Plus, Search, Upload, Download, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
 import { EditMaterialDialog } from "@/components/materials/EditMaterialDialog";
@@ -11,6 +11,7 @@ import { MaterialsTable } from "@/components/materials/MaterialsTable";
 import { MaterialFilters } from "@/components/materials/MaterialFilters";
 import { SpreadsheetUploadDialog } from "@/components/materials/SpreadsheetUploadDialog";
 import { KeywordsManagementDialog } from "@/components/materials/KeywordsManagementDialog";
+import { BulkEditDialog } from "@/components/materials/BulkEditDialog";
 
 const Materials = () => {
   const { toast } = useToast();
@@ -19,7 +20,9 @@ const Materials = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isKeywordsDialogOpen, setIsKeywordsDialogOpen] = useState(false);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     brands: [] as string[],
     colors: [] as string[],
@@ -96,6 +99,12 @@ const Materials = () => {
             <p className="text-muted-foreground">Gerencie seu catálogo de materiais</p>
           </div>
           <div className="flex gap-2">
+            {selectedMaterials.length > 0 && (
+              <Button onClick={() => setIsBulkEditOpen(true)} variant="outline">
+                <Edit className="h-4 w-4 mr-2" />
+                Editar {selectedMaterials.length} selecionados
+              </Button>
+            )}
             <Button onClick={() => setIsKeywordsDialogOpen(true)} variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Palavras-chave
@@ -129,6 +138,8 @@ const Materials = () => {
           isLoading={isLoading}
           onEdit={setEditingMaterial}
           onDelete={(id) => deleteMutation.mutate(id)}
+          selectedMaterials={selectedMaterials}
+          onSelectionChange={setSelectedMaterials}
         />
 
         <AddMaterialDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
@@ -143,6 +154,12 @@ const Materials = () => {
 
         <SpreadsheetUploadDialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen} />
         <KeywordsManagementDialog open={isKeywordsDialogOpen} onOpenChange={setIsKeywordsDialogOpen} />
+        <BulkEditDialog
+          open={isBulkEditOpen}
+          onOpenChange={setIsBulkEditOpen}
+          selectedMaterials={selectedMaterials}
+          onClearSelection={() => setSelectedMaterials([])}
+        />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -37,6 +37,11 @@ const facilityItems = [
   { title: "Relatórios", url: "/facility-reports", icon: FileBarChart },
   { title: "QR Code Manutenção", url: "/maintenance-qr-codes", icon: QrCode },
   { title: "Solicitações Manutenção", url: "/maintenance-requests", icon: ClipboardX },
+];
+
+const budgetItems = [
+  { title: "Materiais", url: "/materials", icon: Box },
+  { title: "Orçamentos", url: "/budgets", icon: DollarSign },
 ];
 
 const settingsItems = [
@@ -112,6 +117,28 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {facilityItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-medium">Orçamento</SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {budgetItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} end className={getNavCls}>
