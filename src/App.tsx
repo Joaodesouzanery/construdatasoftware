@@ -41,6 +41,8 @@ import QRCodeMaintenance from "./pages/features/QRCodeMaintenance";
 import ConnectionReportsFeature from "./pages/features/ConnectionReportsFeature";
 import Admin from "./pages/Admin";
 import Backup from "./pages/Backup";
+import Materials from "./pages/Materials";
+import Budgets from "./pages/Budgets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

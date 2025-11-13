@@ -209,6 +209,138 @@ export type Database = {
           },
         ]
       }
+      budget_items: {
+        Row: {
+          bdi_percentage: number | null
+          budget_id: string
+          created_at: string | null
+          description: string
+          id: string
+          item_number: number
+          material_id: string | null
+          price_at_creation: number | null
+          quantity: number
+          subtotal_bdi: number | null
+          subtotal_labor: number | null
+          subtotal_material: number | null
+          total: number | null
+          unit: string
+          unit_price_labor: number | null
+          unit_price_material: number | null
+        }
+        Insert: {
+          bdi_percentage?: number | null
+          budget_id: string
+          created_at?: string | null
+          description: string
+          id?: string
+          item_number: number
+          material_id?: string | null
+          price_at_creation?: number | null
+          quantity: number
+          subtotal_bdi?: number | null
+          subtotal_labor?: number | null
+          subtotal_material?: number | null
+          total?: number | null
+          unit: string
+          unit_price_labor?: number | null
+          unit_price_material?: number | null
+        }
+        Update: {
+          bdi_percentage?: number | null
+          budget_id?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          item_number?: number
+          material_id?: string | null
+          price_at_creation?: number | null
+          quantity?: number
+          subtotal_bdi?: number | null
+          subtotal_labor?: number | null
+          subtotal_material?: number | null
+          total?: number | null
+          unit?: string
+          unit_price_labor?: number | null
+          unit_price_material?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          budget_number: string | null
+          client_contact: string | null
+          client_name: string | null
+          created_at: string | null
+          created_by_user_id: string
+          description: string | null
+          id: string
+          name: string
+          notes: string | null
+          payment_terms: string | null
+          status: string
+          total_amount: number | null
+          total_bdi: number | null
+          total_labor: number | null
+          total_material: number | null
+          updated_at: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          budget_number?: string | null
+          client_contact?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          description?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          payment_terms?: string | null
+          status?: string
+          total_amount?: number | null
+          total_bdi?: number | null
+          total_labor?: number | null
+          total_material?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          budget_number?: string | null
+          client_contact?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          payment_terms?: string | null
+          status?: string
+          total_amount?: number | null
+          total_bdi?: number | null
+          total_labor?: number | null
+          total_material?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       connection_reports: {
         Row: {
           address: string
@@ -361,6 +493,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      custom_keywords: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          keyword_type: string
+          keyword_value: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          keyword_type: string
+          keyword_value: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          keyword_type?: string
+          keyword_value?: string
+        }
+        Relationships: []
       }
       daily_reports: {
         Row: {
@@ -1133,6 +1289,57 @@ export type Database = {
           },
         ]
       }
+      materials: {
+        Row: {
+          brand: string | null
+          color: string | null
+          created_at: string | null
+          created_by_user_id: string
+          current_price: number
+          current_stock: number | null
+          description: string | null
+          id: string
+          keywords: string[] | null
+          measurement: string | null
+          minimum_stock: number | null
+          name: string
+          unit: string
+          updated_at: string | null
+        }
+        Insert: {
+          brand?: string | null
+          color?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          current_price?: number
+          current_stock?: number | null
+          description?: string | null
+          id?: string
+          keywords?: string[] | null
+          measurement?: string | null
+          minimum_stock?: number | null
+          name: string
+          unit: string
+          updated_at?: string | null
+        }
+        Update: {
+          brand?: string | null
+          color?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          current_price?: number
+          current_stock?: number | null
+          description?: string | null
+          id?: string
+          keywords?: string[] | null
+          measurement?: string | null
+          minimum_stock?: number | null
+          name?: string
+          unit?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       metas_producao: {
         Row: {
           created_at: string | null
@@ -1221,6 +1428,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      price_history: {
+        Row: {
+          changed_at: string | null
+          changed_by_user_id: string
+          id: string
+          material_id: string
+          new_price: number
+          notes: string | null
+          old_price: number
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by_user_id: string
+          id?: string
+          material_id: string
+          new_price: number
+          notes?: string | null
+          old_price: number
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by_user_id?: string
+          id?: string
+          material_id?: string
+          new_price?: number
+          notes?: string | null
+          old_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_history_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       production_targets: {
         Row: {
