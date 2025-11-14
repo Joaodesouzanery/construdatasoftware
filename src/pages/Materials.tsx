@@ -3,24 +3,29 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload, Download, Edit } from "lucide-react";
+import { Plus, Search, Upload, Download, Edit, ArrowLeft, History, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
 import { EditMaterialDialog } from "@/components/materials/EditMaterialDialog";
 import { MaterialsTable } from "@/components/materials/MaterialsTable";
+import { EditableMaterialsTable } from "@/components/materials/EditableMaterialsTable";
 import { MaterialFilters } from "@/components/materials/MaterialFilters";
 import { SpreadsheetUploadDialog } from "@/components/materials/SpreadsheetUploadDialog";
 import { KeywordsManagementDialog } from "@/components/materials/KeywordsManagementDialog";
 import { BulkEditDialog } from "@/components/materials/BulkEditDialog";
+import { PriceHistoryDialog } from "@/components/materials/PriceHistoryDialog";
 
 const Materials = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isKeywordsDialogOpen, setIsKeywordsDialogOpen] = useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [filters, setFilters] = useState({
@@ -94,17 +99,30 @@ const Materials = () => {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Materiais</h1>
-            <p className="text-muted-foreground">Gerencie seu catálogo de materiais</p>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Materiais</h1>
+              <p className="text-muted-foreground">Gerencie seu catálogo de materiais</p>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {selectedMaterials.length > 0 && (
               <Button onClick={() => setIsBulkEditOpen(true)} variant="outline">
                 <Edit className="h-4 w-4 mr-2" />
                 Editar {selectedMaterials.length} selecionados
               </Button>
             )}
+            <Button onClick={() => navigate('/materials/dashboard')} variant="outline">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <Button onClick={() => setIsPriceHistoryOpen(true)} variant="outline">
+              <History className="h-4 w-4 mr-2" />
+              Histórico de Preços
+            </Button>
             <Button onClick={() => setIsKeywordsDialogOpen(true)} variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Palavras-chave
@@ -133,7 +151,7 @@ const Materials = () => {
           <MaterialFilters filters={filters} onFiltersChange={setFilters} materials={materials || []} />
         </div>
 
-        <MaterialsTable
+        <EditableMaterialsTable
           materials={filteredMaterials}
           isLoading={isLoading}
           onEdit={setEditingMaterial}
@@ -154,6 +172,7 @@ const Materials = () => {
 
         <SpreadsheetUploadDialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen} />
         <KeywordsManagementDialog open={isKeywordsDialogOpen} onOpenChange={setIsKeywordsDialogOpen} />
+        <PriceHistoryDialog open={isPriceHistoryOpen} onOpenChange={setIsPriceHistoryOpen} />
         <BulkEditDialog
           open={isBulkEditOpen}
           onOpenChange={setIsBulkEditOpen}

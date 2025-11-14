@@ -21,6 +21,22 @@ serve(async (req) => {
 
     console.log('Processing spreadsheet with AI...');
 
+    // Build enhanced system prompt with custom keywords
+    let keywordsContext = '';
+    if (customKeywords && Array.isArray(customKeywords) && customKeywords.length > 0) {
+      const keywordsByType = customKeywords.reduce((acc: any, kw: any) => {
+        if (!acc[kw.keyword_type]) acc[kw.keyword_type] = [];
+        acc[kw.keyword_type].push(kw.keyword_value);
+        return acc;
+      }, {});
+      
+      keywordsContext = '\n\nCustom keywords to prioritize when identifying materials:\n';
+      for (const [type, values] of Object.entries(keywordsByType)) {
+        keywordsContext += `- ${type}: ${(values as string[]).join(', ')}\n`;
+      }
+      keywordsContext += '\nWhen you see these keywords or similar/synonym words, use them. Be case-insensitive.\n';
+    }
+
     const systemPrompt = `You are an expert at extracting material information from spreadsheet data.
 Extract the following information from each row:
 - name: Material name
@@ -31,8 +47,10 @@ Extract the following information from each row:
 - price: Unit price (numeric value only)
 - quantity: Quantity (numeric value only)
 - confidence: Confidence level (0-100) for the extraction
-
-Custom keywords to help identification: ${JSON.stringify(customKeywords || {})}
+${keywordsContext}
+Be intelligent about identifying these fields even if they're mixed in descriptions.
+Look for synonyms and similar words to the custom keywords provided.
+For example: "Tigre", "tigre", "TIGRE" should all match if "Tigre" is a custom keyword.
 
 Return a JSON array with extracted materials, each with a confidence score.`;
 
