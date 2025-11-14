@@ -155,15 +155,15 @@ export const KeywordsManagementDialog = ({ open, onOpenChange }: KeywordsManagem
 
           <div className="space-y-4 border rounded-lg p-4">
             <h3 className="font-medium">Adicionar Nova Palavra-chave</h3>
-            <div className="flex gap-2">
-              <div className="w-40">
-                <Label>Tipo</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Tipo *</Label>
                 <Select
                   value={newKeyword.type}
                   onValueChange={(value) => setNewKeyword({ ...newKeyword, type: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="brand">Marca</SelectItem>
@@ -173,24 +173,29 @@ export const KeywordsManagementDialog = ({ open, onOpenChange }: KeywordsManagem
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex-1">
-                <Label>Valor</Label>
+              <div>
+                <Label>Palavra-chave *</Label>
                 <Input
                   value={newKeyword.value}
                   onChange={(e) => setNewKeyword({ ...newKeyword, value: e.target.value })}
-                  placeholder="Digite a palavra-chave"
+                  placeholder="Ex: Tigre, Branco, kg..."
                 />
               </div>
               <div className="flex items-end">
                 <Button
                   onClick={() => addMutation.mutate(newKeyword)}
                   disabled={!newKeyword.value || addMutation.isPending}
+                  className="w-full"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar
                 </Button>
               </div>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Estas palavras-chave serão usadas para identificar automaticamente materiais em planilhas importadas.
+              A IA reconhece sinônimos e variações (ex: "Tigre", "tigre", "TIGRE").
+            </p>
           </div>
 
           <div className="space-y-4">

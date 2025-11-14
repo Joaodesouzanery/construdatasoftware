@@ -30,29 +30,68 @@ serve(async (req) => {
         return acc;
       }, {});
       
-      keywordsContext = '\n\nCustom keywords to prioritize when identifying materials:\n';
+      keywordsContext = '\n\n=== CUSTOM KEYWORDS TO IDENTIFY (HIGHEST PRIORITY) ===\n';
       for (const [type, values] of Object.entries(keywordsByType)) {
-        keywordsContext += `- ${type}: ${(values as string[]).join(', ')}\n`;
+        const typeLabel = type === 'brand' ? 'MARCAS' : 
+                         type === 'color' ? 'CORES' : 
+                         type === 'unit' ? 'UNIDADES' : 
+                         type.toUpperCase();
+        keywordsContext += `${typeLabel}: ${(values as string[]).join(', ')}\n`;
       }
-      keywordsContext += '\nWhen you see these keywords or similar/synonym words, use them. Be case-insensitive.\n';
+      keywordsContext += `
+CRITICAL INSTRUCTIONS FOR KEYWORDS:
+1. These custom keywords have ABSOLUTE PRIORITY over any other identification
+2. Match keywords in a case-insensitive manner: "Tigre", "tigre", "TIGRE" are all the same
+3. Recognize SYNONYMS and similar variations:
+   - "Tigre" matches "marca tigre", "da tigre", "tigre®"
+   - "Branco" matches "cor branca", "na cor branco", "branco gelo"
+   - "50kg" matches "50 kg", "50kg.", "50 quilos"
+4. When you find ANY of these keywords or their variations, mark confidence as 95-100
+5. If the data contains these keywords, they MUST be extracted and used
+6. Look for keywords even if they appear mixed with other text in descriptions
+`;
     }
 
-    const systemPrompt = `You are an expert at extracting material information from spreadsheet data.
-Extract the following information from each row:
-- name: Material name
-- brand: Brand name (if mentioned)
-- color: Color (if mentioned)
-- measurement: Size/dimensions (if mentioned)
-- unit: Unit of measurement (m, m², m³, kg, un, etc)
+    const systemPrompt = `You are an AI specialized in extracting construction material information from spreadsheet data.
+Your task is to analyze each row and extract structured data intelligently.
+
+EXTRACTION FIELDS:
+- name: Material name (REQUIRED)
+- brand: Brand name 
+- color: Color 
+- measurement: Size/dimensions (e.g., "50kg", "2.5L", "10x20cm")
+- unit: Unit of measurement (m, m², m³, kg, L, un, etc)
 - price: Unit price (numeric value only)
 - quantity: Quantity (numeric value only)
-- confidence: Confidence level (0-100) for the extraction
-${keywordsContext}
-Be intelligent about identifying these fields even if they're mixed in descriptions.
-Look for synonyms and similar words to the custom keywords provided.
-For example: "Tigre", "tigre", "TIGRE" should all match if "Tigre" is a custom keyword.
+- confidence: Your confidence level (0-100) in this extraction
 
-Return a JSON array with extracted materials, each with a confidence score.`;
+${keywordsContext}
+
+INTELLIGENCE RULES:
+1. Parse complex descriptions intelligently. Example:
+   "Cimento CP II-Z 50kg Marca Tigre Branco" should extract:
+   - name: "Cimento CP II-Z"
+   - brand: "Tigre"
+   - color: "Branco"
+   - measurement: "50kg"
+   - unit: "kg"
+
+2. Handle variations in data format:
+   - Prices: "R$ 25,50", "25.50", "R$25,5" all = 25.50
+   - Units: "M2", "m²", "metro quadrado" all = "m²"
+   - Quantities: "10un", "10 unidades", "10" all = 10
+
+3. Context awareness:
+   - If you see "Tinta" and custom keyword "Suvinil", likely brand is "Suvinil"
+   - If description has "18L" and custom unit "L", extract measurement "18L" and unit "L"
+
+4. Confidence scoring:
+   - 95-100: Keyword matched from custom list
+   - 80-94: Clear identification without keywords
+   - 60-79: Reasonable inference
+   - Below 60: Uncertain extraction
+
+Return a JSON array with ALL extracted materials. Never skip rows even if confidence is low.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
