@@ -42,6 +42,7 @@ import ConnectionReportsFeature from "./pages/features/ConnectionReportsFeature"
 import Admin from "./pages/Admin";
 import Backup from "./pages/Backup";
 import Materials from "./pages/Materials";
+import MaterialsDashboard from "./pages/MaterialsDashboard";
 import Budgets from "./pages/Budgets";
 import NotFound from "./pages/NotFound";
 
@@ -78,8 +79,9 @@ const AppContent = () => {
         <Route path="/maintenance-qr-codes" element={<MaintenanceQRCodes />} />
         <Route path="/maintenance-request/:qrCodeId" element={<MaintenanceRequest />} />
         <Route path="/maintenance-requests" element={<MaintenanceRequests />} />
-        <Route path="/materials" element={<Materials />} />
-        <Route path="/budgets" element={<Budgets />} />
+          <Route path="/materials" element={<Materials />} />
+          <Route path="/materials/dashboard" element={<MaterialsDashboard />} />
+          <Route path="/budgets" element={<Budgets />} />
         
         {/* Feature pages */}
         <Route path="/features/project-management" element={<ProjectManagement />} />
