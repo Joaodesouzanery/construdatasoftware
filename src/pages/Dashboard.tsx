@@ -353,7 +353,7 @@ const Dashboard = () => {
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/production-control')}>
             <CardHeader>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center text-secondary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6" />
+                <Target className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <CardTitle className="text-base sm:text-lg">Controle de Produção</CardTitle>
               <CardDescription className="text-sm">
@@ -412,81 +412,87 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/employees')}>
             <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                 <Users className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Funcionários</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Gestão de Equipe</CardTitle>
               <CardDescription className="text-sm">
                 Gerencie funcionários
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/connection-reports')}>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/maintenance-qrcodes')}>
             <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Relatório de Ligações</CardTitle>
+              <CardTitle className="text-base sm:text-lg">QR Code Manutenção</CardTitle>
               <CardDescription className="text-sm">
-                Relatórios de ligação de água
+                QR Codes para manutenção
               </CardDescription>
             </CardHeader>
           </Card>
-        </div>
 
-        {/* Facility Management Section */}
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Gestão Predial</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/assets-catalog')}>
-              <CardHeader>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-teal-500 to-teal-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                  <Package2 className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <CardTitle className="text-base sm:text-lg">Catálogo de Ativos</CardTitle>
-                <CardDescription className="text-sm">
-                  Gerencie equipamentos
-                </CardDescription>
-              </CardHeader>
-            </Card>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/maintenance-requests')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Solicitações Manutenção</CardTitle>
+              <CardDescription className="text-sm">
+                Gerenciar solicitações
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/maintenance-tasks')}>
-              <CardHeader>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                  <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <CardTitle className="text-base sm:text-lg">Tarefas de Manutenção</CardTitle>
-                <CardDescription className="text-sm">
-                  Controle de manutenções
-                </CardDescription>
-              </CardHeader>
-            </Card>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/materials')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-teal-500 to-teal-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Package2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Materiais</CardTitle>
+              <CardDescription className="text-sm">
+                Catálogo de materiais
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/consumption-control')}>
-              <CardHeader>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                  <Droplets className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <CardTitle className="text-base sm:text-lg">Controle de Consumo</CardTitle>
-                <CardDescription className="text-sm">
-                  Monitore utilidades
-                </CardDescription>
-              </CardHeader>
-            </Card>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/budgets')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-violet-500 to-violet-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Orçamentos</CardTitle>
+              <CardDescription className="text-sm">
+                Gestão de orçamentos
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-            <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/facility-reports')}>
-              <CardHeader>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-violet-500 to-violet-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                  <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <CardTitle className="text-base sm:text-lg">Relatórios Prediais</CardTitle>
-                <CardDescription className="text-sm">
-                  Análises e gráficos
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/consumption-control')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-sky-500 to-sky-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Droplets className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Controle de Consumo</CardTitle>
+              <CardDescription className="text-sm">
+                Monitore utilidades
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/facility-reports')}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Relatórios</CardTitle>
+              <CardDescription className="text-sm">
+                Análises e gráficos
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
           </TabsContent>
 

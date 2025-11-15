@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building2, ClipboardList, Camera, BarChart3, Package, Users, Bell, TrendingUp, Shield, Clock, QrCode } from "lucide-react";
+import { ArrowRight, Building2, ClipboardList, Camera, BarChart3, Package, Users, Bell, TrendingUp, Shield, Clock, QrCode, Check, X, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -90,8 +90,9 @@ const Hero = () => {
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-              Transforme a gestão da sua obra com controle em tempo real, decisões baseadas em dados e economia comprovada
+            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              O Construdata não é mais um software. É o sistema nervoso central da sua construtora. 
+              Nós unimos o financeiro, o cronograma da obra e a comunicação com o cliente em uma única tela inteligente.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
@@ -100,8 +101,16 @@ const Hero = () => {
                 onClick={() => navigate('/auth')}
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50 hover:shadow-blue-600/70 transition-all duration-300 group border-0"
               >
-                Começar Agora
+                Comece Gratuitamente
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+                className="w-full sm:w-auto border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10 text-blue-300"
+              >
+                Ver o Dashboard em Ação
               </Button>
             </div>
           </div>
