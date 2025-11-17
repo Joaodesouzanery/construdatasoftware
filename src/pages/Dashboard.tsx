@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image, Target, TrendingUp, AlertCircle, Warehouse, Wrench, Droplets, BarChart3, Package2 } from "lucide-react";
+import { Building2, ClipboardList, FileText, LogOut, Plus, Settings, Bell, Package, TrendingDown, History, Users, Image, Target, TrendingUp, AlertCircle, Warehouse, Wrench, Droplets, BarChart3, Package2, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -300,6 +300,71 @@ const Dashboard = () => {
 
           {/* Dashboard Geral */}
           <TabsContent value="geral" className="space-y-6">
+            {/* Dashboard 360º Section */}
+            <div id="dashboard-360" className="space-y-4 scroll-mt-20">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1 bg-gradient-to-b from-gradient-start to-gradient-end rounded-full" />
+                <h2 className="text-2xl font-bold">Dashboard 360º</h2>
+              </div>
+              <p className="text-muted-foreground ml-7">
+                Visão completa e em tempo real de todos os aspectos dos seus projetos
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ml-7">
+                <Card className="border-primary/30">
+                  <CardHeader className="pb-3">
+                    <CardDescription>Projetos Ativos</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-primary">
+                      {projects.length}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Em andamento
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-secondary/30">
+                  <CardHeader className="pb-3">
+                    <CardDescription>Atividades Recentes</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-secondary">
+                      {recentActivities.length}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Últimas ações
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-accent/30">
+                  <CardHeader className="pb-3">
+                    <CardDescription>Status Geral</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-600">
+                      Ótimo
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Sistema operacional
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-amber-500/30">
+                  <CardHeader className="pb-3">
+                    <CardDescription>Alertas</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-amber-600">
+                      0
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Nenhum alerta ativo
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/projects')}>
@@ -358,6 +423,23 @@ const Dashboard = () => {
               <CardTitle className="text-base sm:text-lg">Controle de Produção</CardTitle>
               <CardDescription className="text-sm">
                 Dashboards e análises
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => {
+            const dashboardElement = document.getElementById('dashboard-360');
+            if (dashboardElement) {
+              dashboardElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}>
+            <CardHeader>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-gradient-start to-gradient-end flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <CardTitle className="text-base sm:text-lg">Dashboard 360º</CardTitle>
+              <CardDescription className="text-sm">
+                Visão completa em tempo real
               </CardDescription>
             </CardHeader>
           </Card>
