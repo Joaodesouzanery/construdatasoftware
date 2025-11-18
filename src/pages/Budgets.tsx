@@ -3,10 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ArrowLeft } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Search, ArrowLeft, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BudgetsTable } from "@/components/budgets/BudgetsTable";
 import { CreateBudgetDialog } from "@/components/budgets/CreateBudgetDialog";
+import { PriceManagementTable } from "@/components/budgets/PriceManagementTable";
 
 const Budgets = () => {
   const navigate = useNavigate();
@@ -55,21 +57,37 @@ const Budgets = () => {
           </Button>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar orçamentos..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <Tabs defaultValue="budgets" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
+            <TabsTrigger value="prices">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Preços
+            </TabsTrigger>
+          </TabsList>
 
-        <BudgetsTable
-          budgets={filteredBudgets}
-          isLoading={isLoading}
-          onEdit={setEditingBudget}
-        />
+          <TabsContent value="budgets" className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar orçamentos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <BudgetsTable
+              budgets={filteredBudgets}
+              isLoading={isLoading}
+              onEdit={setEditingBudget}
+            />
+          </TabsContent>
+
+          <TabsContent value="prices">
+            <PriceManagementTable />
+          </TabsContent>
+        </Tabs>
 
         <CreateBudgetDialog
           open={isCreateDialogOpen || !!editingBudget}
