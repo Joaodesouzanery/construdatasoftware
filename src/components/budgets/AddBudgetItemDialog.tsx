@@ -24,7 +24,8 @@ export const AddBudgetItemDialog = ({ open, onOpenChange, budgetId }: AddBudgetI
     quantity: "",
     unit_price_material: "",
     unit_price_labor: "",
-    bdi_percentage: "25"
+    bdi_percentage: "25",
+    material_id: ""
   });
 
   const { data: materials } = useQuery({
@@ -59,7 +60,8 @@ export const AddBudgetItemDialog = ({ open, onOpenChange, budgetId }: AddBudgetI
         ...formData,
         description: material.name,
         unit: material.unit,
-        unit_price_material: material.current_price.toString()
+        unit_price_material: material.current_price.toString(),
+        material_id: materialId
       });
     }
   };
@@ -113,7 +115,8 @@ export const AddBudgetItemDialog = ({ open, onOpenChange, budgetId }: AddBudgetI
         quantity: "",
         unit_price_material: "",
         unit_price_labor: "",
-        bdi_percentage: "25"
+        bdi_percentage: "25",
+        material_id: ""
       });
       setSelectedMaterial("");
     },
