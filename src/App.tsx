@@ -8,6 +8,7 @@ import { useProductionUpdates } from "@/hooks/useProductionUpdates";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Dashboard360 from "./pages/Dashboard360";
 import Projects from "./pages/Projects";
 import Production from "./pages/Production";
 import ProductionControl from "./pages/ProductionControl";
@@ -58,6 +59,7 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard-360" element={<Dashboard360 />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/production" element={<Production />} />
         <Route path="/production-control" element={<ProductionControl />} />

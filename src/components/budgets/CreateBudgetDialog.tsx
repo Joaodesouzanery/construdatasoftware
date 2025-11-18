@@ -10,6 +10,7 @@ import { Plus, Trash2, FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BudgetItemsTable } from "./BudgetItemsTable";
 import { AddBudgetItemDialog } from "./AddBudgetItemDialog";
+import { SpreadsheetUploadDialog } from "./SpreadsheetUploadDialog";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -24,6 +25,7 @@ export const CreateBudgetDialog = ({ open, onOpenChange, budget }: CreateBudgetD
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -232,10 +234,16 @@ export const CreateBudgetDialog = ({ open, onOpenChange, budget }: CreateBudgetD
                     <FileDown className="h-4 w-4 mr-2" />
                     PDF
                   </Button>
-                  <Button onClick={() => setIsAddItemOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Item
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => setIsAddItemOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Item
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsUploadOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Importar Planilha
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -273,11 +281,18 @@ export const CreateBudgetDialog = ({ open, onOpenChange, budget }: CreateBudgetD
         </div>
 
         {budget && (
-          <AddBudgetItemDialog
-            open={isAddItemOpen}
-            onOpenChange={setIsAddItemOpen}
-            budgetId={budget.id}
-          />
+          <>
+            <AddBudgetItemDialog
+              open={isAddItemOpen}
+              onOpenChange={setIsAddItemOpen}
+              budgetId={budget.id}
+            />
+            <SpreadsheetUploadDialog
+              open={isUploadOpen}
+              onOpenChange={setIsUploadOpen}
+              budgetId={budget.id}
+            />
+          </>
         )}
       </DialogContent>
     </Dialog>
