@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload, Download, Edit, ArrowLeft, History, BarChart3 } from "lucide-react";
+import { Plus, Search, Upload, Download, Edit, ArrowLeft, History, BarChart3, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
@@ -15,6 +15,7 @@ import { SpreadsheetUploadDialog } from "@/components/materials/SpreadsheetUploa
 import { KeywordsManagementDialog } from "@/components/materials/KeywordsManagementDialog";
 import { BulkEditDialog } from "@/components/materials/BulkEditDialog";
 import { PriceHistoryDialog } from "@/components/materials/PriceHistoryDialog";
+import { PriceSpreadsheetDialog } from "@/components/materials/PriceSpreadsheetDialog";
 
 const Materials = () => {
   const { toast } = useToast();
@@ -26,6 +27,7 @@ const Materials = () => {
   const [isKeywordsDialogOpen, setIsKeywordsDialogOpen] = useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
+  const [isPriceSpreadsheetOpen, setIsPriceSpreadsheetOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [filters, setFilters] = useState({
@@ -124,8 +126,12 @@ const Materials = () => {
               Histórico de Preços
             </Button>
             <Button onClick={() => setIsKeywordsDialogOpen(true)} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
+              <Edit className="h-4 w-4 mr-2" />
               Palavras-chave
+            </Button>
+            <Button onClick={() => setIsPriceSpreadsheetOpen(true)} variant="outline">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Processar Planilha
             </Button>
             <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
               <Upload className="h-4 w-4 mr-2" />
@@ -173,6 +179,7 @@ const Materials = () => {
         <SpreadsheetUploadDialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen} />
         <KeywordsManagementDialog open={isKeywordsDialogOpen} onOpenChange={setIsKeywordsDialogOpen} />
         <PriceHistoryDialog open={isPriceHistoryOpen} onOpenChange={setIsPriceHistoryOpen} />
+        <PriceSpreadsheetDialog open={isPriceSpreadsheetOpen} onOpenChange={setIsPriceSpreadsheetOpen} />
         <BulkEditDialog
           open={isBulkEditOpen}
           onOpenChange={setIsBulkEditOpen}

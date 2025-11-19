@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Check, X, Search } from "lucide-react";
+import { Pencil, Check, X, Search, Plus } from "lucide-react";
 
 export const PriceManagementTable = () => {
   const { toast } = useToast();
@@ -109,11 +109,17 @@ export const PriceManagementTable = () => {
   return (
     <Card className="p-6">
       <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Gestão de Preços</h2>
-          <p className="text-muted-foreground">
-            Atualize os preços dos materiais. Novos orçamentos usarão automaticamente os preços mais recentes.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Gestão de Preços</h2>
+            <p className="text-muted-foreground">
+              Atualize os preços dos materiais. Novos orçamentos usarão automaticamente os preços mais recentes.
+            </p>
+          </div>
+          <Button onClick={() => window.location.href = '/materials'}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Material
+          </Button>
         </div>
 
         <div className="relative">
