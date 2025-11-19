@@ -501,6 +501,7 @@ export type Database = {
           id: string
           keyword_type: string
           keyword_value: string
+          synonyms: string[] | null
         }
         Insert: {
           created_at?: string | null
@@ -508,6 +509,7 @@ export type Database = {
           id?: string
           keyword_type: string
           keyword_value: string
+          synonyms?: string[] | null
         }
         Update: {
           created_at?: string | null
@@ -515,6 +517,7 @@ export type Database = {
           id?: string
           keyword_type?: string
           keyword_value?: string
+          synonyms?: string[] | null
         }
         Relationships: []
       }
