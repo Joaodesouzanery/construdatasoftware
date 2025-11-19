@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Check, X, Search, Plus } from "lucide-react";
+import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
 
 export const PriceManagementTable = () => {
   const { toast } = useToast();
@@ -14,6 +15,7 @@ export const PriceManagementTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const { data: materials, isLoading } = useQuery({
     queryKey: ['materials-prices'],
@@ -116,9 +118,9 @@ export const PriceManagementTable = () => {
               Atualize os preços dos materiais. Novos orçamentos usarão automaticamente os preços mais recentes.
             </p>
           </div>
-          <Button onClick={() => window.location.href = '/materials'}>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Novo Material
+            Novo Preço
           </Button>
         </div>
 
@@ -207,6 +209,11 @@ export const PriceManagementTable = () => {
           </Table>
         </div>
       </div>
+
+      <AddMaterialDialog 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen}
+      />
     </Card>
   );
 };
