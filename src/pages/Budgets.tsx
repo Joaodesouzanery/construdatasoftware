@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { BudgetsTable } from "@/components/budgets/BudgetsTable";
 import { CreateBudgetDialog } from "@/components/budgets/CreateBudgetDialog";
 import { PriceManagementTable } from "@/components/budgets/PriceManagementTable";
+import { PriceHistoryChart } from "@/components/budgets/PriceHistoryChart";
 
 const Budgets = () => {
   const navigate = useNavigate();
@@ -84,8 +85,9 @@ const Budgets = () => {
             />
           </TabsContent>
 
-          <TabsContent value="prices">
+          <TabsContent value="prices" className="mt-6 space-y-6">
             <PriceManagementTable />
+            <PriceHistoryChart />
           </TabsContent>
         </Tabs>
 

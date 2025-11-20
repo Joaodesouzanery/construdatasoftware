@@ -1295,6 +1295,7 @@ export type Database = {
       materials: {
         Row: {
           brand: string | null
+          category: string | null
           color: string | null
           created_at: string | null
           created_by_user_id: string
@@ -1306,11 +1307,14 @@ export type Database = {
           measurement: string | null
           minimum_stock: number | null
           name: string
+          notes: string | null
+          supplier: string | null
           unit: string
           updated_at: string | null
         }
         Insert: {
           brand?: string | null
+          category?: string | null
           color?: string | null
           created_at?: string | null
           created_by_user_id: string
@@ -1322,11 +1326,14 @@ export type Database = {
           measurement?: string | null
           minimum_stock?: number | null
           name: string
+          notes?: string | null
+          supplier?: string | null
           unit: string
           updated_at?: string | null
         }
         Update: {
           brand?: string | null
+          category?: string | null
           color?: string | null
           created_at?: string | null
           created_by_user_id?: string
@@ -1338,6 +1345,8 @@ export type Database = {
           measurement?: string | null
           minimum_stock?: number | null
           name?: string
+          notes?: string | null
+          supplier?: string | null
           unit?: string
           updated_at?: string | null
         }

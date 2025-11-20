@@ -140,6 +140,8 @@ export const PriceManagementTable = () => {
               <TableRow>
                 <TableHead>Material</TableHead>
                 <TableHead>Marca</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Fornecedor</TableHead>
                 <TableHead>Medida</TableHead>
                 <TableHead>Unidade</TableHead>
                 <TableHead>Preço Atual</TableHead>
@@ -149,7 +151,7 @@ export const PriceManagementTable = () => {
             <TableBody>
               {filteredMaterials.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Nenhum material cadastrado
                   </TableCell>
                 </TableRow>
@@ -158,6 +160,8 @@ export const PriceManagementTable = () => {
                   <TableRow key={material.id}>
                     <TableCell className="font-medium">{material.name}</TableCell>
                     <TableCell>{material.brand || "-"}</TableCell>
+                    <TableCell>{material.category || "-"}</TableCell>
+                    <TableCell>{material.supplier || "-"}</TableCell>
                     <TableCell>{material.measurement || "-"}</TableCell>
                     <TableCell>{material.unit}</TableCell>
                     <TableCell>
