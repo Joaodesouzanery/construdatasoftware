@@ -30,7 +30,10 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
     unit: "",
     current_price: "",
     minimum_stock: "",
-    current_stock: ""
+    current_stock: "",
+    supplier: "",
+    category: "",
+    notes: ""
   });
 
   const createMutation = useMutation({
@@ -50,6 +53,7 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
+      queryClient.invalidateQueries({ queryKey: ['materials-prices'] });
       toast({ title: "Material criado com sucesso" });
       onOpenChange(false);
       setFormData({
@@ -61,7 +65,10 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
         unit: "",
         current_price: "",
         minimum_stock: "",
-        current_stock: ""
+        current_stock: "",
+        supplier: "",
+        category: "",
+        notes: ""
       });
     },
     onError: (error: any) => {
@@ -160,6 +167,22 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
                 onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier">Fornecedor</Label>
+              <Input
+                id="supplier"
+                value={formData.supplier}
+                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoria</Label>
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
@@ -167,6 +190,14 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Observações</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
           </div>
           <div className="flex justify-end gap-2">
