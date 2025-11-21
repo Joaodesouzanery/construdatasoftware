@@ -141,18 +141,23 @@ export default function MaterialRequests() {
         request.service_fronts?.name || "-",
       ]);
 
-      (doc as any).autoTable({
-        startY: 30,
-        head: [["Data", "Material", "Qtd", "Solicitante", "Status", "Projeto", "Frente"]],
-        body: tableData,
-        theme: "grid",
-      });
+      // Use autoTable with proper typing
+      if (typeof (doc as any).autoTable === 'function') {
+        (doc as any).autoTable({
+          startY: 30,
+          head: [["Data", "Material", "Qtd", "Solicitante", "Status", "Projeto", "Frente"]],
+          body: tableData,
+          theme: "grid",
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [66, 139, 202] },
+        });
+      }
 
       doc.save(`pedidos-material-${format(new Date(), "yyyy-MM-dd")}.pdf`);
       toast.success("PDF exportado com sucesso!");
     } catch (error: any) {
       toast.error("Erro ao exportar PDF: " + (error.message || "Erro desconhecido"));
-      console.error(error);
+      console.error("PDF Export Error:", error);
     }
   };
 

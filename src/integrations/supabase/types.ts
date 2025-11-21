@@ -350,6 +350,7 @@ export type Database = {
           created_by_user_id: string
           id: string
           logo_url: string | null
+          materials_used: Json | null
           observations: string | null
           os_number: string
           photos_urls: string[] | null
@@ -368,6 +369,7 @@ export type Database = {
           created_by_user_id: string
           id?: string
           logo_url?: string | null
+          materials_used?: Json | null
           observations?: string | null
           os_number: string
           photos_urls?: string[] | null
@@ -386,6 +388,7 @@ export type Database = {
           created_by_user_id?: string
           id?: string
           logo_url?: string | null
+          materials_used?: Json | null
           observations?: string | null
           os_number?: string
           photos_urls?: string[] | null
