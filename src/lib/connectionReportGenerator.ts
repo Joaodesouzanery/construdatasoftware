@@ -13,6 +13,7 @@ interface ConnectionReport {
   os_number: string;
   service_type: string;
   observations: string | null;
+  materials_used: any[] | null;
   photos_urls: string[];
   logo_url: string | null;
 }
@@ -127,6 +128,23 @@ export async function generateConnectionReportPDF(report: ConnectionReport) {
   addField("Número da OS", report.os_number, true);
   addField("Tipo de Serviço", report.service_type, true);
   yPos += 3;
+
+  // Materials Used
+  if (report.materials_used && report.materials_used.length > 0) {
+    addSectionTitle("MATERIAIS UTILIZADOS");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    
+    report.materials_used.forEach((material: string) => {
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = margin + 10;
+      }
+      doc.text(`• ${material}`, contentMargin + 2, yPos);
+      yPos += 5;
+    });
+    yPos += 3;
+  }
 
   // Observations
   if (report.observations) {

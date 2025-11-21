@@ -48,6 +48,7 @@ const formSchema = z.object({
   os_number: z.string().optional(),
   service_type: z.string().optional(),
   observations: z.string().optional(),
+  materials_used: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -63,6 +64,7 @@ interface ConnectionReport {
   os_number: string;
   service_type: string;
   observations: string | null;
+  materials_used: any[] | null;
   photos_urls: string[];
   logo_url: string | null;
   project_id: string | null;
@@ -122,11 +124,16 @@ export function EditConnectionReportDialog({
       os_number: "",
       service_type: "",
       observations: "",
+      materials_used: "",
     },
   });
 
   useEffect(() => {
     if (report) {
+      const materialsStr = report.materials_used && Array.isArray(report.materials_used) 
+        ? report.materials_used.map(m => `"${m}"`).join(', ') 
+        : "";
+      
       form.reset({
         project_id: report.project_id || undefined,
         team_name: report.team_name || "",
@@ -138,6 +145,7 @@ export function EditConnectionReportDialog({
         os_number: report.os_number || "",
         service_type: report.service_type || "",
         observations: report.observations || "",
+        materials_used: materialsStr,
       });
       setExistingPhotos(report.photos_urls || []);
       setExistingLogo(report.logo_url || null);
@@ -239,6 +247,21 @@ export function EditConnectionReportDialog({
       const logoUrl = await uploadLogo(session.user.id);
       const photoUrls = await uploadPhotos(session.user.id);
 
+      // Parse materials_used
+      let materialsArray = [];
+      if (values.materials_used) {
+        try {
+          // Try to parse as JSON array first
+          materialsArray = JSON.parse(`[${values.materials_used}]`);
+        } catch {
+          // If parsing fails, split by comma and clean up
+          materialsArray = values.materials_used
+            .split(',')
+            .map(m => m.trim().replace(/^["']|["']$/g, ''))
+            .filter(m => m.length > 0);
+        }
+      }
+
       const { error } = await supabase
         .from("connection_reports")
         .update({
@@ -252,6 +275,7 @@ export function EditConnectionReportDialog({
           os_number: values.os_number || null,
           service_type: values.service_type || null,
           observations: values.observations || null,
+          materials_used: materialsArray,
           photos_urls: photoUrls,
           logo_url: logoUrl,
         })
@@ -581,6 +605,24 @@ export function EditConnectionReportDialog({
                 </div>
               )}
             </div>
+
+            <FormField
+              control={form.control}
+              name="materials_used"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Materiais Utilizados (Opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder='Digite os materiais no formato: "Material 1", "Material 2", "Material 3"'
+                      rows={3}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

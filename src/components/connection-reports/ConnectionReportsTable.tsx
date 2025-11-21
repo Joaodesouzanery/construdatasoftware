@@ -26,6 +26,7 @@ interface ConnectionReport {
   os_number: string;
   service_type: string;
   observations: string | null;
+  materials_used: any[] | null;
   photos_urls: string[];
   logo_url: string | null;
   project_id: string | null;
