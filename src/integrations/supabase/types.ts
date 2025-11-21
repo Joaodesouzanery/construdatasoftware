@@ -341,6 +341,76 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_items: {
+        Row: {
+          checklist_id: string
+          created_at: string | null
+          description: string
+          id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          checklist_id: string
+          created_at?: string | null
+          description: string
+          id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          checklist_id?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklists: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          id: string
+          name: string
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          id?: string
+          name: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          id?: string
+          name?: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklists_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_reports: {
         Row: {
           address: string
@@ -1553,6 +1623,8 @@ export type Database = {
           name: string
           start_date: string
           status: string | null
+          team_members: string | null
+          total_budget: number | null
           updated_at: string | null
         }
         Insert: {
@@ -1567,6 +1639,8 @@ export type Database = {
           name: string
           start_date: string
           status?: string | null
+          team_members?: string | null
+          total_budget?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -1581,6 +1655,8 @@ export type Database = {
           name?: string
           start_date?: string
           status?: string | null
+          team_members?: string | null
+          total_budget?: number | null
           updated_at?: string | null
         }
         Relationships: []

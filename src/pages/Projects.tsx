@@ -30,7 +30,9 @@ const Projects = () => {
     status: "active",
     address: "",
     latitude: null as number | null,
-    longitude: null as number | null
+    longitude: null as number | null,
+    total_budget: "",
+    team_members: ""
   });
 
   const [serviceFronts, setServiceFronts] = useState<string[]>([]);
@@ -155,7 +157,9 @@ const Projects = () => {
             status: formData.status,
             address: formData.address || null,
             latitude: formData.latitude,
-            longitude: formData.longitude
+            longitude: formData.longitude,
+            total_budget: formData.total_budget ? parseFloat(formData.total_budget) : null,
+            team_members: formData.team_members || null
           })
           .eq('id', editingProject.id);
 
@@ -173,6 +177,8 @@ const Projects = () => {
             address: formData.address || null,
             latitude: formData.latitude,
             longitude: formData.longitude,
+            total_budget: formData.total_budget ? parseFloat(formData.total_budget) : null,
+            team_members: formData.team_members || null,
             created_by_user_id: user.id
           }])
           .select()
@@ -227,7 +233,9 @@ const Projects = () => {
         status: "active",
         address: "",
         latitude: null,
-        longitude: null
+        longitude: null,
+        total_budget: "",
+        team_members: ""
       });
       setServiceFronts([]);
       setConstructionSites([]);
@@ -252,7 +260,9 @@ const Projects = () => {
       status: project.status,
       address: project.address || "",
       latitude: project.latitude || null,
-      longitude: project.longitude || null
+      longitude: project.longitude || null,
+      total_budget: project.total_budget?.toString() || "",
+      team_members: project.team_members || ""
     });
     setShowDialog(true);
   };
@@ -322,7 +332,9 @@ const Projects = () => {
                   status: "active",
                   address: "",
                   latitude: null,
-                  longitude: null
+                  longitude: null,
+                  total_budget: "",
+                  team_members: ""
                 });
                 setServiceFronts([]);
                 setConstructionSites([]);
@@ -582,6 +594,30 @@ const Projects = () => {
                       />
                     )}
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="total_budget">Orçamento Total (R$)</Label>
+                  <Input
+                    id="total_budget"
+                    type="number"
+                    step="0.01"
+                    value={formData.total_budget}
+                    onChange={(e) => setFormData({ ...formData, total_budget: e.target.value })}
+                    placeholder="Ex: 500000.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="team_members">Equipe Envolvida</Label>
+                  <Input
+                    id="team_members"
+                    value={formData.team_members}
+                    onChange={(e) => setFormData({ ...formData, team_members: e.target.value })}
+                    placeholder="Ex: João, Maria, Pedro"
+                  />
                 </div>
               </div>
 

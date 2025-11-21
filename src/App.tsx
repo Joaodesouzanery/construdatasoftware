@@ -24,6 +24,7 @@ import Employees from "./pages/Employees";
 import Settings from "./pages/Settings";
 import AssetsCatalog from "./pages/AssetsCatalog";
 import MaintenanceTasks from "./pages/MaintenanceTasks";
+import Checklists from "./pages/Checklists";
 import ConsumptionControl from "./pages/ConsumptionControl";
 import FacilityReports from "./pages/FacilityReports";
 import ConnectionReports from "./pages/ConnectionReports";
@@ -75,6 +76,7 @@ const AppContent = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/assets-catalog" element={<AssetsCatalog />} />
         <Route path="/maintenance-tasks" element={<MaintenanceTasks />} />
+        <Route path="/checklists" element={<Checklists />} />
         <Route path="/consumption-control" element={<ConsumptionControl />} />
         <Route path="/facility-reports" element={<FacilityReports />} />
         <Route path="/connection-reports" element={<ConnectionReports />} />

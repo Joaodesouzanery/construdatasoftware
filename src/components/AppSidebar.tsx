@@ -27,6 +27,7 @@ const menuItems = [
   { title: "Controle de Material", url: "/material-control", icon: TrendingDown },
   { title: "Alertas", url: "/alerts", icon: Bell },
   { title: "Funcionários", url: "/employees", icon: Users },
+  { title: "Checklists", url: "/checklists", icon: ClipboardCheck },
   { title: "Relatório de Ligações", url: "/connection-reports", icon: FileText },
 ];
 
