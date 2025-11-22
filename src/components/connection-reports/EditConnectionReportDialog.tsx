@@ -47,6 +47,8 @@ const formSchema = z.object({
   water_meter_number: z.string().optional(),
   os_number: z.string().optional(),
   service_type: z.string().optional(),
+  service_category: z.string().optional(),
+  connection_type: z.string().optional(),
   observations: z.string().optional(),
   materials_used: z.string().optional(),
 });
@@ -63,6 +65,8 @@ interface ConnectionReport {
   water_meter_number: string;
   os_number: string;
   service_type: string;
+  service_category: string | null;
+  connection_type: string | null;
   observations: string | null;
   materials_used: any[] | null;
   photos_urls: string[];
@@ -123,6 +127,8 @@ export function EditConnectionReportDialog({
       water_meter_number: "",
       os_number: "",
       service_type: "",
+      service_category: "",
+      connection_type: "",
       observations: "",
       materials_used: "",
     },
@@ -144,6 +150,8 @@ export function EditConnectionReportDialog({
         water_meter_number: report.water_meter_number || "",
         os_number: report.os_number || "",
         service_type: report.service_type || "",
+        service_category: report.service_category || "",
+        connection_type: report.connection_type || "",
         observations: report.observations || "",
         materials_used: materialsStr,
       });
@@ -274,6 +282,8 @@ export function EditConnectionReportDialog({
           water_meter_number: values.water_meter_number || null,
           os_number: values.os_number || null,
           service_type: values.service_type || null,
+          service_category: values.service_category || null,
+          connection_type: values.connection_type || null,
           observations: values.observations || null,
           materials_used: materialsArray,
           photos_urls: photoUrls,
@@ -529,6 +539,51 @@ export function EditConnectionReportDialog({
                   <FormControl>
                     <Input {...field} placeholder="Ex: Instalação, Manutenção, etc." />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="service_category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ligação Água ou Esgoto (Opcional)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a categoria" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="agua">Água</SelectItem>
+                      <SelectItem value="esgoto">Esgoto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="connection_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Ligação (Opcional)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="avulsa">Avulsa</SelectItem>
+                      <SelectItem value="intra_1">Intra 1</SelectItem>
+                      <SelectItem value="intra_2">Intra 2</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

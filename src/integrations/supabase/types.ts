@@ -416,6 +416,7 @@ export type Database = {
           address: string
           address_complement: string | null
           client_name: string
+          connection_type: string | null
           created_at: string | null
           created_by_user_id: string
           id: string
@@ -426,6 +427,7 @@ export type Database = {
           photos_urls: string[] | null
           project_id: string | null
           report_date: string
+          service_category: string | null
           service_type: string
           team_name: string
           updated_at: string | null
@@ -435,6 +437,7 @@ export type Database = {
           address: string
           address_complement?: string | null
           client_name: string
+          connection_type?: string | null
           created_at?: string | null
           created_by_user_id: string
           id?: string
@@ -445,6 +448,7 @@ export type Database = {
           photos_urls?: string[] | null
           project_id?: string | null
           report_date?: string
+          service_category?: string | null
           service_type: string
           team_name: string
           updated_at?: string | null
@@ -454,6 +458,7 @@ export type Database = {
           address?: string
           address_complement?: string | null
           client_name?: string
+          connection_type?: string | null
           created_at?: string | null
           created_by_user_id?: string
           id?: string
@@ -464,6 +469,7 @@ export type Database = {
           photos_urls?: string[] | null
           project_id?: string | null
           report_date?: string
+          service_category?: string | null
           service_type?: string
           team_name?: string
           updated_at?: string | null
