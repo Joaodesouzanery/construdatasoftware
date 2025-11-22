@@ -10,10 +10,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Pencil } from "lucide-react";
+import { FileText, Download, Pencil, Trash2 } from "lucide-react";
 import { generateConnectionReportPDF } from "@/lib/connectionReportGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { EditConnectionReportDialog } from "./EditConnectionReportDialog";
+import { supabase } from "@/lib/supabase";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ConnectionReport {
   id: string;
@@ -25,6 +37,8 @@ interface ConnectionReport {
   water_meter_number: string;
   os_number: string;
   service_type: string;
+  service_category: string | null;
+  connection_type: string | null;
   observations: string | null;
   materials_used: any[] | null;
   photos_urls: string[];
@@ -39,8 +53,37 @@ interface ConnectionReportsTableProps {
 
 export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [editingReport, setEditingReport] = useState<ConnectionReport | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [deletingReport, setDeletingReport] = useState<ConnectionReport | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase
+        .from('connection_reports')
+        .delete()
+        .eq('id', reportId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connection-reports'] });
+      toast({
+        title: "Sucesso!",
+        description: "Relatório deletado com sucesso.",
+      });
+      setDeletingReport(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: "Erro ao deletar relatório.",
+        variant: "destructive",
+      });
+      console.error(error);
+    },
+  });
 
   const handleExportPDF = async (report: ConnectionReport) => {
     try {
@@ -128,6 +171,13 @@ export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps)
                     <Download className="mr-2 h-4 w-4" />
                     Exportar PDF
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setDeletingReport(report)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </TableCell>
             </TableRow>
@@ -140,6 +190,26 @@ export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps)
         onOpenChange={setShowEditDialog}
         report={editingReport}
       />
+
+      <AlertDialog open={!!deletingReport} onOpenChange={() => setDeletingReport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este relatório de ligação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingReport && deleteMutation.mutate(deletingReport.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

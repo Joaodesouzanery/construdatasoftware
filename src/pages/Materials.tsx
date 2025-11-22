@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload, Download, Edit, ArrowLeft, History, BarChart3, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Upload, Download, Edit, ArrowLeft, History, BarChart3, FileSpreadsheet, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
@@ -16,6 +16,7 @@ import { KeywordsManagementDialog } from "@/components/materials/KeywordsManagem
 import { BulkEditDialog } from "@/components/materials/BulkEditDialog";
 import { PriceHistoryDialog } from "@/components/materials/PriceHistoryDialog";
 import { PriceSpreadsheetDialog } from "@/components/materials/PriceSpreadsheetDialog";
+import { IntelligentSpreadsheetDialog } from "@/components/materials/IntelligentSpreadsheetDialog";
 
 const Materials = () => {
   const { toast } = useToast();
@@ -28,6 +29,7 @@ const Materials = () => {
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
   const [isPriceSpreadsheetOpen, setIsPriceSpreadsheetOpen] = useState(false);
+  const [isIntelligentSpreadsheetOpen, setIsIntelligentSpreadsheetOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [filters, setFilters] = useState({
@@ -129,9 +131,13 @@ const Materials = () => {
               <Edit className="h-4 w-4 mr-2" />
               Palavras-chave
             </Button>
+            <Button onClick={() => setIsIntelligentSpreadsheetOpen(true)} variant="outline">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Processar com IA
+            </Button>
             <Button onClick={() => setIsPriceSpreadsheetOpen(true)} variant="outline">
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Processar Planilha
+              Planilha de Preços
             </Button>
             <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
               <Upload className="h-4 w-4 mr-2" />
@@ -180,6 +186,7 @@ const Materials = () => {
         <KeywordsManagementDialog open={isKeywordsDialogOpen} onOpenChange={setIsKeywordsDialogOpen} />
         <PriceHistoryDialog open={isPriceHistoryOpen} onOpenChange={setIsPriceHistoryOpen} />
         <PriceSpreadsheetDialog open={isPriceSpreadsheetOpen} onOpenChange={setIsPriceSpreadsheetOpen} />
+        <IntelligentSpreadsheetDialog open={isIntelligentSpreadsheetOpen} onOpenChange={setIsIntelligentSpreadsheetOpen} />
         <BulkEditDialog
           open={isBulkEditOpen}
           onOpenChange={setIsBulkEditOpen}

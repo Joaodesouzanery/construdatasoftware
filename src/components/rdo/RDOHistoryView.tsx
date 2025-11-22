@@ -3,11 +3,22 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Filter } from "lucide-react";
+import { Download, Filter, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface RDOHistoryViewProps {
   projectId: string;
@@ -20,6 +31,34 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [specificDate, setSpecificDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingRdo, setDeletingRdo] = useState<any>(null);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async (rdo: any) => {
+      if (rdo._source === 'rdos') {
+        const { error } = await supabase
+          .from('rdos')
+          .delete()
+          .eq('id', rdo.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('daily_reports')
+          .delete()
+          .eq('id', rdo.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      loadRDOs();
+      toast.success("RDO deletado com sucesso!");
+      setDeletingRdo(null);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao deletar RDO: " + error.message);
+    },
+  });
 
   useEffect(() => {
     if (projectId) {
@@ -481,6 +520,13 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                         Local: {rdo.construction_sites?.name} | Frente: {rdo.service_fronts?.name}
                       </div>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDeletingRdo(rdo)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                   
                   <div className="space-y-2">
@@ -514,6 +560,26 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deletingRdo} onOpenChange={() => setDeletingRdo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este RDO? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingRdo && deleteMutation.mutate(deletingRdo)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
