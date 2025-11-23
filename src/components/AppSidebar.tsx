@@ -18,17 +18,26 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Projetos", url: "/projects", icon: Building2 },
+  { title: "Alertas", url: "/alerts", icon: Bell },
+];
+
+const rdoItems = [
   { title: "Novo RDO", url: "/rdo-new", icon: Plus },
   { title: "Histórico RDO", url: "/rdo-history", icon: History },
   { title: "Fotos de Validação", url: "/rdo-photos", icon: Image },
   { title: "Controle de Produção", url: "/production-control", icon: ClipboardList },
+  { title: "Relatório de Ligações", url: "/connection-reports", icon: FileText },
+];
+
+const materialsItems = [
   { title: "Almoxarifado", url: "/inventory", icon: Warehouse },
   { title: "Pedidos de Material", url: "/material-requests", icon: Package },
   { title: "Controle de Material", url: "/material-control", icon: TrendingDown },
-  { title: "Alertas", url: "/alerts", icon: Bell },
+];
+
+const teamItems = [
   { title: "Funcionários", url: "/employees", icon: Users },
   { title: "Checklists", url: "/checklists", icon: ClipboardCheck },
-  { title: "Relatório de Ligações", url: "/connection-reports", icon: FileText },
 ];
 
 const facilityItems = [
@@ -113,7 +122,73 @@ export function AppSidebar() {
 
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
-            <SidebarGroupLabel className="text-sm font-medium">Gestão Predial</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-sm font-medium">Diário de Obra</SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {rdoItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-medium">Materiais & Almoxarifado</SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {materialsItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-medium">Execução & Equipe</SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {teamItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-medium">Gestão Predial / Manutenção</SidebarGroupLabel>
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
