@@ -55,16 +55,53 @@ const Materials = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Buscar dados do material antes de deletar
+      const { data: material } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      // Deletar o material
       const { error } = await supabase
         .from('materials')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
+      
+      return material;
     },
-    onSuccess: () => {
+    onSuccess: (deletedMaterial) => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
-      toast({ title: "Material deletado com sucesso" });
+      
+      const undoMaterial = async () => {
+        try {
+          const { error } = await supabase
+            .from('materials')
+            .insert([deletedMaterial]);
+          
+          if (error) throw error;
+          
+          queryClient.invalidateQueries({ queryKey: ['materials'] });
+          toast({ title: "Material restaurado com sucesso" });
+        } catch (error: any) {
+          toast({
+            title: "Erro ao restaurar material",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      };
+      
+      toast({
+        title: "Material deletado com sucesso",
+        action: (
+          <Button variant="outline" size="sm" onClick={undoMaterial}>
+            Refazer
+          </Button>
+        )
+      });
     },
     onError: (error: any) => {
       toast({
