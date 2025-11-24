@@ -46,6 +46,10 @@ import Backup from "./pages/Backup";
 import Materials from "./pages/Materials";
 import MaterialsDashboard from "./pages/MaterialsDashboard";
 import Budgets from "./pages/Budgets";
+import Occurrences from "./pages/Occurrences";
+import PurchaseManagement from "./pages/PurchaseManagement";
+import LaborTracking from "./pages/LaborTracking";
+import OperationalDashboard from "./pages/OperationalDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +64,7 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/operational-dashboard" element={<OperationalDashboard />} />
         <Route path="/dashboard-360" element={<Dashboard360 />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/production" element={<Production />} />
@@ -80,6 +85,9 @@ const AppContent = () => {
         <Route path="/consumption-control" element={<ConsumptionControl />} />
         <Route path="/facility-reports" element={<FacilityReports />} />
         <Route path="/connection-reports" element={<ConnectionReports />} />
+        <Route path="/occurrences" element={<Occurrences />} />
+        <Route path="/purchase-management" element={<PurchaseManagement />} />
+        <Route path="/labor-tracking" element={<LaborTracking />} />
         <Route path="/maintenance-qr-codes" element={<MaintenanceQRCodes />} />
         <Route path="/maintenance-request/:qrCodeId" element={<MaintenanceRequest />} />
         <Route path="/maintenance-requests" element={<MaintenanceRequests />} />
