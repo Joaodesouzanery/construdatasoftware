@@ -347,6 +347,8 @@ export type Database = {
           created_at: string | null
           description: string
           id: string
+          responsible_id: string | null
+          responsible_type: string | null
           status: string
           updated_at: string | null
         }
@@ -355,6 +357,8 @@ export type Database = {
           created_at?: string | null
           description: string
           id?: string
+          responsible_id?: string | null
+          responsible_type?: string | null
           status?: string
           updated_at?: string | null
         }
@@ -363,6 +367,8 @@ export type Database = {
           created_at?: string | null
           description?: string
           id?: string
+          responsible_id?: string | null
+          responsible_type?: string | null
           status?: string
           updated_at?: string | null
         }
@@ -372,6 +378,13 @@ export type Database = {
             columns: ["checklist_id"]
             isOneToOne: false
             referencedRelation: "checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_items_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -609,12 +622,14 @@ export type Database = {
           gps_location: string | null
           humidity: number | null
           id: string
+          occurrences_summary: string | null
           project_id: string
           report_date: string
           service_front_id: string
           temperature: number | null
           terrain_condition: string | null
           updated_at: string | null
+          visits: string | null
           weather_description: string | null
           will_rain: boolean | null
           wind_speed: number | null
@@ -627,12 +642,14 @@ export type Database = {
           gps_location?: string | null
           humidity?: number | null
           id?: string
+          occurrences_summary?: string | null
           project_id: string
           report_date?: string
           service_front_id: string
           temperature?: number | null
           terrain_condition?: string | null
           updated_at?: string | null
+          visits?: string | null
           weather_description?: string | null
           will_rain?: boolean | null
           wind_speed?: number | null
@@ -645,12 +662,14 @@ export type Database = {
           gps_location?: string | null
           humidity?: number | null
           id?: string
+          occurrences_summary?: string | null
           project_id?: string
           report_date?: string
           service_front_id?: string
           temperature?: number | null
           terrain_condition?: string | null
           updated_at?: string | null
+          visits?: string | null
           weather_description?: string | null
           will_rain?: boolean | null
           wind_speed?: number | null
@@ -1047,6 +1066,78 @@ export type Database = {
           },
         ]
       }
+      labor_tracking: {
+        Row: {
+          activity_description: string | null
+          category: string
+          company_name: string | null
+          created_at: string | null
+          created_by_user_id: string
+          employee_id: string | null
+          entry_time: string
+          exit_time: string | null
+          hourly_rate: number | null
+          hours_worked: number | null
+          id: string
+          project_id: string
+          total_cost: number | null
+          updated_at: string | null
+          work_date: string
+          worker_name: string
+        }
+        Insert: {
+          activity_description?: string | null
+          category: string
+          company_name?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          employee_id?: string | null
+          entry_time: string
+          exit_time?: string | null
+          hourly_rate?: number | null
+          hours_worked?: number | null
+          id?: string
+          project_id: string
+          total_cost?: number | null
+          updated_at?: string | null
+          work_date?: string
+          worker_name: string
+        }
+        Update: {
+          activity_description?: string | null
+          category?: string
+          company_name?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          employee_id?: string | null
+          entry_time?: string
+          exit_time?: string | null
+          hourly_rate?: number | null
+          hours_worked?: number | null
+          id?: string
+          project_id?: string
+          total_cost?: number | null
+          updated_at?: string | null
+          work_date?: string
+          worker_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_tracking_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_tracking_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_qr_codes: {
         Row: {
           created_at: string | null
@@ -1164,6 +1255,7 @@ export type Database = {
           pending_reason: string | null
           priority: string | null
           project_id: string | null
+          responsible_type: string | null
           service_subtype: string | null
           service_type: string | null
           status: string
@@ -1187,6 +1279,7 @@ export type Database = {
           pending_reason?: string | null
           priority?: string | null
           project_id?: string | null
+          responsible_type?: string | null
           service_subtype?: string | null
           service_type?: string | null
           status?: string
@@ -1210,6 +1303,7 @@ export type Database = {
           pending_reason?: string | null
           priority?: string | null
           project_id?: string | null
+          responsible_type?: string | null
           service_subtype?: string | null
           service_type?: string | null
           status?: string
@@ -1520,6 +1614,82 @@ export type Database = {
         }
         Relationships: []
       }
+      occurrences: {
+        Row: {
+          correction_deadline: string | null
+          created_at: string | null
+          created_by_user_id: string
+          daily_report_id: string | null
+          description: string
+          id: string
+          occurrence_type: string
+          photos_urls: string[] | null
+          project_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          responsible_id: string | null
+          responsible_type: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          correction_deadline?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          daily_report_id?: string | null
+          description: string
+          id?: string
+          occurrence_type: string
+          photos_urls?: string[] | null
+          project_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          responsible_id?: string | null
+          responsible_type?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          correction_deadline?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          daily_report_id?: string | null
+          description?: string
+          id?: string
+          occurrence_type?: string
+          photos_urls?: string[] | null
+          project_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          responsible_id?: string | null
+          responsible_type?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occurrences_daily_report_id_fkey"
+            columns: ["daily_report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "occurrences_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "occurrences_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           changed_at: string | null
@@ -1666,6 +1836,144 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      purchase_orders: {
+        Row: {
+          actual_delivery_date: string | null
+          created_at: string | null
+          created_by_user_id: string
+          expected_delivery_date: string | null
+          id: string
+          notes: string | null
+          order_number: string | null
+          project_id: string
+          purchase_request_id: string
+          status: string
+          supplier_name: string
+          supplier_quote_id: string | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          actual_delivery_date?: string | null
+          created_at?: string | null
+          created_by_user_id: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: string | null
+          project_id: string
+          purchase_request_id: string
+          status?: string
+          supplier_name: string
+          supplier_quote_id?: string | null
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          actual_delivery_date?: string | null
+          created_at?: string | null
+          created_by_user_id?: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: string | null
+          project_id?: string
+          purchase_request_id?: string
+          status?: string
+          supplier_name?: string
+          supplier_quote_id?: string | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_quote_id_fkey"
+            columns: ["supplier_quote_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          cost_center: string | null
+          created_at: string | null
+          estimated_cost: number | null
+          id: string
+          item_name: string
+          justification: string | null
+          project_id: string
+          quantity: number
+          rejection_reason: string | null
+          requested_by_user_id: string
+          status: string
+          unit: string
+          updated_at: string | null
+          urgency: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          estimated_cost?: number | null
+          id?: string
+          item_name: string
+          justification?: string | null
+          project_id: string
+          quantity: number
+          rejection_reason?: string | null
+          requested_by_user_id: string
+          status?: string
+          unit: string
+          updated_at?: string | null
+          urgency: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          estimated_cost?: number | null
+          id?: string
+          item_name?: string
+          justification?: string | null
+          project_id?: string
+          quantity?: number
+          rejection_reason?: string | null
+          requested_by_user_id?: string
+          status?: string
+          unit?: string
+          updated_at?: string | null
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rdo_validation_photos: {
         Row: {
@@ -1822,6 +2130,59 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      supplier_quotes: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          delivery_time_days: number | null
+          id: string
+          notes: string | null
+          payment_terms: string | null
+          purchase_request_id: string
+          supplier_contact: string | null
+          supplier_name: string
+          total_price: number
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          delivery_time_days?: number | null
+          id?: string
+          notes?: string | null
+          payment_terms?: string | null
+          purchase_request_id: string
+          supplier_contact?: string | null
+          supplier_name: string
+          total_price: number
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          delivery_time_days?: number | null
+          id?: string
+          notes?: string | null
+          payment_terms?: string | null
+          purchase_request_id?: string
+          supplier_contact?: string | null
+          supplier_name?: string
+          total_price?: number
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_quotes_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_checklist_items: {
         Row: {

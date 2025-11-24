@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -17,6 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Dashboard Operacional", url: "/operational-dashboard", icon: LayoutDashboard },
   { title: "Projetos", url: "/projects", icon: Building2 },
   { title: "Alertas", url: "/alerts", icon: Bell },
 ];
@@ -27,6 +28,7 @@ const rdoItems = [
   { title: "Fotos de Validação", url: "/rdo-photos", icon: Image },
   { title: "Controle de Produção", url: "/production-control", icon: ClipboardList },
   { title: "Relatório de Ligações", url: "/connection-reports", icon: FileText },
+  { title: "Ocorrências", url: "/occurrences", icon: AlertCircle },
 ];
 
 const materialsItems = [
@@ -38,6 +40,7 @@ const materialsItems = [
 const teamItems = [
   { title: "Funcionários", url: "/employees", icon: Users },
   { title: "Checklists", url: "/checklists", icon: ClipboardCheck },
+  { title: "Apontamento Mão de Obra", url: "/labor-tracking", icon: Clock },
 ];
 
 const facilityItems = [
@@ -52,6 +55,7 @@ const facilityItems = [
 const budgetItems = [
   { title: "Materiais", url: "/materials", icon: Box },
   { title: "Orçamentos", url: "/budgets", icon: DollarSign },
+  { title: "Controle de Compras", url: "/purchase-management", icon: ShoppingCart },
 ];
 
 const settingsItems = [
