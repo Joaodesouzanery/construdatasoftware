@@ -6,17 +6,16 @@ const Hero = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen">
       {/* Hero Section - BLOCO 1 */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
-        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container mx-auto px-4 z-10">
-          <div className="max-w-5xl mx-auto text-center space-y-8 pt-20">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white">
-              O Sistema Operacional da Sua Obra e da Sua{" "}
-              <span className="text-primary">Manutenção Predial</span>
+          <div className="max-w-5xl mx-auto text-center space-y-8">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+              O Sistema Operacional da Sua Obra e da Sua Manutenção Predial
             </h1>
-            <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
               Centralize obras, equipes, materiais e manutenção em um único lugar — com RDO completo, QR Codes, alertas automáticos, dashboard e registros em tempo real.
             </p>
             
@@ -24,114 +23,106 @@ const Hero = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base text-gray-300">Centralize operações</span>
+                <span className="text-sm md:text-base">Centralize operações</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base text-gray-300">Elimine atrasos</span>
+                <span className="text-sm md:text-base">Elimine atrasos</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base text-gray-300">Reduza desperdícios</span>
+                <span className="text-sm md:text-base">Reduza desperdícios</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base text-gray-300">Controle equipes e materiais</span>
+                <span className="text-sm md:text-base">Controle equipes e materiais</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base text-gray-300">Rastreie ativos com QR Code</span>
+                <span className="text-sm md:text-base">Rastreie ativos com QR Code</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base text-gray-300">Registre obra e manutenção em tempo real</span>
+                <span className="text-sm md:text-base">Registre obra e manutenção em tempo real</span>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            <div className="flex flex-col items-center gap-4 pt-8">
               <Button 
                 size="lg" 
-                className="text-lg px-8 py-6 rounded-lg font-semibold bg-primary hover:bg-primary/90 text-black shadow-[0_0_30px_rgba(255,149,0,0.3)] hover:shadow-[0_0_40px_rgba(255,149,0,0.5)] transition-all"
+                className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
                 onClick={() => navigate('/auth')}
               >
-                COMEÇAR INVESTIGAÇÃO
+                👉 Quero ver o Construdata na prática
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="text-lg px-8 py-6 rounded-lg font-semibold border-2 border-white text-white hover:bg-white hover:text-black transition-all"
-                onClick={() => navigate('/dashboard')}
-              >
-                VER DEMONSTRAÇÃO
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                Demonstração rápida e sem compromisso.
+              </p>
             </div>
-            <p className="text-sm text-gray-500">
-              Demonstração rápida e sem compromisso.
-            </p>
           </div>
         </div>
       </section>
 
       {/* Social Proof - BLOCO 2 */}
-      <section className="py-16 bg-black border-t border-white/5">
+      <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 text-white">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
             Empresas que já profissionalizam suas operações com o Construdata
           </h2>
-          <div className="flex flex-wrap justify-center items-center gap-12 opacity-40">
+          <div className="flex flex-wrap justify-center items-center gap-12 opacity-60">
             {/* Placeholder para logos - usuário pode adicionar logos depois */}
-            <div className="h-16 w-32 bg-white/5 rounded flex items-center justify-center text-xs text-gray-500">Logo 1</div>
-            <div className="h-16 w-32 bg-white/5 rounded flex items-center justify-center text-xs text-gray-500">Logo 2</div>
-            <div className="h-16 w-32 bg-white/5 rounded flex items-center justify-center text-xs text-gray-500">Logo 3</div>
-            <div className="h-16 w-32 bg-white/5 rounded flex items-center justify-center text-xs text-gray-500">Logo 4</div>
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 1</div>
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 2</div>
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 3</div>
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 4</div>
           </div>
         </div>
       </section>
 
       {/* Problem Section - DOR - BLOCO 3 */}
-      <section className="py-24 bg-black">
+      <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
+            <h2 className="text-4xl md:text-5xl font-bold">
               Sua obra não atrasa por falta de esforço.<br />
               Ela atrasa por falta de VISIBILIDADE.
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-muted-foreground">
               E você sabe disso. Sem controle real, tudo vira improviso e adivinhação.
             </p>
             
             <div className="grid md:grid-cols-2 gap-4 text-left pt-8">
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/10 border border-red-900/20">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
                 <span className="text-2xl">❌</span>
-                <span className="text-gray-300">Planilhas desatualizadas</span>
+                <span>Planilhas desatualizadas</span>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/10 border border-red-900/20">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
                 <span className="text-2xl">❌</span>
-                <span className="text-gray-300">Equipe perdida</span>
+                <span>Equipe perdida</span>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/10 border border-red-900/20">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
                 <span className="text-2xl">❌</span>
-                <span className="text-gray-300">Comunicação no WhatsApp</span>
+                <span>Comunicação no WhatsApp</span>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/10 border border-red-900/20">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
                 <span className="text-2xl">❌</span>
-                <span className="text-gray-300">Falta de fotos e evidências</span>
+                <span>Falta de fotos e evidências</span>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/10 border border-red-900/20">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
                 <span className="text-2xl">❌</span>
-                <span className="text-gray-300">Desperdício que não se rastreia</span>
+                <span>Desperdício que não se rastreia</span>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/10 border border-red-900/20">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
                 <span className="text-2xl">❌</span>
-                <span className="text-gray-300">RDO incompleto</span>
+                <span>RDO incompleto</span>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-900/10 border border-red-900/20">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
                 <span className="text-2xl">❌</span>
-                <span className="text-gray-300">Chamados de manutenção que somem</span>
+                <span>Chamados de manutenção que somem</span>
               </div>
             </div>
 
-            <p className="text-2xl font-bold pt-8 text-white">
+            <p className="text-2xl font-bold pt-8">
               Obra sem sistema vira achismo.<br />
               E achismo custa caro.
             </p>
@@ -140,13 +131,13 @@ const Hero = () => {
       </section>
 
       {/* Posicionamento - BLOCO 4 */}
-      <section className="py-24 bg-gradient-to-b from-black to-gray-950">
+      <section className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
+            <h2 className="text-4xl md:text-5xl font-bold">
               O Construdata centraliza tudo e coloca ordem na operação.
             </h2>
-            <p className="text-xl text-gray-400">
+            <p className="text-xl text-muted-foreground">
               Cada obra, funcionário, material, ativo e tarefa aparece em um painel único — com dados reais, evidência, fotos, alertas e rastreabilidade.
               É operação profissional, do jeito que deveria ser.
             </p>
@@ -155,16 +146,16 @@ const Hero = () => {
       </section>
 
       {/* Pilares do Produto - BLOCO 5 */}
-      <section className="py-24 bg-black">
+      <section className="py-24">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-white">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
             Funcionalidades Completas
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Pilar 1 */}
-            <div className="p-6 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all">
-              <h3 className="text-xl font-bold mb-4 text-white">Controle de Obra</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Controle de Obra</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Dashboard de obras</span>
@@ -189,9 +180,9 @@ const Hero = () => {
             </div>
 
             {/* Pilar 2 */}
-            <div className="p-6 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all">
-              <h3 className="text-xl font-bold mb-4 text-white">Materiais & Almoxarifado</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Materiais & Almoxarifado</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Estoque atualizado</span>
@@ -212,9 +203,9 @@ const Hero = () => {
             </div>
 
             {/* Pilar 3 */}
-            <div className="p-6 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all">
-              <h3 className="text-xl font-bold mb-4 text-white">Execução & Equipes</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Execução & Equipes</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Gestão de funcionários</span>
@@ -231,9 +222,9 @@ const Hero = () => {
             </div>
 
             {/* Pilar 4 */}
-            <div className="p-6 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all">
-              <h3 className="text-xl font-bold mb-4 text-white">Manutenção Predial</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Manutenção Predial</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Catálogo de ativos</span>
@@ -261,28 +252,28 @@ const Hero = () => {
       </section>
 
       {/* Quebra de Objeções - BLOCO 6 */}
-      <section className="py-24 bg-gradient-to-b from-gray-950 to-black">
+      <section className="py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-white">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
               Objeções que você talvez tenha — e que resolvemos logo de cara:
             </h2>
             <div className="space-y-6">
-              <div className="p-6 rounded-lg border border-white/10 bg-white/5">
-                <h3 className="font-bold text-lg mb-2 text-white">"Minha equipe não vai usar."</h3>
-                <p className="text-gray-400">
+              <div className="p-6 rounded-lg border bg-card">
+                <h3 className="font-bold text-lg mb-2">"Minha equipe não vai usar."</h3>
+                <p className="text-muted-foreground">
                   O Construdata foi feito para o campo: simples, rápido e direto. Registro por foto e QR Code.
                 </p>
               </div>
-              <div className="p-6 rounded-lg border border-white/10 bg-white/5">
-                <h3 className="font-bold text-lg mb-2 text-white">"Já tentei outros softwares e ninguém adotou."</h3>
-                <p className="text-gray-400">
+              <div className="p-6 rounded-lg border bg-card">
+                <h3 className="font-bold text-lg mb-2">"Já tentei outros softwares e ninguém adotou."</h3>
+                <p className="text-muted-foreground">
                   Nosso onboarding é guiado. Em 7 dias você já vê resultado real.
                 </p>
               </div>
-              <div className="p-6 rounded-lg border border-white/10 bg-white/5">
-                <h3 className="font-bold text-lg mb-2 text-white">"Isso deve dar trabalho para implementar."</h3>
-                <p className="text-gray-400">
+              <div className="p-6 rounded-lg border bg-card">
+                <h3 className="font-bold text-lg mb-2">"Isso deve dar trabalho para implementar."</h3>
+                <p className="text-muted-foreground">
                   A implementação é por etapas e acompanhada. Não deixa ninguém travado.
                 </p>
               </div>
@@ -292,7 +283,7 @@ const Hero = () => {
       </section>
 
       {/* Security Trust Section */}
-      <section id="security" className="py-24 bg-black border-t border-white/5">
+      <section id="security" className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
@@ -300,10 +291,10 @@ const Hero = () => {
                 <Shield className="w-4 h-4" />
                 <span className="text-sm font-semibold">Segurança Empresarial</span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Segurança e Confiabilidade
               </h2>
-              <p className="text-xl text-gray-400">
+              <p className="text-xl text-muted-foreground">
                 Seus dados protegidos com tecnologia de ponta
               </p>
             </div>
@@ -335,21 +326,22 @@ const Hero = () => {
       </section>
 
       {/* Final CTA - BLOCO 9 */}
-      <section className="py-24 bg-gradient-to-b from-black to-gray-950">
+      <section className="py-24 bg-gradient-to-br from-primary via-primary/90 to-primary text-primary-foreground">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
+            <h2 className="text-4xl md:text-5xl font-bold">
               Chega de operar no escuro.<br />
               Controle sua obra e sua manutenção com profissionalismo.
             </h2>
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 rounded-lg font-semibold bg-primary hover:bg-primary/90 text-black shadow-[0_0_30px_rgba(255,149,0,0.3)] hover:shadow-[0_0_40px_rgba(255,149,0,0.5)] transition-all"
+              variant="secondary"
+              className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
               onClick={() => navigate('/auth')}
             >
               👉 Quero ver o Construdata na prática
             </Button>
-            <p className="text-gray-500">
+            <p className="text-primary-foreground/80">
               Demonstração rápida. Sem compromisso.
             </p>
           </div>
@@ -360,10 +352,10 @@ const Hero = () => {
 };
 
 const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-  <div className="p-6 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all">
+  <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
     <div className="text-4xl mb-4">{icon}</div>
-    <h3 className="text-lg font-bold mb-2 text-white">{title}</h3>
-    <p className="text-sm text-gray-400">{description}</p>
+    <h3 className="text-lg font-bold mb-2">{title}</h3>
+    <p className="text-sm text-muted-foreground">{description}</p>
   </div>
 );
 
