@@ -1,479 +1,361 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building2, ClipboardList, Camera, BarChart3, Package, Users, Bell, TrendingUp, Shield, Clock, QrCode, Check, X, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield } from "lucide-react";
 
 const Hero = () => {
   const navigate = useNavigate();
 
-  const features = [
-    {
-      icon: <Building2 className="w-6 h-6" />,
-      title: "Gestão de Projetos",
-      description: "Controle obras com status 'Em andamento' sem data final definida",
-      link: "/features/project-management"
-    },
-    {
-      icon: <BarChart3 className="w-6 h-6" />,
-      title: "Controle de Produção",
-      description: "Acompanhe metas diárias, semanais e mensais com análise em tempo real",
-      link: "/features/production-control"
-    },
-    {
-      icon: <ClipboardList className="w-6 h-6" />,
-      title: "RDO Digital",
-      description: "Relatórios Diários de Obra com fotos, clima e validação por GPS",
-      link: "/features/rdo-digital"
-    },
-    {
-      icon: <Package className="w-6 h-6" />,
-      title: "Pedidos de Material",
-      description: "Solicite materiais com rastreamento de solicitante e status",
-      link: "/features/material-requests"
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6" />,
-      title: "Controle de Material",
-      description: "Compare requisições vs consumo real por frente de serviço",
-      link: "/features/material-control"
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: "Gestão de Equipe",
-      description: "Cadastre funcionários, empresas e controle acessos",
-      link: "/features/team-management"
-    },
-    {
-      icon: <Bell className="w-6 h-6" />,
-      title: "Alertas Inteligentes",
-      description: "Notificações com justificativas obrigatórias para desvios",
-      link: "/features/intelligent-alerts"
-    },
-    {
-      icon: <Camera className="w-6 h-6" />,
-      title: "Registro Multimídia",
-      description: "Anexe fotos, vídeos e áudios com validação georreferenciada",
-      link: "/features/multimedia-registry"
-    },
-    {
-      icon: <QrCode className="w-6 h-6" />,
-      title: "QR Code Manutenção",
-      description: "Gere QR Codes para locais e receba solicitações de manutenção",
-      link: "/features/qrcode-maintenance"
-    },
-    {
-      icon: <ClipboardList className="w-6 h-6" />,
-      title: "Relatório de Ligações",
-      description: "Crie relatórios completos de ligações com fotos e exportação em PDF",
-      link: "/features/connection-reports"
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-[#0a1628] relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute top-20 left-10 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-      
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="container relative z-10 px-4 py-20 mx-auto">
-          <div className="max-w-4xl mx-auto text-center space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 backdrop-blur-sm">
-              <Building2 className="w-4 h-4" />
-              <span className="text-sm font-medium">Gestão de Obras Inteligente</span>
-            </div>
-            
+    <div className="min-h-screen">
+      {/* Hero Section - BLOCO 1 */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+        <div className="container mx-auto px-4 z-10">
+          <div className="max-w-5xl mx-auto text-center space-y-8">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-              <span className="text-blue-400">
-                ConstruData
-              </span>
+              O Sistema Operacional da Sua Obra e da Sua Manutenção Predial
             </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              O Construdata não é mais um software. É o sistema nervoso central da sua construtora. 
-              Nós unimos o financeiro, o cronograma da obra e a comunicação com o cliente em uma única tela inteligente.
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
+              Centralize obras, equipes, materiais e manutenção em um único lugar — com RDO completo, QR Codes, alertas automáticos, dashboard e registros em tempo real.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-              <Button 
-                size="lg" 
-                onClick={() => navigate('/auth')}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50 hover:shadow-blue-600/70 transition-all duration-300 group border-0"
-              >
-                Comece Gratuitamente
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                onClick={() => navigate('/dashboard')}
-                className="w-full sm:w-auto border-blue-500/30 hover:border-blue-500 hover:bg-blue-500/10 text-blue-300"
-              >
-                Ver o Dashboard em Ação
-              </Button>
+            {/* Bullets */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm md:text-base">Centralize operações</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm md:text-base">Elimine atrasos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm md:text-base">Reduza desperdícios</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm md:text-base">Controle equipes e materiais</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm md:text-base">Rastreie ativos com QR Code</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm md:text-base">Registre obra e manutenção em tempo real</span>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Problem & Solution Section */}
-      <section className="container px-4 py-16 mx-auto">
-        <div className="max-w-6xl mx-auto space-y-12">
-          {/* Problem Statement */}
-          <div className="text-center space-y-6 max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              Cansado dos Softwares de Engenharia que Atrasam Seu Sucesso?
-            </h2>
-            <p className="text-lg text-gray-300 leading-relaxed">
-              Engenheiros e gestores de projeto em todo o mundo enfrentam a mesma frustração: ferramentas caras, lentas e complexas que parecem trabalhar contra a produtividade. Você não está sozinho. As reclamações são claras, e nós ouvimos cada uma delas.
-            </p>
-            <p className="text-xl font-semibold text-blue-400">
-              Nós entendemos a dor.
-            </p>
-            <p className="text-lg text-gray-300 leading-relaxed">
-              O mercado de software de engenharia está saturado de soluções que impõem barreiras em vez de criar pontes. Acreditamos que a tecnologia deve ser uma aliada, não um obstáculo. É por isso que desenvolvemos uma solução que ataca diretamente os 5 maiores problemas que impedem sua equipe de alcançar a excelência.
-            </p>
-          </div>
-
-          {/* Comparison Table */}
-          <div className="space-y-8">
-            <div className="text-center">
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                O Problema vs. Nossa Solução
-              </h3>
-              <p className="text-gray-400 text-base md:text-lg">
-                Transformando Frustração em Vantagem Competitiva
+            <div className="flex flex-col items-center gap-4 pt-8">
+              <Button 
+                size="lg" 
+                className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
+                onClick={() => navigate('/auth')}
+              >
+                👉 Quero ver o Construdata na prática
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Demonstração rápida e sem compromisso.
               </p>
             </div>
-
-            {/* Mobile: Card Stack / Desktop: Table */}
-            <div className="space-y-4 md:space-y-0">
-              {/* Headers - Hidden on mobile, shown as table on desktop */}
-              <div className="hidden md:grid md:grid-cols-2 gap-4 mb-4">
-                <div className="bg-red-950/50 p-4 md:p-6 rounded-2xl border border-red-500/20">
-                  <h4 className="text-lg md:text-xl font-bold text-red-400 flex items-center gap-2">
-                    <span className="text-xl md:text-2xl">❌</span>
-                    A Frustração Atual
-                  </h4>
-                  <p className="text-xs md:text-sm text-gray-400 mt-1">O que a Engenharia Reclama</p>
-                </div>
-                <div className="bg-green-950/50 p-4 md:p-6 rounded-2xl border border-green-500/20">
-                  <h4 className="text-lg md:text-xl font-bold text-green-400 flex items-center gap-2">
-                    <span className="text-xl md:text-2xl">✅</span>
-                    Nossa Solução
-                  </h4>
-                  <p className="text-xs md:text-sm text-gray-400 mt-1">O que Entregamos</p>
-                </div>
-              </div>
-
-              {/* Comparison Items */}
-              {[
-                {
-                  number: "1",
-                  problem: "Custo de Licença Exorbitante",
-                  problemDesc: "Licenças anuais que consomem orçamentos e tornam o crescimento insustentável.",
-                  solution: "Custo-Benefício Inteligente",
-                  solutionDesc: "Oferecemos um modelo de precificação justo e transparente, eliminando o peso financeiro das licenças tradicionais. Invista no seu projeto, não em softwares inchados."
-                },
-                {
-                  number: "2",
-                  problem: "Desempenho Lento e Bugs Crônicos",
-                  problemDesc: "Softwares que travam, demoram a processar e exigem hardware de ponta, roubando horas preciosas de trabalho.",
-                  solution: "Velocidade e Estabilidade Incomparáveis",
-                  solutionDesc: "Nossa plataforma é construída para ser leve e eficiente, garantindo processamento rápido e um ambiente de trabalho livre de bugs. Mais tempo projetando, menos tempo esperando."
-                },
-                {
-                  number: "3",
-                  problem: "Usabilidade Complexa e Curva de Aprendizado Desnecessária",
-                  problemDesc: "Interfaces confusas e funcionalidades escondidas que exigem treinamento exaustivo e afastam novos talentos.",
-                  solution: "Intuitividade e Foco no Engenheiro",
-                  solutionDesc: "Desenvolvemos uma interface limpa e lógica, pensada por engenheiros para engenheiros. Reduza a curva de aprendizado e coloque sua equipe para produzir em tempo recorde."
-                },
-                {
-                  number: "4",
-                  problem: "Falta de Inovação e Resposta ao Feedback da Comunidade",
-                  problemDesc: "Softwares que não evoluem e ignoram as necessidades reais dos usuários, mantendo o status quo.",
-                  solution: "Evolução Contínua e Parceria",
-                  solutionDesc: "Nossa solução é desenvolvida em colaboração com a comunidade de engenharia. Implementamos atualizações rápidas e significativas, garantindo que você tenha sempre a ferramenta mais moderna e alinhada com as práticas de mercado."
-                },
-                {
-                  number: "5",
-                  problem: "Risco de Erro devido ao uso superficial de ferramentas complexas",
-                  problemDesc: "A complexidade do software leva a erros de modelagem e simulação, comprometendo a segurança e o resultado final do projeto.",
-                  solution: "Validação Integrada e Confiabilidade",
-                  solutionDesc: "Incorporamos mecanismos de validação e guias de boas práticas que garantem a correta aplicação dos princípios de engenharia. Transforme a complexidade em precisão e elimine o risco de erros caros."
-                }
-              ].map((item) => (
-                <div key={item.number} className="space-y-3 md:space-y-0">
-                  {/* Mobile: Stacked Cards */}
-                  <div className="md:hidden space-y-3">
-                    {/* Problem Card */}
-                    <div className="bg-red-950/30 backdrop-blur-sm p-4 rounded-xl border border-red-500/20">
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="text-lg">❌</span>
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-red-400 text-sm mb-1">
-                            {item.number}. {item.problem}
-                          </h5>
-                          <p className="text-xs text-gray-300 leading-relaxed">
-                            {item.problemDesc}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Solution Card */}
-                    <div className="bg-green-950/30 backdrop-blur-sm p-4 rounded-xl border border-green-500/20">
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="text-lg">✅</span>
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-green-400 text-sm mb-1">
-                            {item.solution}
-                          </h5>
-                          <p className="text-xs text-gray-300 leading-relaxed">
-                            {item.solutionDesc}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Desktop: Side by Side */}
-                  <div className="hidden md:grid md:grid-cols-2 gap-4">
-                    <div className="bg-red-950/20 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-red-500/10 hover:bg-red-950/30 transition-colors">
-                      <h5 className="font-semibold text-red-400 mb-2 text-sm md:text-base">
-                        {item.number}. {item.problem}
-                      </h5>
-                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
-                        {item.problemDesc}
-                      </p>
-                    </div>
-                    <div className="bg-green-950/20 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-green-500/10 hover:bg-green-950/30 transition-colors">
-                      <h5 className="font-semibold text-green-400 mb-2 text-sm md:text-base">
-                        {item.solution}
-                      </h5>
-                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
-                        {item.solutionDesc}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Final CTA */}
-          <div className="text-center space-y-6 max-w-4xl mx-auto pt-8">
-            <h3 className="text-2xl md:text-4xl font-bold text-white">
-              Pare de Lutar Contra Suas Ferramentas. Comece a Projetar o Futuro.
-            </h3>
-            <p className="text-lg text-gray-300 leading-relaxed">
-              Sua equipe merece um software que a capacite, não que a limite. Se você está cansado de pagar caro por frustração e lentidão, é hora de conhecer a solução que foi criada para resolver os problemas reais da engenharia moderna.
-            </p>
-            <Button 
-              size="lg"
-              onClick={() => navigate('/auth')}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50 hover:shadow-blue-600/70 transition-all duration-300 border-0"
-            >
-              Fale Conosco e Transforme Seu Fluxo de Trabalho
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="container px-4 py-16 mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Funcionalidades Completas</h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Todas as ferramentas necessárias para gerenciar suas obras com eficiência
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-          {features.map((feature, index) => (
-            <Card 
-              key={index}
-              className="group cursor-pointer bg-white hover:shadow-xl hover:shadow-blue-500/10 border-0 transition-all duration-300"
-              onClick={() => navigate(feature.link)}
-            >
-              <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
-                  {feature.icon}
-                </div>
-                <CardTitle className="text-lg text-gray-900">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm text-gray-600">{feature.description}</CardDescription>
-              </CardContent>
-            </Card>
-          ))}
+      {/* Social Proof - BLOCO 2 */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
+            Empresas que já profissionalizam suas operações com o Construdata
+          </h2>
+          <div className="flex flex-wrap justify-center items-center gap-12 opacity-60">
+            {/* Placeholder para logos - usuário pode adicionar logos depois */}
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 1</div>
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 2</div>
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 3</div>
+            <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">Logo 4</div>
+          </div>
         </div>
       </section>
 
-      {/* Security Trust Section */}
-      <section className="container px-4 py-16 mx-auto bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 backdrop-blur-sm mb-4">
-              <Shield className="w-4 h-4" />
-              <span className="text-sm font-semibold">Segurança Empresarial</span>
+      {/* Problem Section - DOR - BLOCO 3 */}
+      <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center space-y-8">
+            <h2 className="text-4xl md:text-5xl font-bold">
+              Sua obra não atrasa por falta de esforço.<br />
+              Ela atrasa por falta de VISIBILIDADE.
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              E você sabe disso. Sem controle real, tudo vira improviso e adivinhação.
+            </p>
+            
+            <div className="grid md:grid-cols-2 gap-4 text-left pt-8">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
+                <span className="text-2xl">❌</span>
+                <span>Planilhas desatualizadas</span>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
+                <span className="text-2xl">❌</span>
+                <span>Equipe perdida</span>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
+                <span className="text-2xl">❌</span>
+                <span>Comunicação no WhatsApp</span>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
+                <span className="text-2xl">❌</span>
+                <span>Falta de fotos e evidências</span>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
+                <span className="text-2xl">❌</span>
+                <span>Desperdício que não se rastreia</span>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
+                <span className="text-2xl">❌</span>
+                <span>RDO incompleto</span>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
+                <span className="text-2xl">❌</span>
+                <span>Chamados de manutenção que somem</span>
+              </div>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Seus Dados Protegidos</h2>
-            <p className="text-gray-400 text-lg max-w-3xl mx-auto">
-              Segurança de nível empresarial para proteger informações confidenciais da sua empresa
+
+            <p className="text-2xl font-bold pt-8">
+              Obra sem sistema vira achismo.<br />
+              E achismo custa caro.
             </p>
           </div>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <SecurityFeature
-              icon="🔐"
-              title="Autenticação Segura"
-              description="Login protegido com validação de senha e proteção contra vazamentos"
-            />
-            <SecurityFeature
-              icon="🛡️"
-              title="Isolamento de Dados"
-              description="Cada empresa acessa apenas seus próprios dados de projetos e equipes"
-            />
-            <SecurityFeature
-              icon="🔒"
-              title="APIs Protegidas"
-              description="Todas as funções de backend requerem autenticação e verificam permissões"
-            />
-            <SecurityFeature
-              icon="👥"
-              title="Controle de Acesso"
-              description="Dados de funcionários e locais visíveis apenas para proprietários do projeto"
-            />
+      {/* Posicionamento - BLOCO 4 */}
+      <section className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <h2 className="text-4xl md:text-5xl font-bold">
+              O Construdata centraliza tudo e coloca ordem na operação.
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Cada obra, funcionário, material, ativo e tarefa aparece em um painel único — com dados reais, evidência, fotos, alertas e rastreabilidade.
+              É operação profissional, do jeito que deveria ser.
+            </p>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-12 p-6 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-green-400" />
-                </div>
+      {/* Pilares do Produto - BLOCO 5 */}
+      <section className="py-24">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+            Funcionalidades Completas
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Pilar 1 */}
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Controle de Obra</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Dashboard de obras</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Projetos e alertas</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>RDO completo com fotos</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Controle de produção</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Histórico e relatórios</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Pilar 2 */}
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Materiais & Almoxarifado</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Estoque atualizado</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Pedidos de material</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Entradas e saídas</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Consumo por obra, equipe e tarefa</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Pilar 3 */}
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Execução & Equipes</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Gestão de funcionários</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Checklists operacionais</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Registros diários com evidências</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Pilar 4 */}
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+              <h3 className="text-xl font-bold mb-4">Manutenção Predial</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Catálogo de ativos</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>QR Codes</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Solicitações de manutenção</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Histórico completo</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Relatórios e alertas</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quebra de Objeções - BLOCO 6 */}
+      <section className="py-24 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Objeções que você talvez tenha — e que resolvemos logo de cara:
+            </h2>
+            <div className="space-y-6">
+              <div className="p-6 rounded-lg border bg-card">
+                <h3 className="font-bold text-lg mb-2">"Minha equipe não vai usar."</h3>
+                <p className="text-muted-foreground">
+                  O Construdata foi feito para o campo: simples, rápido e direto. Registro por foto e QR Code.
+                </p>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-2 text-white">Proteção de Dados Confidenciais</h3>
-                <p className="text-sm text-gray-400">
-                  Informações sensíveis como dados de funcionários, localização de obras, métricas de produção e custos de materiais 
-                  são protegidas por políticas de segurança em nível de linha (RLS). Concorrentes não podem acessar seus dados, 
-                  mesmo criando uma conta gratuita.
+              <div className="p-6 rounded-lg border bg-card">
+                <h3 className="font-bold text-lg mb-2">"Já tentei outros softwares e ninguém adotou."</h3>
+                <p className="text-muted-foreground">
+                  Nosso onboarding é guiado. Em 7 dias você já vê resultado real.
+                </p>
+              </div>
+              <div className="p-6 rounded-lg border bg-card">
+                <h3 className="font-bold text-lg mb-2">"Isso deve dar trabalho para implementar."</h3>
+                <p className="text-muted-foreground">
+                  A implementação é por etapas e acompanhada. Não deixa ninguém travado.
                 </p>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              ✓ Criptografia end-to-end &nbsp;•&nbsp; ✓ Políticas de segurança em nível de linha &nbsp;•&nbsp; ✓ Autenticação JWT
-            </p>
+      {/* Security Trust Section */}
+      <section id="security" className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 backdrop-blur-sm mb-4">
+                <Shield className="w-4 h-4" />
+                <span className="text-sm font-semibold">Segurança Empresarial</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Segurança e Confiabilidade
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                Seus dados protegidos com tecnologia de ponta
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              <SecurityFeature
+                icon="🔐"
+                title="Autenticação Segura"
+                description="Login protegido com criptografia de ponta a ponta e autenticação de dois fatores disponível"
+              />
+              <SecurityFeature
+                icon="🗄️"
+                title="Isolamento de Dados"
+                description="Cada projeto tem seus próprios dados completamente isolados e protegidos"
+              />
+              <SecurityFeature
+                icon="🔒"
+                title="APIs Protegidas"
+                description="Todas as comunicações são criptografadas e validadas com tokens seguros"
+              />
+              <SecurityFeature
+                icon="📊"
+                title="Backup Automático"
+                description="Seus dados são automaticamente salvos e podem ser recuperados a qualquer momento"
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="container px-4 py-16 mx-auto">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Por que ConstruData?</h2>
-            <p className="text-gray-400 text-lg">
-              Recursos que fazem a diferença no dia a dia da sua obra
+      {/* Final CTA - BLOCO 9 */}
+      <section className="py-24 bg-gradient-to-br from-primary via-primary/90 to-primary text-primary-foreground">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center space-y-8">
+            <h2 className="text-4xl md:text-5xl font-bold">
+              Chega de operar no escuro.<br />
+              Controle sua obra e sua manutenção com profissionalismo.
+            </h2>
+            <Button 
+              size="lg" 
+              variant="secondary"
+              className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
+              onClick={() => navigate('/auth')}
+            >
+              👉 Quero ver o Construdata na prática
+            </Button>
+            <p className="text-primary-foreground/80">
+              Demonstração rápida. Sem compromisso.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <BenefitCard
-              icon={<Clock className="w-8 h-8" />}
-              title="Controle em Tempo Real"
-              description="Acompanhe produção diária, semanal e mensal com gráficos e análises instantâneas"
-            />
-            <BenefitCard
-              icon={<Shield className="w-8 h-8" />}
-              title="Justificativas Obrigatórias"
-              description="Sistema de alertas com justificativas para todos os desvios de meta e problemas"
-            />
-            <BenefitCard
-              icon={<TrendingUp className="w-8 h-8" />}
-              title="Análise Comparativa"
-              description="Compare pedidos vs consumo real de materiais por frente de serviço"
-            />
-            <BenefitCard
-              icon={<Camera className="w-8 h-8" />}
-              title="Validação Georreferenciada"
-              description="Todas as fotos, vídeos e áudios são validados por GPS, garantindo autenticidade dos registros"
-            />
-            <BenefitCard
-              icon={<QrCode className="w-8 h-8" />}
-              title="QR Code para Manutenção"
-              description="Gere QR Codes para equipamentos e locais, facilitando solicitações de manutenção na obra"
-            />
-            <BenefitCard
-              icon={<Users className="w-8 h-8" />}
-              title="Gestão Centralizada de Equipes"
-              description="Controle de funcionários, empresas terceirizadas e permissões de acesso em um só lugar"
-            />
-            <BenefitCard
-              icon={<Package className="w-8 h-8" />}
-              title="Rastreamento de Materiais"
-              description="Controle completo desde a solicitação até o consumo, com histórico e responsáveis identificados"
-            />
-            <BenefitCard
-              icon={<BarChart3 className="w-8 h-8" />}
-              title="Relatórios Consolidados"
-              description="Exporte relatórios completos em PDF com dados de produção, materiais e equipe"
-            />
-            <BenefitCard
-              icon={<Bell className="w-8 h-8" />}
-              title="Notificações Inteligentes"
-              description="Receba alertas automáticos sobre desvios, pendências e eventos importantes da obra"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="container px-4 py-20 mx-auto">
-        <div className="max-w-4xl mx-auto text-center bg-white/5 backdrop-blur-sm rounded-2xl p-12 border border-white/10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-            Pronto para transformar sua gestão de obras?
-          </h2>
-          <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
-            Comece agora e tenha controle total sobre projetos, produção, materiais e equipe
-          </p>
-          <Button 
-            size="lg"
-            onClick={() => navigate('/auth')}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/50 hover:shadow-blue-600/70 transition-all duration-300 border-0"
-          >
-            Criar Conta Grátis
-            <ArrowRight className="ml-2 w-5 h-5" />
-          </Button>
         </div>
       </section>
     </div>
   );
 };
 
-const BenefitCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
-  <div className="text-center space-y-4">
-    <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white mx-auto">
-      {icon}
-    </div>
-    <h3 className="text-xl font-semibold text-white">{title}</h3>
-    <p className="text-gray-400">{description}</p>
-  </div>
-);
-
 const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-  <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/10 hover:border-white/20 transition-colors">
-    <div className="text-4xl mb-3">{icon}</div>
-    <h3 className="font-semibold mb-2 text-sm text-white">{title}</h3>
-    <p className="text-xs text-gray-400 leading-relaxed">{description}</p>
+  <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+    <div className="text-4xl mb-4">{icon}</div>
+    <h3 className="text-lg font-bold mb-2">{title}</h3>
+    <p className="text-sm text-muted-foreground">{description}</p>
   </div>
 );
 
