@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetData, customKeywords } = await req.json();
+    const { spreadsheetData, customKeywords, catalogedMaterials } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
@@ -21,8 +21,10 @@ serve(async (req) => {
 
     console.log('Processing spreadsheet with AI...');
 
-    // Build enhanced system prompt with custom keywords
+    // Build enhanced system prompt with custom keywords AND cataloged materials
     let keywordsContext = '';
+    let materialsContext = '';
+    
     if (customKeywords && Array.isArray(customKeywords) && customKeywords.length > 0) {
       const keywordsByType = customKeywords.reduce((acc: any, kw: any) => {
         if (!acc[kw.keyword_type]) acc[kw.keyword_type] = [];
@@ -52,6 +54,30 @@ CRITICAL INSTRUCTIONS FOR KEYWORDS:
 `;
     }
 
+    // Build cataloged materials context for automatic pricing
+    if (catalogedMaterials && Array.isArray(catalogedMaterials) && catalogedMaterials.length > 0) {
+      materialsContext = '\n\n=== CATALOGED MATERIALS FOR PRICING (USE THESE PRICES) ===\n';
+      catalogedMaterials.forEach((mat: any) => {
+        materialsContext += `\nMaterial: ${mat.name}\n`;
+        if (mat.brand) materialsContext += `  Brand: ${mat.brand}\n`;
+        if (mat.color) materialsContext += `  Color: ${mat.color}\n`;
+        if (mat.measurement) materialsContext += `  Measurement: ${mat.measurement}\n`;
+        materialsContext += `  Unit: ${mat.unit}\n`;
+        materialsContext += `  Price: ${mat.current_price}\n`;
+        if (mat.keywords && mat.keywords.length > 0) {
+          materialsContext += `  Keywords: ${mat.keywords.join(', ')}\n`;
+        }
+      });
+      materialsContext += `
+CRITICAL PRICING INSTRUCTIONS:
+1. When you identify a material that matches one in the catalog, USE THE CATALOG PRICE
+2. Match by name, keywords, brand, color, and measurement
+3. If no exact match found, estimate price or set to 0
+4. ALWAYS calculate total = price × quantity
+5. If quantity is 0 or null, set total to 0 and mark confidence accordingly
+`;
+    }
+
     const systemPrompt = `You are an AI specialized in extracting construction material information from spreadsheet data.
 Your task is to analyze each row and extract structured data intelligently from the "Descrição" (Description) column.
 
@@ -63,11 +89,13 @@ EXTRACTION FIELDS:
 - color: Color/finish - any color mentioned (branco, preto, cinza, vermelho, etc.)
 - measurement: Size/dimensions (e.g., "50kg", "2.5L", "10x20cm", "6mm", "2,5x1m")
 - unit: Unit of measurement (m, m², m³, kg, L, un, cx, pç, etc)
-- price: Unit price (numeric value only)
-- quantity: Quantity (numeric value only)
+- price: Unit price (USE CATALOGED PRICES when material matches, otherwise 0)
+- quantity: Quantity (numeric value only, if null or 0 then 0)
+- total: Total price (price × quantity, always calculate this)
 - confidence: Your confidence level (0-100) in this extraction
 
 ${keywordsContext}
+${materialsContext}
 
 INTELLIGENCE RULES FOR "DESCRIÇÃO" COLUMN PARSING:
 
@@ -174,9 +202,10 @@ Be thorough in identifying ALL subitems, colors, measurements, finishes, and spe
                       unit: { type: "string" },
                       price: { type: "number" },
                       quantity: { type: "number" },
+                      total: { type: "number" },
                       confidence: { type: "number" }
                     },
-                    required: ["name", "unit", "price", "quantity", "confidence"]
+                    required: ["name", "unit", "price", "quantity", "total", "confidence"]
                   }
                 }
               },

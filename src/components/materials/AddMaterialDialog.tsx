@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { X } from "lucide-react";
 
 interface AddMaterialDialogProps {
   open: boolean;
@@ -21,6 +23,8 @@ interface AddMaterialDialogProps {
 export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [keywordInput, setKeywordInput] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -46,6 +50,7 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
         current_price: parseFloat(data.current_price) || 0,
         minimum_stock: parseFloat(data.minimum_stock) || 0,
         current_stock: parseFloat(data.current_stock) || 0,
+        keywords: keywords,
         created_by_user_id: user.id
       });
 
@@ -56,6 +61,8 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
       queryClient.invalidateQueries({ queryKey: ['materials-prices'] });
       toast({ title: "Material criado com sucesso" });
       onOpenChange(false);
+      setKeywords([]);
+      setKeywordInput("");
       setFormData({
         name: "",
         description: "",
@@ -83,6 +90,17 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate(formData);
+  };
+
+  const addKeyword = () => {
+    if (keywordInput.trim() && !keywords.includes(keywordInput.trim().toLowerCase())) {
+      setKeywords([...keywords, keywordInput.trim().toLowerCase()]);
+      setKeywordInput("");
+    }
+  };
+
+  const removeKeyword = (keyword: string) => {
+    setKeywords(keywords.filter(k => k !== keyword));
   };
 
   return (
@@ -200,6 +218,47 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="keywords">Palavras-chave / Sinônimos</Label>
+            <div className="flex gap-2">
+              <Input
+                id="keywords"
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addKeyword();
+                  }
+                }}
+                placeholder="Digite uma palavra-chave e pressione Enter"
+              />
+              <Button type="button" onClick={addKeyword} variant="outline">
+                Adicionar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Adicione sinônimos para que a IA identifique automaticamente este material nas planilhas
+            </p>
+            {keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {keywords.map((keyword) => (
+                  <Badge key={keyword} variant="secondary">
+                    {keyword}
+                    <button
+                      type="button"
+                      onClick={() => removeKeyword(keyword)}
+                      className="ml-2 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
