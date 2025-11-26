@@ -265,33 +265,93 @@ export const PriceSpreadsheetDialog = ({ open, onOpenChange }: PriceSpreadsheetD
     }
   };
 
-  const exportToSpreadsheet = () => {
-    const ws = XLSX.utils.json_to_sheet(
-      processedMaterials.map(m => ({
-        'Descrição Original': m.originalDescription,
-        'Material': m.name,
-        'Marca': m.brand || '',
-        'Cor': m.color || '',
-        'Medida': m.measurement || '',
-        'Unidade': m.unit,
-        'Quantidade': m.quantity,
-        'Preço Material (R$)': m.material_price,
-        'Preço M.O. (R$)': m.labor_price,
-        'Preço Total Unit. (R$)': m.price,
-        'Total (R$)': m.total,
-        'Encontrado': m.matched ? 'Sim' : 'Não',
-        'Confiança (%)': Math.round(m.confidence)
-      }))
-    );
-    
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Materiais Precificados');
-    XLSX.writeFile(wb, `orcamento_precificado_${new Date().toISOString().split('T')[0]}.xlsx`);
-    
-    toast({
-      title: "Planilha exportada!",
-      description: "Arquivo salvo com preços preenchidos"
-    });
+  const exportAndCreateBudget = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Create the budget first
+      const budgetName = `Orçamento Automático - ${new Date().toLocaleDateString('pt-BR')}`;
+      const { data: newBudget, error: budgetError } = await supabase
+        .from('budgets')
+        .insert({
+          name: budgetName,
+          description: 'Orçamento criado automaticamente via precificação de planilha',
+          status: 'draft',
+          created_by_user_id: user.id
+        })
+        .select()
+        .single();
+
+      if (budgetError) throw budgetError;
+
+      // Add items to the budget
+      const itemsToInsert = processedMaterials.map((material, index) => {
+        const unitPriceMaterial = material.material_price || 0;
+        const unitPriceLabor = material.labor_price || 0;
+        const quantity = material.quantity || 0;
+
+        return {
+          budget_id: newBudget.id,
+          item_number: index + 1,
+          description: `${material.name}${material.brand ? ' - ' + material.brand : ''}${material.color ? ' - ' + material.color : ''}${material.measurement ? ' - ' + material.measurement : ''}`,
+          unit: material.unit,
+          quantity: quantity,
+          unit_price_material: unitPriceMaterial,
+          unit_price_labor: unitPriceLabor,
+          bdi_percentage: 0,
+          subtotal_material: quantity * unitPriceMaterial,
+          subtotal_labor: quantity * unitPriceLabor,
+          subtotal_bdi: 0,
+          total: quantity * (unitPriceMaterial + unitPriceLabor),
+        };
+      });
+
+      const { error: itemsError } = await supabase
+        .from('budget_items')
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+
+      // Export spreadsheet
+      const ws = XLSX.utils.json_to_sheet(
+        processedMaterials.map(m => ({
+          'Descrição Original': m.originalDescription,
+          'Material': m.name,
+          'Marca': m.brand || '',
+          'Cor': m.color || '',
+          'Medida': m.measurement || '',
+          'Unidade': m.unit,
+          'Quantidade': m.quantity,
+          'Preço Material (R$)': m.material_price,
+          'Preço M.O. (R$)': m.labor_price,
+          'Preço Total Unit. (R$)': m.price,
+          'Total (R$)': m.total,
+          'Encontrado': m.matched ? 'Sim' : 'Não',
+          'Confiança (%)': Math.round(m.confidence)
+        }))
+      );
+      
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Materiais Precificados');
+      XLSX.writeFile(wb, `orcamento_${newBudget.budget_number || 'precificado'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+
+      toast({
+        title: "Sucesso!",
+        description: `Orçamento "${budgetName}" criado e planilha exportada com sucesso!`
+      });
+
+      onOpenChange(false);
+      resetDialog();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao exportar",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   const importToBudget = async () => {
@@ -517,14 +577,14 @@ export const PriceSpreadsheetDialog = ({ open, onOpenChange }: PriceSpreadsheetD
                 <Button variant="outline" onClick={() => setStep('upload')}>
                   Voltar
                 </Button>
-                <Button variant="outline" onClick={exportToSpreadsheet}>
+                <Button onClick={exportAndCreateBudget}>
                   <Download className="h-4 w-4 mr-2" />
-                  Exportar Planilha Precificada
+                  Exportar e Criar Orçamento
                 </Button>
                 {selectedBudget && (
-                  <Button onClick={importToBudget}>
+                  <Button variant="outline" onClick={importToBudget}>
                     <Upload className="h-4 w-4 mr-2" />
-                    Importar para Orçamento
+                    Importar para Orçamento Existente
                   </Button>
                 )}
               </div>
