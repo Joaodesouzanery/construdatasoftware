@@ -175,10 +175,29 @@ export const PriceSpreadsheetDialog = ({ open, onOpenChange }: PriceSpreadsheetD
       });
 
       const processed = jsonData.map((row: any, index: number) => {
-        // Tentar identificar colunas comuns
-        const description = row['Descrição'] || row['Material'] || row['Item'] || row['Produto'] || '';
-        const quantity = parseFloat(row['Quantidade'] || row['Qtd'] || row['QTD'] || '1');
-        const unit = row['Unidade'] || row['Un'] || row['Unit'] || 'UN';
+        // Função helper para buscar valores case-insensitive
+        const getColumnValue = (possibleNames: string[]) => {
+          for (const name of possibleNames) {
+            // Tentar buscar exato
+            if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+              return row[name];
+            }
+            // Tentar buscar case-insensitive
+            const key = Object.keys(row).find(k => 
+              k.toLowerCase().trim() === name.toLowerCase().trim()
+            );
+            if (key && row[key] !== undefined && row[key] !== null && row[key] !== '') {
+              return row[key];
+            }
+          }
+          return '';
+        };
+
+        // Tentar identificar colunas comuns (case-insensitive)
+        const description = getColumnValue(['Descrição', 'DESCRIÇÃO', 'Material', 'MATERIAL', 'Item', 'ITEM', 'Produto', 'PRODUTO', 'Nome', 'NOME']);
+        const quantityRaw = getColumnValue(['Quantidade', 'QUANTIDADE', 'Qtd', 'QTD', 'QTDE']);
+        const quantity = quantityRaw ? parseFloat(String(quantityRaw).replace(',', '.')) : 1;
+        const unit = getColumnValue(['Unidade', 'UNIDADE', 'Un', 'UN', 'Unit', 'UNIT', 'UNID.', 'UNID']) || 'UN';
 
         // Buscar material correspondente no catálogo
         const matched = matchMaterial(description, catalogedMaterials);
