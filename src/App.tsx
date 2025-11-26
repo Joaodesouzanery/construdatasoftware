@@ -46,6 +46,7 @@ import Backup from "./pages/Backup";
 import Materials from "./pages/Materials";
 import MaterialsDashboard from "./pages/MaterialsDashboard";
 import Budgets from "./pages/Budgets";
+import Prices from "./pages/Prices";
 import Occurrences from "./pages/Occurrences";
 import PurchaseManagement from "./pages/PurchaseManagement";
 import LaborTracking from "./pages/LaborTracking";
@@ -94,6 +95,7 @@ const AppContent = () => {
           <Route path="/materials" element={<Materials />} />
           <Route path="/materials/dashboard" element={<MaterialsDashboard />} />
           <Route path="/budgets" element={<Budgets />} />
+          <Route path="/prices" element={<Prices />} />
         
         {/* Feature pages */}
         <Route path="/features/project-management" element={<ProjectManagement />} />
