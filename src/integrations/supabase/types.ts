@@ -1477,6 +1477,8 @@ export type Database = {
           description: string | null
           id: string
           keywords: string[] | null
+          labor_price: number | null
+          material_price: number | null
           measurement: string | null
           minimum_stock: number | null
           name: string
@@ -1496,6 +1498,8 @@ export type Database = {
           description?: string | null
           id?: string
           keywords?: string[] | null
+          labor_price?: number | null
+          material_price?: number | null
           measurement?: string | null
           minimum_stock?: number | null
           name: string
@@ -1515,6 +1519,8 @@ export type Database = {
           description?: string | null
           id?: string
           keywords?: string[] | null
+          labor_price?: number | null
+          material_price?: number | null
           measurement?: string | null
           minimum_stock?: number | null
           name?: string

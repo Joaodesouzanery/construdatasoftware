@@ -63,18 +63,22 @@ CRITICAL INSTRUCTIONS FOR KEYWORDS:
         if (mat.color) materialsContext += `  Color: ${mat.color}\n`;
         if (mat.measurement) materialsContext += `  Measurement: ${mat.measurement}\n`;
         materialsContext += `  Unit: ${mat.unit}\n`;
-        materialsContext += `  Price: ${mat.current_price}\n`;
+        materialsContext += `  Material Price: ${mat.material_price || 0}\n`;
+        materialsContext += `  Labor Price: ${mat.labor_price || 0}\n`;
+        materialsContext += `  Total Price: ${mat.current_price}\n`;
         if (mat.keywords && mat.keywords.length > 0) {
           materialsContext += `  Keywords: ${mat.keywords.join(', ')}\n`;
         }
       });
       materialsContext += `
 CRITICAL PRICING INSTRUCTIONS:
-1. When you identify a material that matches one in the catalog, USE THE CATALOG PRICE
+1. When you identify a material that matches one in the catalog, USE THE CATALOG PRICES
 2. Match by name, keywords, brand, color, and measurement
-3. If no exact match found, estimate price or set to 0
-4. ALWAYS calculate total = price × quantity
-5. If quantity is 0 or null, set total to 0 and mark confidence accordingly
+3. Extract both material_price and labor_price separately from the catalog
+4. Calculate price = material_price + labor_price
+5. If no exact match found, set material_price, labor_price, and price to 0
+6. ALWAYS calculate total = price × quantity
+7. If quantity is 0 or null, set total to 0 and mark confidence accordingly
 `;
     }
 
@@ -89,7 +93,9 @@ EXTRACTION FIELDS:
 - color: Color/finish - any color mentioned (branco, preto, cinza, vermelho, etc.)
 - measurement: Size/dimensions (e.g., "50kg", "2.5L", "10x20cm", "6mm", "2,5x1m")
 - unit: Unit of measurement (m, m², m³, kg, L, un, cx, pç, etc)
-- price: Unit price (USE CATALOGED PRICES when material matches, otherwise 0)
+- material_price: Material unit price (USE CATALOGED MATERIAL PRICES when material matches, otherwise 0)
+- labor_price: Labor unit price (USE CATALOGED LABOR PRICES when material matches, otherwise 0)
+- price: Total unit price (material_price + labor_price)
 - quantity: Quantity (numeric value only, if null or 0 then 0)
 - total: Total price (price × quantity, always calculate this)
 - confidence: Your confidence level (0-100) in this extraction
@@ -200,12 +206,14 @@ Be thorough in identifying ALL subitems, colors, measurements, finishes, and spe
                       color: { type: "string" },
                       measurement: { type: "string" },
                       unit: { type: "string" },
+                      material_price: { type: "number" },
+                      labor_price: { type: "number" },
                       price: { type: "number" },
                       quantity: { type: "number" },
                       total: { type: "number" },
                       confidence: { type: "number" }
                     },
-                    required: ["name", "unit", "price", "quantity", "total", "confidence"]
+                    required: ["name", "unit", "material_price", "labor_price", "price", "quantity", "total", "confidence"]
                   }
                 }
               },
