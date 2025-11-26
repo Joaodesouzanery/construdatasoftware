@@ -32,6 +32,7 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
     color: "",
     measurement: "",
     unit: "",
+    quantity: "",
     material_price: "",
     labor_price: "",
     minimum_stock: "",
@@ -55,7 +56,7 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
         labor_price: laborPrice,
         current_price: materialPrice + laborPrice,
         minimum_stock: parseFloat(data.minimum_stock) || 0,
-        current_stock: parseFloat(data.current_stock) || 0,
+        current_stock: parseFloat(data.current_stock) || parseFloat(data.quantity) || 0,
         keywords: keywords,
         created_by_user_id: user.id
       });
@@ -76,6 +77,7 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
         color: "",
         measurement: "",
         unit: "",
+        quantity: "",
         material_price: "",
         labor_price: "",
         minimum_stock: "",
@@ -159,6 +161,17 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
                 placeholder="m, m², kg, un..."
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantidade</Label>
+              <Input
+                id="quantity"
+                type="number"
+                step="0.01"
+                placeholder="Quantidade inicial"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
               />
             </div>
             <div className="space-y-2">
