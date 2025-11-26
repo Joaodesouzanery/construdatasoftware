@@ -15,7 +15,6 @@ import { SpreadsheetUploadDialog } from "@/components/materials/SpreadsheetUploa
 import { KeywordsManagementDialog } from "@/components/materials/KeywordsManagementDialog";
 import { BulkEditDialog } from "@/components/materials/BulkEditDialog";
 import { PriceHistoryDialog } from "@/components/materials/PriceHistoryDialog";
-import { PriceSpreadsheetDialog } from "@/components/materials/PriceSpreadsheetDialog";
 import { IntelligentSpreadsheetDialog } from "@/components/materials/IntelligentSpreadsheetDialog";
 
 const Materials = () => {
@@ -28,7 +27,6 @@ const Materials = () => {
   const [isKeywordsDialogOpen, setIsKeywordsDialogOpen] = useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
-  const [isPriceSpreadsheetOpen, setIsPriceSpreadsheetOpen] = useState(false);
   const [isIntelligentSpreadsheetOpen, setIsIntelligentSpreadsheetOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
@@ -172,10 +170,6 @@ const Materials = () => {
               <Sparkles className="h-4 w-4 mr-2" />
               Processar com IA
             </Button>
-            <Button onClick={() => setIsPriceSpreadsheetOpen(true)} variant="outline">
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Planilha de Preços
-            </Button>
             <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
               <Upload className="h-4 w-4 mr-2" />
               Importar
@@ -222,7 +216,6 @@ const Materials = () => {
         <SpreadsheetUploadDialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen} />
         <KeywordsManagementDialog open={isKeywordsDialogOpen} onOpenChange={setIsKeywordsDialogOpen} />
         <PriceHistoryDialog open={isPriceHistoryOpen} onOpenChange={setIsPriceHistoryOpen} />
-        <PriceSpreadsheetDialog open={isPriceSpreadsheetOpen} onOpenChange={setIsPriceSpreadsheetOpen} />
         <IntelligentSpreadsheetDialog open={isIntelligentSpreadsheetOpen} onOpenChange={setIsIntelligentSpreadsheetOpen} />
         <BulkEditDialog
           open={isBulkEditOpen}
