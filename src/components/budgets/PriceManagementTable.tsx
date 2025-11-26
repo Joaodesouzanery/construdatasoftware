@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Check, X, Search, Plus } from "lucide-react";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
+import { EditMaterialDialog } from "@/components/materials/EditMaterialDialog";
 
 export const PriceManagementTable = () => {
   const { toast } = useToast();
@@ -16,6 +17,8 @@ export const PriceManagementTable = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<any | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const { data: materials, isLoading } = useQuery({
     queryKey: ['materials-prices'],
@@ -148,13 +151,14 @@ export const PriceManagementTable = () => {
                 <TableHead>Preço M.O.</TableHead>
                 <TableHead>Preço Total</TableHead>
                 <TableHead>Palavras-chave</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-right">Editar Preço</TableHead>
+                <TableHead className="text-right">Editar Tudo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
             {filteredMaterials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                   Nenhum material cadastrado
                 </TableCell>
               </TableRow>
@@ -230,10 +234,24 @@ export const PriceManagementTable = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => startEdit(material.id, material.current_price)}
+                          title="Editar apenas preço"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingMaterial(material);
+                          setShowEditDialog(true);
+                        }}
+                        title="Editar todas as informações"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -247,6 +265,17 @@ export const PriceManagementTable = () => {
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
       />
+      
+      {editingMaterial && (
+        <EditMaterialDialog
+          material={editingMaterial}
+          open={showEditDialog}
+          onOpenChange={(open) => {
+            setShowEditDialog(open);
+            if (!open) setEditingMaterial(null);
+          }}
+        />
+      )}
     </Card>
   );
 };
