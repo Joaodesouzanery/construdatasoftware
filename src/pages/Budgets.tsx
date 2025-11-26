@@ -3,16 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ArrowLeft } from "lucide-react";
+import { Plus, Search, ArrowLeft, FileSpreadsheet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BudgetsTable } from "@/components/budgets/BudgetsTable";
 import { CreateBudgetDialog } from "@/components/budgets/CreateBudgetDialog";
+import { PriceSpreadsheetDialog } from "@/components/budgets/PriceSpreadsheetDialog";
 
 const Budgets = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<any>(null);
+  const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
 
   const { data: budgets, isLoading } = useQuery({
     queryKey: ['budgets'],
@@ -44,16 +46,22 @@ const Budgets = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Orçamentos</h1>
-              <p className="text-muted-foreground">Gerencie seus orçamentos e propostas</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Orçamentos</h1>
+            <p className="text-muted-foreground">Gerencie seus orçamentos e propostas</p>
           </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsPriceDialogOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Precificar Planilha
+          </Button>
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Orçamento
           </Button>
         </div>
+      </div>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -71,17 +79,22 @@ const Budgets = () => {
           onEdit={setEditingBudget}
         />
 
-        <CreateBudgetDialog
-          open={isCreateDialogOpen || !!editingBudget}
-          onOpenChange={(open) => {
-            setIsCreateDialogOpen(open);
-            if (!open) setEditingBudget(null);
-          }}
-          budget={editingBudget}
-        />
-      </div>
+      <CreateBudgetDialog
+        open={isCreateDialogOpen || !!editingBudget}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) setEditingBudget(null);
+        }}
+        budget={editingBudget}
+      />
+
+      <PriceSpreadsheetDialog
+        open={isPriceDialogOpen}
+        onOpenChange={setIsPriceDialogOpen}
+      />
     </div>
-  );
+  </div>
+);
 };
 
 export default Budgets;
