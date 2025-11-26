@@ -40,6 +40,18 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
     }
   });
 
+  const { data: catalogedMaterials } = useQuery({
+    queryKey: ['cataloged-materials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const { data: budgets } = useQuery({
     queryKey: ['budgets'],
     queryFn: async () => {
@@ -83,7 +95,8 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
       const { data: processedData, error } = await supabase.functions.invoke('process-spreadsheet', {
         body: {
           spreadsheetData: jsonData,
-          customKeywords: keywords || []
+          customKeywords: keywords || [],
+          catalogedMaterials: catalogedMaterials || []
         }
       });
 
@@ -118,6 +131,7 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
         'Unidade': m.unit,
         'Quantidade': m.quantity,
         'Preço Unitário': m.price || 0,
+        'Total': m.total || 0,
         'Confiança (%)': Math.round(m.confidence)
       }))
     );
@@ -282,6 +296,7 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
                     <TableHead>Un</TableHead>
                     <TableHead>Qtd</TableHead>
                     <TableHead>Preço</TableHead>
+                    <TableHead>Total</TableHead>
                     <TableHead>Conf.%</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -295,6 +310,7 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
                       <TableCell>{material.unit}</TableCell>
                       <TableCell>{material.quantity}</TableCell>
                       <TableCell>R$ {material.price?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell className="font-medium">R$ {material.total?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>
                         <span className={material.confidence >= 80 ? 'text-green-600' : 'text-yellow-600'}>
                           {Math.round(material.confidence)}%

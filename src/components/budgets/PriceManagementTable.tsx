@@ -144,17 +144,18 @@ export const PriceManagementTable = () => {
                 <TableHead>Fornecedor</TableHead>
                 <TableHead>Medida</TableHead>
                 <TableHead>Unidade</TableHead>
-                <TableHead>Preço Atual</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableHead>Preço Atual</TableHead>
+              <TableHead>Palavras-chave</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredMaterials.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    Nenhum material cadastrado
-                  </TableCell>
-                </TableRow>
+            {filteredMaterials.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  Nenhum material cadastrado
+                </TableCell>
+              </TableRow>
               ) : (
                 filteredMaterials.map((material) => (
                   <TableRow key={material.id}>
@@ -177,6 +178,26 @@ export const PriceManagementTable = () => {
                       ) : (
                         `R$ ${material.current_price.toFixed(2)}`
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {material.keywords && material.keywords.length > 0 ? (
+                          <>
+                            {material.keywords.slice(0, 3).map((kw: string, i: number) => (
+                              <span key={i} className="text-xs bg-muted px-2 py-1 rounded">
+                                {kw}
+                              </span>
+                            ))}
+                            {material.keywords.length > 3 && (
+                              <span className="text-xs text-muted-foreground">
+                                +{material.keywords.length - 3}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       {editingId === material.id ? (
