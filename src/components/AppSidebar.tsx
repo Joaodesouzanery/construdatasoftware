@@ -53,7 +53,7 @@ const facilityItems = [
 ];
 
 const budgetItems = [
-  { title: "Materiais", url: "/materials", icon: Box },
+  { title: "Precificação", url: "/materials", icon: Box },
   { title: "Orçamentos", url: "/budgets", icon: DollarSign },
   { title: "Controle de Compras", url: "/purchase-management", icon: ShoppingCart },
 ];

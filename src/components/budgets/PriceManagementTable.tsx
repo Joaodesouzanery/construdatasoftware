@@ -144,15 +144,17 @@ export const PriceManagementTable = () => {
                 <TableHead>Fornecedor</TableHead>
                 <TableHead>Medida</TableHead>
                 <TableHead>Unidade</TableHead>
-              <TableHead>Preço Atual</TableHead>
-              <TableHead>Palavras-chave</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+                <TableHead>Preço Material</TableHead>
+                <TableHead>Preço M.O.</TableHead>
+                <TableHead>Preço Total</TableHead>
+                <TableHead>Palavras-chave</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
             {filteredMaterials.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                   Nenhum material cadastrado
                 </TableCell>
               </TableRow>
@@ -166,6 +168,12 @@ export const PriceManagementTable = () => {
                     <TableCell>{material.measurement || "-"}</TableCell>
                     <TableCell>{material.unit}</TableCell>
                     <TableCell>
+                      R$ {material.material_price?.toFixed(2) || "0.00"}
+                    </TableCell>
+                    <TableCell>
+                      R$ {material.labor_price?.toFixed(2) || "0.00"}
+                    </TableCell>
+                    <TableCell className="font-medium">
                       {editingId === material.id ? (
                         <Input
                           type="number"
@@ -176,7 +184,7 @@ export const PriceManagementTable = () => {
                           autoFocus
                         />
                       ) : (
-                        `R$ ${material.current_price.toFixed(2)}`
+                        `R$ ${material.current_price?.toFixed(2) || "0.00"}`
                       )}
                     </TableCell>
                     <TableCell>

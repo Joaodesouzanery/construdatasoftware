@@ -130,8 +130,10 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
         'Medida': m.measurement || '',
         'Unidade': m.unit,
         'Quantidade': m.quantity,
-        'Preço Unitário': m.price || 0,
-        'Total': m.total || 0,
+        'Preço Material (R$)': m.material_price || 0,
+        'Preço M.O. (R$)': m.labor_price || 0,
+        'Preço Total (R$)': m.price || 0,
+        'Total (R$)': m.total || 0,
         'Confiança (%)': Math.round(m.confidence)
       }))
     );
@@ -295,7 +297,9 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
                     <TableHead>Medida</TableHead>
                     <TableHead>Un</TableHead>
                     <TableHead>Qtd</TableHead>
-                    <TableHead>Preço</TableHead>
+                    <TableHead>Preço Mat.</TableHead>
+                    <TableHead>Preço M.O.</TableHead>
+                    <TableHead>Preço Total</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Conf.%</TableHead>
                   </TableRow>
@@ -309,6 +313,8 @@ export const IntelligentSpreadsheetDialog = ({ open, onOpenChange }: Intelligent
                       <TableCell>{material.measurement || '-'}</TableCell>
                       <TableCell>{material.unit}</TableCell>
                       <TableCell>{material.quantity}</TableCell>
+                      <TableCell>R$ {material.material_price?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>R$ {material.labor_price?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>R$ {material.price?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell className="font-medium">R$ {material.total?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>
