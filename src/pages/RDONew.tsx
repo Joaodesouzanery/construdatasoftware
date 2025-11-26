@@ -63,6 +63,8 @@ const RDONew = () => {
   const [terrainCondition, setTerrainCondition] = useState("");
   const [location, setLocation] = useState("");
   const [generalObservations, setGeneralObservations] = useState("");
+  const [visits, setVisits] = useState("");
+  const [occurrences, setOccurrences] = useState("");
   const [validationPhotos, setValidationPhotos] = useState<File[]>([]);
   const [lastCreatedRDOId, setLastCreatedRDOId] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<any>(null);
@@ -335,7 +337,9 @@ const RDONew = () => {
           weather_description: weatherData?.description || null,
           terrain_condition: terrainCondition || null,
           gps_location: location || null,
-          general_observations: enhancedObservations || null
+          general_observations: enhancedObservations || null,
+          visits: visits || null,
+          occurrences_summary: occurrences || null
         }])
         .select()
         .single();
@@ -414,6 +418,8 @@ const RDONew = () => {
       setTerrainCondition("");
       setLocation("");
       setGeneralObservations("");
+      setVisits("");
+      setOccurrences("");
       setValidationPhotos([]);
       setCustomQuestions([]);
       
@@ -511,6 +517,40 @@ const RDONew = () => {
       if (location) {
         doc.text(`Localização: ${location}`, 20, yPos);
         yPos += 8;
+      }
+      
+      if (visits) {
+        yPos += 5;
+        doc.setFontSize(12);
+        doc.text('Visitas Recebidas:', 20, yPos);
+        yPos += 8;
+        doc.setFontSize(11);
+        const visitLines = doc.splitTextToSize(visits, 170);
+        visitLines.forEach((line: string) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(line, 20, yPos);
+          yPos += 6;
+        });
+      }
+
+      if (occurrences) {
+        yPos += 5;
+        doc.setFontSize(12);
+        doc.text('Ocorrências:', 20, yPos);
+        yPos += 8;
+        doc.setFontSize(11);
+        const occurrenceLines = doc.splitTextToSize(occurrences, 170);
+        occurrenceLines.forEach((line: string) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(line, 20, yPos);
+          yPos += 6;
+        });
       }
       
       if (generalObservations) {
@@ -938,6 +978,30 @@ const RDONew = () => {
                     Obter GPS
                   </Button>
                 </div>
+              </div>
+
+              {/* Visitas */}
+              <div className="space-y-2">
+                <Label htmlFor="visits">Visitas Recebidas (opcional)</Label>
+                <Textarea
+                  id="visits"
+                  value={visits}
+                  onChange={(e) => setVisits(e.target.value)}
+                  placeholder="Descreva as visitas recebidas na obra (fiscalizações, fornecedores, clientes, etc.)"
+                  rows={3}
+                />
+              </div>
+
+              {/* Ocorrências */}
+              <div className="space-y-2">
+                <Label htmlFor="occurrences">Ocorrências (opcional)</Label>
+                <Textarea
+                  id="occurrences"
+                  value={occurrences}
+                  onChange={(e) => setOccurrences(e.target.value)}
+                  placeholder="Registre ocorrências importantes (acidentes, atrasos, problemas, etc.)"
+                  rows={3}
+                />
               </div>
 
               {/* Observações Gerais */}
