@@ -32,7 +32,6 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
     color: "",
     measurement: "",
     unit: "",
-    quantity: "",
     material_price: "",
     labor_price: "",
     minimum_stock: "",
@@ -56,7 +55,7 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
         labor_price: laborPrice,
         current_price: materialPrice + laborPrice,
         minimum_stock: parseFloat(data.minimum_stock) || 0,
-        current_stock: parseFloat(data.current_stock) || parseFloat(data.quantity) || 0,
+        current_stock: parseFloat(data.current_stock) || 0,
         keywords: keywords,
         created_by_user_id: user.id
       });
@@ -77,7 +76,6 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
         color: "",
         measurement: "",
         unit: "",
-        quantity: "",
         material_price: "",
         labor_price: "",
         minimum_stock: "",
@@ -164,14 +162,14 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantidade</Label>
+              <Label htmlFor="current_stock">Quantidade (Estoque Atual)</Label>
               <Input
-                id="quantity"
+                id="current_stock"
                 type="number"
                 step="0.01"
-                placeholder="Quantidade inicial"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                placeholder="Quantidade inicial em estoque"
+                value={formData.current_stock}
+                onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
               />
             </div>
             <div className="space-y-2">
@@ -201,18 +199,9 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
                 id="minimum_stock"
                 type="number"
                 step="0.01"
+                placeholder="Quantidade mínima em estoque"
                 value={formData.minimum_stock}
                 onChange={(e) => setFormData({ ...formData, minimum_stock: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="current_stock">Estoque Atual</Label>
-              <Input
-                id="current_stock"
-                type="number"
-                step="0.01"
-                value={formData.current_stock}
-                onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
               />
             </div>
             <div className="space-y-2">
