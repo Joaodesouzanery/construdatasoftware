@@ -3,16 +3,32 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ArrowLeft } from "lucide-react";
+import { Plus, Search, ArrowLeft, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BudgetsTable } from "@/components/budgets/BudgetsTable";
 import { CreateBudgetDialog } from "@/components/budgets/CreateBudgetDialog";
+import { SpreadsheetUploadDialog } from "@/components/budgets/SpreadsheetUploadDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Budgets = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<any>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [selectedBudgetForImport, setSelectedBudgetForImport] = useState<string>("");
 
   const { data: budgets, isLoading } = useQuery({
     queryKey: ['budgets'],
@@ -49,11 +65,17 @@ const Budgets = () => {
             <p className="text-muted-foreground">Gerencie seus orçamentos e propostas</p>
           </div>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Orçamento
-        </Button>
-      </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Orçamento
+            </Button>
+            <Button variant="secondary" onClick={() => setIsImportDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Importar Planilha
+            </Button>
+          </div>
+        </div>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -79,6 +101,45 @@ const Budgets = () => {
         }}
         budget={editingBudget}
       />
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar Planilha para Orçamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Selecione o orçamento para importar os itens:
+              </label>
+              <Select value={selectedBudgetForImport} onValueChange={setSelectedBudgetForImport}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um orçamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {budgets?.map((budget) => (
+                    <SelectItem key={budget.id} value={budget.id}>
+                      {budget.name} {budget.budget_number ? `(${budget.budget_number})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedBudgetForImport && (
+              <SpreadsheetUploadDialog
+                open={true}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setIsImportDialogOpen(false);
+                    setSelectedBudgetForImport("");
+                  }
+                }}
+                budgetId={selectedBudgetForImport}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   </div>
 );
