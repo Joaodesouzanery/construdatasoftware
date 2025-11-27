@@ -187,6 +187,13 @@ const BudgetPricing = () => {
         return '';
       };
 
+      const parsePrice = (value: string): number => {
+        if (!value) return 0;
+        // Remove R$, espaços, e converte vírgula para ponto
+        const cleaned = value.replace(/[R$\s]/g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
+      };
+
       const items: ProcessedItem[] = [];
 
       for (let i = 0; i < jsonData.length; i++) {
@@ -205,6 +212,17 @@ const BudgetPricing = () => {
           'unidade', 'unit', 'un', 'und'
         ]) || 'UN';
 
+        // Busca preços de Material (MAT) e Mão de Obra (MDO) na planilha
+        const materialPriceStr = findColumnValue(rowData, [
+          'material', 'mat', 'preco material', 'preco mat', 'unitario material'
+        ]);
+        const laborPriceStr = findColumnValue(rowData, [
+          'mao de obra', 'mdo', 'mao obra', 'labor', 'preco mdo', 'unitario mdo'
+        ]);
+
+        const importedMaterialPrice = parsePrice(materialPriceStr);
+        const importedLaborPrice = parsePrice(laborPriceStr);
+
         if (!description || description.length < 2 || quantity <= 0) {
           continue;
         }
@@ -213,13 +231,13 @@ const BudgetPricing = () => {
           description,
           quantity,
           unit,
-          unit_price: 0,
-          unit_price_material: 0,
-          unit_price_labor: 0,
-          total: 0,
+          unit_price: importedMaterialPrice + importedLaborPrice,
+          unit_price_material: importedMaterialPrice,
+          unit_price_labor: importedLaborPrice,
+          total: quantity * (importedMaterialPrice + importedLaborPrice),
           material_id: null,
           matched: false,
-          match_type: 'Não buscado',
+          match_type: importedMaterialPrice > 0 || importedLaborPrice > 0 ? 'Importado da planilha' : 'Não buscado',
           originalRow: rowData
         });
       }
@@ -260,25 +278,23 @@ const BudgetPricing = () => {
         if (match) {
           const material = match.material;
           
-          const baseMaterialPrice = (material.material_price ?? 0) as number;
-          const baseLaborPrice = (material.labor_price ?? 0) as number;
-          const computedFallbackPrice = baseMaterialPrice + baseLaborPrice;
-          const unitPrice = (material.current_price && material.current_price > 0
-            ? material.current_price
-            : computedFallbackPrice) || 0;
+          // Obtém preços separados de Material e Mão de Obra
+          const materialPrice = (material.material_price ?? 0) as number;
+          const laborPrice = (material.labor_price ?? 0) as number;
+          const totalUnitPrice = materialPrice + laborPrice;
 
-          const hasValidPrice = unitPrice > 0;
+          const hasValidPrice = totalUnitPrice > 0;
 
           updatedItems.push({
             ...item,
-            unit_price: hasValidPrice ? unitPrice : 0,
-            unit_price_material: baseMaterialPrice,
-            unit_price_labor: baseLaborPrice,
-            total: hasValidPrice ? item.quantity * unitPrice : 0,
+            unit_price: hasValidPrice ? totalUnitPrice : 0,
+            unit_price_material: materialPrice,
+            unit_price_labor: laborPrice,
+            total: hasValidPrice ? item.quantity * totalUnitPrice : 0,
             material_id: material.id,
             material_name: material.name,
             matched: hasValidPrice,
-            match_type: hasValidPrice ? 'Encontrado' : 'Preço não encontrado',
+            match_type: hasValidPrice ? 'Encontrado na Gestão' : 'Preço não encontrado',
           });
           
           if (hasValidPrice) foundCount++;
@@ -287,9 +303,11 @@ const BudgetPricing = () => {
           updatedItems.push({
             ...item,
             matched: false,
-            match_type: 'Preço não encontrado',
+            match_type: item.match_type === 'Importado da planilha' ? 'Importado da planilha' : 'Preço não encontrado',
           });
-          notFoundCount++;
+          if (item.match_type !== 'Importado da planilha') {
+            notFoundCount++;
+          }
         }
       }
 
@@ -377,7 +395,9 @@ const BudgetPricing = () => {
       'Descrição': item.description,
       'Quantidade': item.quantity,
       'Unidade': item.unit,
-      'Preço Unitário (R$)': item.unit_price.toFixed(2),
+      'Preço Material (R$)': item.unit_price_material.toFixed(2),
+      'Preço Mão de Obra (R$)': item.unit_price_labor.toFixed(2),
+      'Preço Unitário Total (R$)': item.unit_price.toFixed(2),
       'Preço Total (R$)': item.total.toFixed(2),
       'Status': item.match_type || 'Não buscado',
     }));
@@ -402,7 +422,9 @@ const BudgetPricing = () => {
     setSelectedBudgetId("");
   };
 
-  const matchedCount = processedItems.filter(i => i.matched && i.unit_price > 0).length;
+  const matchedCount = processedItems.filter(i => 
+    (i.matched && i.unit_price > 0) || i.match_type === 'Importado da planilha'
+  ).length;
   const totalValue = processedItems.reduce((sum, item) => sum + item.total, 0);
 
   return (
@@ -430,7 +452,9 @@ const BudgetPricing = () => {
                   onChange={handleFileChange}
                 />
                 <p className="text-sm text-muted-foreground">
-                  O arquivo deve conter: <strong>Descrição</strong>, <strong>Quantidade</strong> e <strong>Unidade</strong>
+                  Colunas obrigatórias: <strong>Descrição</strong>, <strong>Quantidade</strong> e <strong>Unidade</strong>
+                  <br />
+                  Colunas opcionais: <strong>Preço Material (MAT)</strong> e <strong>Preço Mão de Obra (MDO)</strong>
                   <br />
                   <strong>Formatos aceitos:</strong> Excel (.xlsx, .xls) ou PDF
                 </p>
@@ -467,9 +491,11 @@ const BudgetPricing = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Descrição</TableHead>
-                    <TableHead>Quantidade</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead>Preço Unitário</TableHead>
+                    <TableHead>Qtd</TableHead>
+                    <TableHead>Un</TableHead>
+                    <TableHead>Preço MAT</TableHead>
+                    <TableHead>Preço MDO</TableHead>
+                    <TableHead>Preço Unit. Total</TableHead>
                     <TableHead>Preço Total</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -483,6 +509,16 @@ const BudgetPricing = () => {
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell>
+                        <span className={item.unit_price_material > 0 ? "text-blue-600" : "text-muted-foreground"}>
+                          R$ {item.unit_price_material.toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={item.unit_price_labor > 0 ? "text-orange-600" : "text-muted-foreground"}>
+                          R$ {item.unit_price_labor.toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
                         <span className={item.unit_price > 0 ? "font-semibold text-green-600" : "text-muted-foreground"}>
                           R$ {item.unit_price.toFixed(2)}
                         </span>
@@ -492,7 +528,11 @@ const BudgetPricing = () => {
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={item.match_type === 'Encontrado' ? 'default' : 'destructive'}
+                          variant={
+                            item.match_type === 'Encontrado na Gestão' ? 'default' : 
+                            item.match_type === 'Importado da planilha' ? 'secondary' : 
+                            'destructive'
+                          }
                         >
                           {item.match_type || 'Não buscado'}
                         </Badge>
@@ -527,7 +567,7 @@ const BudgetPricing = () => {
                 <div className="flex gap-2">
                   <Button 
                     onClick={searchPrices}
-                    disabled={isSearchingPrices || processedItems.every(i => i.matched && i.unit_price > 0)}
+                    disabled={isSearchingPrices}
                     variant="secondary"
                   >
                     <Search className="h-4 w-4 mr-2" />
