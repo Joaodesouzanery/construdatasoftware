@@ -47,6 +47,7 @@ import Support from "./pages/Support";
 import Materials from "./pages/Materials";
 import MaterialsDashboard from "./pages/MaterialsDashboard";
 import Budgets from "./pages/Budgets";
+import BudgetPricing from "./pages/BudgetPricing";
 import Prices from "./pages/Prices";
 import Occurrences from "./pages/Occurrences";
 import PurchaseManagement from "./pages/PurchaseManagement";
@@ -96,6 +97,7 @@ const AppContent = () => {
           <Route path="/materials" element={<Materials />} />
           <Route path="/materials/dashboard" element={<MaterialsDashboard />} />
           <Route path="/budgets" element={<Budgets />} />
+          <Route path="/budget-pricing" element={<BudgetPricing />} />
           <Route path="/prices" element={<Prices />} />
         
         {/* Feature pages */}
