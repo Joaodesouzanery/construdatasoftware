@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Calendar, Mail } from "lucide-react";
 
@@ -15,14 +15,14 @@ interface ContactDialogProps {
 
 export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Ei, você. Vamos direto ao ponto.</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle className="text-xl">Seja bem-vindo ao ConstruData!</SheetTitle>
+        </SheetHeader>
+        <div className="space-y-4 mt-4">
           <p className="text-muted-foreground">
-            Você está aqui por um motivo — e eu consigo te ajudar mais rápido se você me disser qual é.
+            Vamos direto ao ponto. Você está aqui por um motivo — e eu consigo te ajudar mais rápido se você me disser qual é.
           </p>
           
           <div className="space-y-3">
@@ -68,7 +68,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
