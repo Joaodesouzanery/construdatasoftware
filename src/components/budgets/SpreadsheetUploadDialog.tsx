@@ -189,35 +189,56 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+      if (!jsonData || jsonData.length === 0) {
+        throw new Error("A planilha está vazia ou não pôde ser lida");
+      }
+
+      // Função para encontrar valor por múltiplas variações de nome de coluna
+      const findColumnValue = (row: any, variations: string[]): string => {
+        for (const key of Object.keys(row)) {
+          const normalizedKey = normalizeText(key);
+          for (const variation of variations) {
+            if (normalizedKey.includes(normalizeText(variation))) {
+              return String(row[key] || '').trim();
+            }
+          }
+        }
+        return '';
+      };
+
       const items: ProcessedItem[] = [];
+      const skippedRows: string[] = [];
 
-      for (const row of jsonData) {
-        const rowData: any = row;
+      for (let i = 0; i < jsonData.length; i++) {
+        const rowData: any = jsonData[i];
         
-        // Identifica colunas
-        const description = 
-          rowData['Descrição'] || 
-          rowData['Description'] || 
-          rowData['Item'] || 
-          rowData['Material'] ||
-          rowData['Serviço'] ||
-          rowData['Servico'] ||
-          '';
+        // Busca descrição com múltiplas variações
+        const description = findColumnValue(rowData, [
+          'descricao', 'description', 'desc', 'item', 
+          'material', 'servico', 'service', 'produto'
+        ]);
         
-        const quantity = parseFloat(
-          rowData['Quantidade'] || 
-          rowData['Quantity'] || 
-          rowData['Qtd'] || 
-          '0'
-        );
+        // Busca quantidade
+        const quantityStr = findColumnValue(rowData, [
+          'quantidade', 'quantity', 'qtd', 'qtde', 'quant'
+        ]);
+        const quantity = parseFloat(quantityStr.replace(',', '.')) || 0;
 
-        const unit = 
-          rowData['Unidade'] || 
-          rowData['Unit'] || 
-          rowData['Un'] || 
-          'UN';
+        // Busca unidade
+        const unit = findColumnValue(rowData, [
+          'unidade', 'unit', 'un', 'und', 'medida'
+        ]) || 'UN';
 
-        if (!description || quantity === 0) continue;
+        // Validação mais permissiva
+        if (!description || description.length < 2) {
+          skippedRows.push(`Linha ${i + 2}: Descrição inválida ou vazia`);
+          continue;
+        }
+
+        if (quantity <= 0) {
+          skippedRows.push(`Linha ${i + 2}: Quantidade inválida (${quantityStr})`);
+          continue;
+        }
 
         // Busca material correspondente
         const match = await findMatchingMaterial(description, unit);
@@ -255,7 +276,25 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       }
 
       if (items.length === 0) {
-        throw new Error("Nenhum item válido encontrado na planilha");
+        let errorMsg = "Nenhum item válido encontrado na planilha.";
+        if (skippedRows.length > 0) {
+          errorMsg += "\n\nLinhas ignoradas:\n" + skippedRows.slice(0, 5).join('\n');
+          if (skippedRows.length > 5) {
+            errorMsg += `\n... e mais ${skippedRows.length - 5} linhas`;
+          }
+        }
+        errorMsg += "\n\nVerifique se a planilha contém as colunas: Descrição, Quantidade e Unidade";
+        throw new Error(errorMsg);
+      }
+
+      // Feedback sobre linhas ignoradas
+      if (skippedRows.length > 0) {
+        console.warn(`${skippedRows.length} linhas foram ignoradas:`, skippedRows);
+        toast({
+          title: "Atenção",
+          description: `${items.length} itens processados. ${skippedRows.length} linhas foram ignoradas por dados inválidos.`,
+          variant: "default",
+        });
       }
 
       setProcessedItems(items);
@@ -342,7 +381,14 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                 className="mt-2"
               />
               <p className="text-sm text-muted-foreground mt-2">
-                A planilha deve conter: Descrição, Unidade, Quantidade.
+                A planilha deve conter colunas com os seguintes dados:
+                <br />
+                <strong>• Descrição</strong> (ou Item, Material, Serviço)
+                <br />
+                <strong>• Quantidade</strong> (ou Qtd, Qtde)
+                <br />
+                <strong>• Unidade</strong> (ou Un, Und) - opcional, padrão: UN
+                <br />
                 <br />
                 O sistema buscará preços automaticamente na Gestão de Preços.
               </p>
