@@ -44,6 +44,16 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Mapeamento de variações e sinônimos comuns
+  const commonSynonyms: Record<string, string[]> = {
+    'fornecimento': ['fornecimento', 'fornecer', 'fornec'],
+    'instalacao': ['instalacao', 'instalar', 'instal', 'montagem', 'montar'],
+    'execucao': ['execucao', 'executar', 'exec'],
+    'anotacao': ['anotacao', 'anotar', 'anot'],
+    'responsabilidade': ['responsabilidade', 'resp'],
+    'tecnica': ['tecnica', 'tec', 'tecnico'],
+  };
+
   // Função para normalizar texto (remover acentos, espaços extras, etc)
   const normalizeText = (text: string): string => {
     return text
@@ -54,12 +64,37 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       .trim();
   };
 
+  // Função para detectar siglas importantes (palavras curtas em maiúsculas)
+  const detectAcronyms = (text: string): string[] => {
+    const matches = text.match(/\b[A-Z]{2,}\b/g);
+    return matches ? matches.map(m => m.toLowerCase()) : [];
+  };
+
   // Função para extrair tokens importantes (palavras-chave individuais)
   const extractKeyTokens = (text: string): string[] => {
     const normalized = normalizeText(text);
+    const acronyms = detectAcronyms(text);
     const words = normalized.split(" ");
-    // Considera palavras com 2+ caracteres ou siglas importantes
-    return words.filter(word => word.length >= 2);
+    
+    // Remove stopwords comuns
+    const stopwords = ['de', 'da', 'do', 'em', 'para', 'com', 'e', 'ou', 'a', 'o', 'os', 'as'];
+    const filteredWords = words.filter(word => 
+      word.length >= 2 && !stopwords.includes(word)
+    );
+    
+    // Combina palavras filtradas com siglas detectadas
+    return [...new Set([...filteredWords, ...acronyms])];
+  };
+
+  // Função para expandir sinônimos
+  const expandSynonyms = (word: string): string[] => {
+    const normalized = normalizeText(word);
+    for (const [key, synonyms] of Object.entries(commonSynonyms)) {
+      if (synonyms.some(syn => normalizeText(syn) === normalized)) {
+        return synonyms;
+      }
+    }
+    return [word];
   };
 
   // Função para calcular similaridade entre duas strings
@@ -67,24 +102,64 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
     const s1 = normalizeText(str1);
     const s2 = normalizeText(str2);
     
-    // Verifica se uma string contém a outra
-    if (s1.includes(s2) || s2.includes(s1)) return 0.9;
+    // Verifica correspondência exata
+    if (s1 === s2) return 1.0;
+    
+    // Verifica se uma string contém a outra completamente
+    if (s1.includes(s2) || s2.includes(s1)) return 0.95;
     
     // Extrai tokens importantes de ambas as strings
     const tokens1 = extractKeyTokens(str1);
     const tokens2 = extractKeyTokens(str2);
     
-    // Conta tokens em comum
-    const commonTokens = tokens1.filter(token => tokens2.includes(token));
+    // Detecta siglas em ambas
+    const acronyms1 = detectAcronyms(str1);
+    const acronyms2 = detectAcronyms(str2);
+    
+    // Se houver siglas em comum, aumenta muito a pontuação
+    const commonAcronyms = acronyms1.filter(acr => acronyms2.includes(acr));
+    if (commonAcronyms.length > 0) {
+      return 0.9; // Alta confiança quando siglas importantes coincidem
+    }
+    
+    // Expande tokens com sinônimos
+    const expandedTokens1: string[] = [];
+    tokens1.forEach(token => {
+      expandedTokens1.push(...expandSynonyms(token));
+    });
+    
+    const expandedTokens2: string[] = [];
+    tokens2.forEach(token => {
+      expandedTokens2.push(...expandSynonyms(token));
+    });
+    
+    // Conta tokens em comum (considerando sinônimos)
+    const commonTokens = expandedTokens1.filter(token => 
+      expandedTokens2.includes(token)
+    );
     
     if (commonTokens.length === 0) return 0;
     
-    // Dá peso maior para tokens curtos importantes (como "ART", "PVC", etc)
-    const shortTokenMatches = commonTokens.filter(token => token.length <= 4).length;
+    // Calcula score base
     const baseScore = commonTokens.length / Math.max(tokens1.length, tokens2.length);
-    const shortTokenBonus = shortTokenMatches > 0 ? 0.2 : 0;
     
-    return Math.min(baseScore + shortTokenBonus, 1.0);
+    // Bônus para tokens curtos importantes (2-4 caracteres, geralmente siglas ou termos técnicos)
+    const shortTokenMatches = commonTokens.filter(token => 
+      token.length >= 2 && token.length <= 4
+    ).length;
+    const shortTokenBonus = shortTokenMatches > 0 ? 0.15 : 0;
+    
+    // Bônus se a ordem das palavras principais for similar
+    let orderBonus = 0;
+    if (tokens1.length >= 2 && tokens2.length >= 2) {
+      const firstTokenMatch = tokens1[0] === tokens2[0];
+      const lastTokenMatch = tokens1[tokens1.length - 1] === tokens2[tokens2.length - 1];
+      if (firstTokenMatch || lastTokenMatch) {
+        orderBonus = 0.1;
+      }
+    }
+    
+    return Math.min(baseScore + shortTokenBonus + orderBonus, 1.0);
   };
 
   // Função para buscar material correspondente
