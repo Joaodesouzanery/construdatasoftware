@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Download, Save, CheckCircle, AlertCircle, Search } from "lucide-react";
+import { Upload, Download, Save, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,16 +28,15 @@ interface ProcessedItem {
   description: string;
   quantity: number;
   unit: string;
-  unit_price: number; // Preço unitário total (da Gestão de Preços)
+  unit_price: number;
   unit_price_material: number;
   unit_price_labor: number;
   total: number;
   material_id: string | null;
-  material_name?: string; // Nome do material encontrado
+  material_name?: string;
   matched: boolean;
-  confidence?: number;
-  match_type?: string; // Tipo de match: Exato, Alta, Média, Baixa
-  originalRow?: any; // Armazena a linha original da planilha
+  match_type?: string; // Status: 'Encontrado' ou 'Preço não encontrado' ou 'Não buscado'
+  originalRow?: any;
 }
 
 export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: SpreadsheetUploadDialogProps) => {
@@ -51,16 +50,6 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Mapeamento de variações e sinônimos comuns
-  const commonSynonyms: Record<string, string[]> = {
-    'fornecimento': ['fornecimento', 'fornecer', 'fornec'],
-    'instalacao': ['instalacao', 'instalar', 'instal', 'montagem', 'montar'],
-    'execucao': ['execucao', 'executar', 'exec'],
-    'anotacao': ['anotacao', 'anotar', 'anot'],
-    'responsabilidade': ['responsabilidade', 'resp'],
-    'tecnica': ['tecnica', 'tec', 'tecnico'],
-  };
-
   // Função para normalizar texto (remover acentos, espaços extras, etc)
   const normalizeText = (text: string): string => {
     return text
@@ -71,198 +60,40 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       .trim();
   };
 
-  // Função para detectar siglas importantes (palavras curtas em maiúsculas)
-  const detectAcronyms = (text: string): string[] => {
-    const matches = text.match(/\b[A-Z]{2,}\b/g);
-    return matches ? matches.map(m => m.toLowerCase()) : [];
-  };
-
-  // Função para extrair tokens importantes (palavras-chave individuais)
-  const extractKeyTokens = (text: string): string[] => {
-    const normalized = normalizeText(text);
-    const acronyms = detectAcronyms(text);
-    const words = normalized.split(" ");
-    
-    // Remove stopwords comuns
-    const stopwords = ['de', 'da', 'do', 'em', 'para', 'com', 'e', 'ou', 'a', 'o', 'os', 'as'];
-    const filteredWords = words.filter(word => 
-      word.length >= 2 && !stopwords.includes(word)
-    );
-    
-    // Combina palavras filtradas com siglas detectadas
-    return [...new Set([...filteredWords, ...acronyms])];
-  };
-
-  // Função para expandir sinônimos
-  const expandSynonyms = (word: string): string[] => {
-    const normalized = normalizeText(word);
-    for (const [key, synonyms] of Object.entries(commonSynonyms)) {
-      if (synonyms.some(syn => normalizeText(syn) === normalized)) {
-        return synonyms;
-      }
-    }
-    return [word];
-  };
-
-  // Função para calcular similaridade entre duas strings
-  const calculateSimilarity = (str1: string, str2: string): number => {
-    const s1 = normalizeText(str1);
-    const s2 = normalizeText(str2);
-    
-    // Verifica correspondência exata
-    if (s1 === s2) return 1.0;
-    
-    // Verifica se uma string contém a outra completamente
-    if (s1.includes(s2) || s2.includes(s1)) return 0.95;
-    
-    // Extrai tokens importantes de ambas as strings
-    const tokens1 = extractKeyTokens(str1);
-    const tokens2 = extractKeyTokens(str2);
-    
-    // Detecta siglas em ambas
-    const acronyms1 = detectAcronyms(str1);
-    const acronyms2 = detectAcronyms(str2);
-    
-    // Se houver siglas em comum, aumenta muito a pontuação
-    const commonAcronyms = acronyms1.filter(acr => acronyms2.includes(acr));
-    if (commonAcronyms.length > 0) {
-      return 0.9; // Alta confiança quando siglas importantes coincidem
-    }
-    
-    // Expande tokens com sinônimos
-    const expandedTokens1: string[] = [];
-    tokens1.forEach(token => {
-      expandedTokens1.push(...expandSynonyms(token));
-    });
-    
-    const expandedTokens2: string[] = [];
-    tokens2.forEach(token => {
-      expandedTokens2.push(...expandSynonyms(token));
-    });
-    
-    // Conta tokens em comum (considerando sinônimos)
-    const commonTokens = expandedTokens1.filter(token => 
-      expandedTokens2.includes(token)
-    );
-    
-    if (commonTokens.length === 0) return 0;
-    
-    // Calcula score base
-    const baseScore = commonTokens.length / Math.max(tokens1.length, tokens2.length);
-    
-    // Bônus para tokens curtos importantes (2-4 caracteres, geralmente siglas ou termos técnicos)
-    const shortTokenMatches = commonTokens.filter(token => 
-      token.length >= 2 && token.length <= 4
-    ).length;
-    const shortTokenBonus = shortTokenMatches > 0 ? 0.15 : 0;
-    
-    // Bônus se a ordem das palavras principais for similar
-    let orderBonus = 0;
-    if (tokens1.length >= 2 && tokens2.length >= 2) {
-      const firstTokenMatch = tokens1[0] === tokens2[0];
-      const lastTokenMatch = tokens1[tokens1.length - 1] === tokens2[tokens2.length - 1];
-      if (firstTokenMatch || lastTokenMatch) {
-        orderBonus = 0.1;
-      }
-    }
-    
-    return Math.min(baseScore + shortTokenBonus + orderBonus, 1.0);
-  };
-
-  // Função para buscar material correspondente
-  const findMatchingMaterial = async (description: string, unit?: string) => {
+  // Função SIMPLIFICADA para buscar material correspondente
+  const findMatchingMaterial = async (description: string) => {
     const { data: materials } = await supabase
       .from('materials')
       .select('*');
     
-    const { data: customKeywords } = await supabase
-      .from('custom_keywords')
-      .select('*');
-    
     if (!materials || materials.length === 0) return null;
 
-    // Busca exata primeiro
+    const normalizedDescription = normalizeText(description);
+
+    // 1. BUSCA EXATA: igualdade direta
     const exactMatch = materials.find(m => 
-      normalizeText(m.name) === normalizeText(description)
+      normalizeText(m.name) === normalizedDescription
     );
-    if (exactMatch) return { material: exactMatch, confidence: 1.0 };
-
-    // Extrai tokens da descrição buscada
-    const descriptionTokens = extractKeyTokens(description);
-
-    // Busca por similaridade considerando nome, descrição e palavras-chave
-    let bestMatch = null;
-    let bestSimilarity = 0;
-
-    for (const material of materials) {
-      let maxSimilarity = 0;
-
-      // Similaridade com nome
-      const nameSimilarity = calculateSimilarity(material.name, description);
-      maxSimilarity = Math.max(maxSimilarity, nameSimilarity);
-
-      // Similaridade com descrição
-      if (material.description) {
-        const descSimilarity = calculateSimilarity(material.description, description);
-        maxSimilarity = Math.max(maxSimilarity, descSimilarity);
-      }
-
-      // Similaridade com palavras-chave do material
-      if (material.keywords && Array.isArray(material.keywords)) {
-        for (const keyword of material.keywords) {
-          const keywordSimilarity = calculateSimilarity(keyword, description);
-          maxSimilarity = Math.max(maxSimilarity, keywordSimilarity);
-
-          // Busca por tokens individuais das keywords
-          const keywordTokens = extractKeyTokens(keyword);
-          const matchingTokens = descriptionTokens.filter(token => 
-            keywordTokens.includes(token)
-          );
-          if (matchingTokens.length > 0) {
-            const tokenScore = matchingTokens.length / Math.max(keywordTokens.length, 1);
-            maxSimilarity = Math.max(maxSimilarity, tokenScore * 0.85);
-          }
-        }
-      }
-
-      // Similaridade com custom keywords e sinônimos
-      if (customKeywords) {
-        for (const ck of customKeywords) {
-          const ckSimilarity = calculateSimilarity(ck.keyword_value, description);
-          maxSimilarity = Math.max(maxSimilarity, ckSimilarity);
-
-          // Verifica sinônimos
-          if (ck.synonyms && Array.isArray(ck.synonyms)) {
-            for (const synonym of ck.synonyms) {
-              const synSimilarity = calculateSimilarity(synonym, description);
-              maxSimilarity = Math.max(maxSimilarity, synSimilarity);
-
-              // Busca por tokens nos sinônimos
-              const synonymTokens = extractKeyTokens(synonym);
-              const matchingTokens = descriptionTokens.filter(token => 
-                synonymTokens.includes(token)
-              );
-              if (matchingTokens.length > 0) {
-                const tokenScore = matchingTokens.length / Math.max(synonymTokens.length, 1);
-                maxSimilarity = Math.max(maxSimilarity, tokenScore * 0.85);
-              }
-            }
-          }
-        }
-      }
-      
-      // Considera correspondência de unidade
-      const unitMatch = !unit || !material.unit || 
-        normalizeText(material.unit) === normalizeText(unit);
-      const finalSimilarity = unitMatch ? maxSimilarity : maxSimilarity * 0.8;
-
-      if (finalSimilarity > bestSimilarity && finalSimilarity > 0.5) {
-        bestSimilarity = finalSimilarity;
-        bestMatch = material;
-      }
+    if (exactMatch) {
+      console.log(`[MATCH EXATO] ${description} → ${exactMatch.name}`);
+      return { material: exactMatch, matchType: 'Exato' };
     }
 
-    return bestMatch ? { material: bestMatch, confidence: bestSimilarity } : null;
+    // 2. BUSCA PARCIAL: nome do material contido na descrição OU vice-versa
+    const partialMatch = materials.find(m => {
+      const normalizedMaterialName = normalizeText(m.name);
+      return normalizedDescription.includes(normalizedMaterialName) || 
+             normalizedMaterialName.includes(normalizedDescription);
+    });
+    
+    if (partialMatch) {
+      console.log(`[MATCH PARCIAL] ${description} → ${partialMatch.name}`);
+      return { material: partialMatch, matchType: 'Parcial' };
+    }
+
+    // 3. NÃO ENCONTRADO
+    console.log(`[SEM MATCH] ${description}`);
+    return null;
   };
 
   const importMutation = useMutation({
@@ -451,7 +282,6 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
           total: 0,
           material_id: null,
           matched: false,
-          confidence: 0,
           match_type: 'Não buscado',
           originalRow: rowData
         });
@@ -523,16 +353,17 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
     setIsSearchingPrices(true);
     try {
       const updatedItems: ProcessedItem[] = [];
-      let matchedCount = 0;
+      let foundCount = 0;
+      let notFoundCount = 0;
 
       for (const item of processedItems) {
-        // Busca material correspondente
-        const match = await findMatchingMaterial(item.description, item.unit);
+        // Busca material correspondente (exato ou parcial)
+        const match = await findMatchingMaterial(item.description);
         
-        if (match && match.confidence > 0.6) {
+        if (match) {
           const material = match.material;
           
-          // PRIORIDADE: current_price da Gestão de Preços (campo "Novo Preço")
+          // Obtém preço: prioridade para current_price
           const baseMaterialPrice = (material.material_price ?? 0) as number;
           const baseLaborPrice = (material.labor_price ?? 0) as number;
           const computedFallbackPrice = baseMaterialPrice + baseLaborPrice;
@@ -540,25 +371,8 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
             ? material.current_price
             : computedFallbackPrice) || 0;
 
-          // Determina tipo de match por similaridade de texto
-          let matchType = 'Baixa';
-          if (match.confidence >= 0.95) matchType = 'Exata';
-          else if (match.confidence >= 0.8) matchType = 'Alta';
-          else if (match.confidence >= 0.65) matchType = 'Média';
-          
-          // Se ainda assim não houver preço (> 0), consideramos que falta preço na Gestão de Preços
           const hasValidPrice = unitPrice > 0;
 
-          console.log(`[MATCH] ${item.description}`, {
-            matched_id: material.id,
-            matched_name: material.name,
-            confidence: match.confidence.toFixed(2),
-            match_type: matchType,
-            unit_price: unitPrice,
-            total: item.quantity * unitPrice,
-            action: hasValidPrice ? 'price_filled' : 'price_missing_in_master'
-          });
-          
           updatedItems.push({
             ...item,
             unit_price: hasValidPrice ? unitPrice : 0,
@@ -567,33 +381,28 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
             total: hasValidPrice ? item.quantity * unitPrice : 0,
             material_id: material.id,
             material_name: material.name,
-            // Só marcamos como "precificado" quando há preço > 0
             matched: hasValidPrice,
-            confidence: match.confidence,
-            match_type: hasValidPrice ? matchType : 'Sem preço na Gestão de Preços',
+            match_type: hasValidPrice ? 'Encontrado' : 'Preço não encontrado',
           });
           
-          if (hasValidPrice) matchedCount++;
+          if (hasValidPrice) foundCount++;
+          else notFoundCount++;
         } else {
-          console.log(`[NO MATCH] ${item.description}`, {
-            confidence: match?.confidence ?? 0,
-            action: 'user_selection_required'
-          });
-          
+          // Não encontrou correspondência
           updatedItems.push({
             ...item,
             matched: false,
-            confidence: match?.confidence ?? 0,
-            match_type: 'Sem match',
+            match_type: 'Preço não encontrado',
           });
+          notFoundCount++;
         }
       }
 
       setProcessedItems(updatedItems);
       
       toast({
-        title: "Busca concluída",
-        description: `${matchedCount} de ${updatedItems.length} itens precificados automaticamente.`,
+        title: "Precificação concluída",
+        description: `${foundCount} itens precificados e ${notFoundCount} não encontrados.`,
       });
 
     } catch (error: any) {
@@ -624,11 +433,6 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         exportRow['Preço Total (R$)'] = item.total.toFixed(2);
         exportRow['Status Precificação'] = item.matched ? 'Precificado Automaticamente' : 'Aguardando Preço';
         exportRow['Match'] = item.match_type || '';
-        
-        // Se houver confiança, adiciona
-        if (item.confidence) {
-          exportRow['Confiança (%)'] = (item.confidence * 100).toFixed(0) + '%';
-        }
         
         return exportRow;
       });
@@ -749,31 +553,19 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Status</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead>Material Encontrado</TableHead>
-                    <TableHead>Qtd</TableHead>
-                    <TableHead>Un</TableHead>
+                    <TableHead>Quantidade</TableHead>
+                    <TableHead>Unidade</TableHead>
                     <TableHead>Preço Unitário</TableHead>
                     <TableHead>Preço Total</TableHead>
-                    <TableHead>Match</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {processedItems.map((item, index) => (
                     <TableRow key={index}>
-                      <TableCell>
-                        {item.matched ? (
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-yellow-500" />
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium max-w-xs truncate" title={item.description}>
+                      <TableCell className="font-medium max-w-xs" title={item.description}>
                         {item.description}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {item.material_name || '-'}
                       </TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell>{item.unit}</TableCell>
@@ -787,15 +579,9 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={
-                            item.match_type === 'Exata' ? 'default' : 
-                            item.match_type === 'Alta' ? 'secondary' : 
-                            item.match_type === 'Média' ? 'outline' : 
-                            'destructive'
-                          }
+                          variant={item.match_type === 'Encontrado' ? 'default' : 'destructive'}
                         >
-                          {item.match_type || '-'}
-                          {item.confidence && item.confidence > 0 && ` (${(item.confidence * 100).toFixed(0)}%)`}
+                          {item.match_type || 'Não buscado'}
                         </Badge>
                       </TableCell>
                     </TableRow>
