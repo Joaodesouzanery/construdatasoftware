@@ -127,13 +127,52 @@ const BudgetPricing = () => {
 
     setIsProcessing(true);
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      let jsonData: any[] = [];
+
+      // Verifica se é PDF
+      if (file.type === 'application/pdf') {
+        console.log('Processing PDF file...');
+        
+        // Converte PDF para base64
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ''
+          )
+        );
+
+        // Chama edge function para extrair dados do PDF
+        const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
+          'extract-pdf-data',
+          {
+            body: { pdfBase64: base64 }
+          }
+        );
+
+        if (pdfError) {
+          throw new Error(`Erro ao processar PDF: ${pdfError.message}`);
+        }
+
+        if (!pdfData?.items || pdfData.items.length === 0) {
+          throw new Error('Nenhum dado encontrado no PDF');
+        }
+
+        jsonData = pdfData.items;
+        console.log('PDF processed successfully:', jsonData.length, 'items found');
+        
+      } else {
+        // Processa arquivo Excel
+        console.log('Processing Excel file...');
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log('Excel processed:', jsonData.length, 'rows found');
+      }
 
       if (!jsonData || jsonData.length === 0) {
-        throw new Error("A planilha está vazia");
+        throw new Error("O arquivo está vazio ou não pôde ser lido");
       }
 
       const findColumnValue = (row: any, variations: string[]): string => {
@@ -347,7 +386,7 @@ const BudgetPricing = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Precificação');
     
-    const fileName = file?.name.replace(/\.(xlsx|xls)$/i, '') || 'orcamento';
+    const fileName = file?.name.replace(/\.(xlsx|xls|pdf)$/i, '') || 'orcamento';
     XLSX.writeFile(wb, `${fileName}_precificado_${new Date().getTime()}.xlsx`);
 
     toast({
@@ -375,7 +414,7 @@ const BudgetPricing = () => {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Precificação de Planilhas</h1>
-            <p className="text-muted-foreground">Importe uma planilha e busque preços automaticamente</p>
+            <p className="text-muted-foreground">Importe uma planilha (Excel ou PDF) e busque preços automaticamente</p>
           </div>
         </div>
 
@@ -383,15 +422,17 @@ const BudgetPricing = () => {
           <div className="space-y-6 max-w-2xl">
             <div className="space-y-4 p-6 border rounded-lg bg-card">
               <div className="space-y-2">
-                <Label htmlFor="file">Arquivo da Planilha (.xlsx, .xls)</Label>
+                <Label htmlFor="file">Arquivo da Planilha (.xlsx, .xls, .pdf)</Label>
                 <Input
                   id="file"
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx,.xls,.pdf"
                   onChange={handleFileChange}
                 />
                 <p className="text-sm text-muted-foreground">
-                  A planilha deve conter: <strong>Descrição</strong>, <strong>Quantidade</strong> e <strong>Unidade</strong>
+                  O arquivo deve conter: <strong>Descrição</strong>, <strong>Quantidade</strong> e <strong>Unidade</strong>
+                  <br />
+                  <strong>Formatos aceitos:</strong> Excel (.xlsx, .xls) ou PDF
                 </p>
               </div>
 
