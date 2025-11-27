@@ -77,18 +77,29 @@ export const CreateBudgetDialog = ({ open, onOpenChange, budget }: CreateBudgetD
           .update(data)
           .eq('id', budget.id);
         if (error) throw error;
+        return budget.id;
       } else {
-        const { error } = await supabase.from('budgets').insert({
+        const { data: newBudget, error } = await supabase.from('budgets').insert({
           ...data,
           created_by_user_id: user.id
-        });
+        }).select().single();
         if (error) throw error;
+        return newBudget.id;
       }
     },
-    onSuccess: () => {
+    onSuccess: (budgetId) => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      toast({ title: budget?.id ? "Orçamento atualizado!" : "Orçamento criado!" });
-      onOpenChange(false);
+      if (!budget?.id) {
+        // Se é um novo orçamento, recarrega com o ID para poder importar planilha
+        queryClient.setQueryData(['current-budget'], budgetId);
+      }
+      toast({ title: budget?.id ? "Orçamento atualizado!" : "Orçamento criado! Agora você pode importar a planilha." });
+      if (!budget?.id) {
+        // Mantém o diálogo aberto para permitir importar planilha
+        queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      } else {
+        onOpenChange(false);
+      }
     },
     onError: (error: any) => {
       toast({
@@ -234,16 +245,14 @@ export const CreateBudgetDialog = ({ open, onOpenChange, budget }: CreateBudgetD
                     <FileDown className="h-4 w-4 mr-2" />
                     PDF
                   </Button>
-                  <div className="flex gap-2">
-                    <Button onClick={() => setIsAddItemOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Item
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsUploadOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Importar Planilha
-                    </Button>
-                  </div>
+                  <Button onClick={() => setIsAddItemOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Item
+                  </Button>
+                  <Button variant="secondary" onClick={() => setIsUploadOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Importar Planilha
+                  </Button>
                 </div>
               </div>
 
