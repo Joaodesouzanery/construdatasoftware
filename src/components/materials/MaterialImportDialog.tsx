@@ -27,6 +27,7 @@ interface ExtractedMaterial {
   name: string;
   description?: string;
   unit: string;
+  quantity?: number;
   current_price?: number;
   category?: string;
   supplier?: string;
@@ -60,6 +61,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         description: material.description || null,
         unit: material.unit,
         current_price: material.current_price || 0,
+        current_stock: material.quantity || null,
         category: material.category || null,
         supplier: material.supplier || null,
         created_by_user_id: user.id,
@@ -179,6 +181,12 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           'unidade', 'unit', 'un', 'und', 'medida'
         ]) || 'UN';
 
+        // Busca quantidade (opcional)
+        const quantityStr = findColumnValue(rowData, [
+          'quantidade', 'qtd', 'qty', 'quantity', 'quant', 'amount'
+        ]);
+        const quantity = quantityStr ? parseFloat(quantityStr.replace(',', '.')) : undefined;
+
         // Busca preço (opcional)
         const priceStr = findColumnValue(rowData, [
           'preco', 'price', 'valor', 'value', 'custo', 'cost'
@@ -205,6 +213,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           name,
           description: name, // Usa o nome como descrição também
           unit,
+          quantity,
           current_price: price,
           category,
           supplier,
@@ -288,7 +297,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                 <br />
                 <strong>• Unidade</strong> (obrigatório)
                 <br />
-                <strong>• Preço, Categoria, Fornecedor</strong> (opcionais)
+                <strong>• Quantidade, Preço, Categoria, Fornecedor</strong> (opcionais)
                 <br />
                 <br />
                 {file?.type === 'application/pdf' && (
@@ -329,6 +338,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                   <TableRow>
                     <TableHead>Nome/Descrição</TableHead>
                     <TableHead>Unidade</TableHead>
+                    <TableHead>Quantidade</TableHead>
                     <TableHead>Preço</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Fornecedor</TableHead>
@@ -342,6 +352,13 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                         {material.name}
                       </TableCell>
                       <TableCell>{material.unit}</TableCell>
+                      <TableCell>
+                        {material.quantity ? (
+                          material.quantity.toFixed(2)
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {material.current_price ? (
                           `R$ ${material.current_price.toFixed(2)}`
