@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -61,6 +61,7 @@ const budgetItems = [
 
 const settingsItems = [
   { title: "Backup", url: "/backup", icon: Archive },
+  { title: "Suporte", url: "/support", icon: HeadphonesIcon },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 

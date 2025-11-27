@@ -43,6 +43,7 @@ import QRCodeMaintenance from "./pages/features/QRCodeMaintenance";
 import ConnectionReportsFeature from "./pages/features/ConnectionReportsFeature";
 import Admin from "./pages/Admin";
 import Backup from "./pages/Backup";
+import Support from "./pages/Support";
 import Materials from "./pages/Materials";
 import MaterialsDashboard from "./pages/MaterialsDashboard";
 import Budgets from "./pages/Budgets";
@@ -112,6 +113,7 @@ const AppContent = () => {
         {/* Admin and System routes */}
         <Route path="/admin" element={<Admin />} />
         <Route path="/backup" element={<Backup />} />
+        <Route path="/support" element={<Support />} />
         
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
