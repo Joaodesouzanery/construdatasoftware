@@ -26,7 +26,7 @@ const Prices = () => {
           
           <Button onClick={() => setShowImportDialog(true)}>
             <Upload className="h-4 w-4 mr-2" />
-            Importar Planilha
+            Identificar novos materiais
           </Button>
         </div>
 
