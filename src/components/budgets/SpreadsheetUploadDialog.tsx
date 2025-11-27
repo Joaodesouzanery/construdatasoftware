@@ -184,10 +184,47 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
 
     setIsProcessing(true);
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      let jsonData: any[] = [];
+
+      // Verifica se é PDF
+      if (file.type === 'application/pdf') {
+        console.log('Processing PDF file...');
+        
+        // Converte PDF para base64
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ''
+          )
+        );
+
+        // Chama edge function para extrair dados do PDF
+        const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
+          'extract-pdf-data',
+          {
+            body: { pdfBase64: base64 }
+          }
+        );
+
+        if (pdfError) {
+          throw new Error(`Erro ao processar PDF: ${pdfError.message}`);
+        }
+
+        if (!pdfData?.items || pdfData.items.length === 0) {
+          throw new Error('Nenhum dado encontrado no PDF');
+        }
+
+        jsonData = pdfData.items;
+        console.log('PDF processed successfully:', jsonData.length, 'items found');
+        
+      } else {
+        // Processa arquivo Excel
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        jsonData = XLSX.utils.sheet_to_json(worksheet);
+      }
 
       if (!jsonData || jsonData.length === 0) {
         throw new Error("A planilha está vazia ou não pôde ser lida");
@@ -372,11 +409,11 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         {!showReview ? (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="file">Arquivo da Planilha (.xlsx, .xls)</Label>
+              <Label htmlFor="file">Arquivo da Planilha (.xlsx, .xls, .pdf)</Label>
               <Input
                 id="file"
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.pdf"
                 onChange={handleFileChange}
                 className="mt-2"
               />
@@ -389,6 +426,10 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                 <br />
                 <strong>• Unidade</strong> (ou Un, Und) - opcional, padrão: UN
                 <br />
+                <br />
+                <strong>Formatos aceitos:</strong> Excel (.xlsx, .xls) ou PDF
+                <br />
+                Para PDFs, o sistema usa IA para extrair os dados automaticamente.
                 <br />
                 O sistema buscará preços automaticamente na Gestão de Preços.
               </p>
