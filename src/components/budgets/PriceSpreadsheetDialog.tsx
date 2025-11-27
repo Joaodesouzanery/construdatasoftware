@@ -62,57 +62,71 @@ export const PriceSpreadsheetDialog = ({ open, onOpenChange }: PriceSpreadsheetD
   };
 
   const matchMaterial = (description: string, catalogedMaterials: any[]) => {
-    const descLower = description.toLowerCase().trim();
-    if (!descLower) return null;
-    
-    // Normalizar descrição removendo caracteres especiais e espaços extras
-    const normalizeText = (text: string) => 
-      text.toLowerCase()
-        .replace(/[^\w\s]/g, ' ')
-        .replace(/\s+/g, ' ')
+    const normalizeText = (text: string) =>
+      text
+        .toLowerCase()
+        .normalize("NFD") // remove acentos
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\w\s]/g, " ")
+        .replace(/\s+/g, " ")
         .trim();
-    
-    const descNormalized = normalizeText(descLower);
-    const descWords = descNormalized.split(' ').filter(w => w.length > 2);
-    
+
+    if (!description) return null;
+
+    const descNormalized = normalizeText(description);
+    if (!descNormalized) return null;
+
+    const descWords = descNormalized.split(" ").filter((w) => w.length > 2);
+
     let bestMatch: any = null;
     let bestConfidence = 0;
-    
+
     for (const material of catalogedMaterials) {
-      const nameLower = material.name.toLowerCase();
-      const nameNormalized = normalizeText(nameLower);
-      
+      const nameNormalized = normalizeText(material.name || "");
+
       // 1. Match exato (confiança 95%)
-      if (descNormalized === nameNormalized || descLower === nameLower) {
+      if (descNormalized === nameNormalized) {
         return {
           ...material,
-          confidence: 95
+          confidence: 95,
         };
       }
-      
+
       // 2. Match por nome contido (confiança 90%)
-      if (descNormalized.includes(nameNormalized) || nameNormalized.includes(descNormalized)) {
+      if (
+        nameNormalized &&
+        (descNormalized.includes(nameNormalized) ||
+          nameNormalized.includes(descNormalized))
+      ) {
         if (90 > bestConfidence) {
           bestMatch = material;
           bestConfidence = 90;
         }
       }
-      
+
       // 3. Match por keywords/sinônimos (confiança 85-88%)
       if (material.keywords && Array.isArray(material.keywords)) {
         for (const keyword of material.keywords) {
           const keywordNormalized = normalizeText(keyword);
-          
+
+          if (!keywordNormalized) continue;
+
           // Match exato de keyword
-          if (descNormalized === keywordNormalized || descLower.includes(keyword.toLowerCase())) {
+          if (
+            descNormalized === keywordNormalized ||
+            descNormalized.includes(keywordNormalized)
+          ) {
             if (88 > bestConfidence) {
               bestMatch = material;
               bestConfidence = 88;
             }
           }
-          
+
           // Keyword parcial
-          if (descNormalized.includes(keywordNormalized) || keywordNormalized.includes(descNormalized)) {
+          if (
+            descNormalized.includes(keywordNormalized) ||
+            keywordNormalized.includes(descNormalized)
+          ) {
             if (85 > bestConfidence) {
               bestMatch = material;
               bestConfidence = 85;
@@ -120,42 +134,47 @@ export const PriceSpreadsheetDialog = ({ open, onOpenChange }: PriceSpreadsheetD
           }
         }
       }
-      
+
       // 4. Match por palavras individuais (confiança baseada em % de match)
-      const nameWords = nameNormalized.split(' ').filter(w => w.length > 2);
-      
+      const nameWords = nameNormalized.split(" ").filter((w) => w.length > 2);
+
       if (nameWords.length > 0 && descWords.length > 0) {
-        const matchedWords = nameWords.filter(nameWord => 
-          descWords.some(descWord => 
-            descWord.includes(nameWord) || nameWord.includes(descWord)
+        const matchedWords = nameWords.filter((nameWord) =>
+          descWords.some(
+            (descWord) =>
+              descWord.includes(nameWord) || nameWord.includes(descWord)
           )
         );
-        
+
         const matchPercentage = matchedWords.length / nameWords.length;
         const confidence = Math.round(matchPercentage * 80); // Max 80%
-        
+
         if (confidence >= 50 && confidence > bestConfidence) {
           bestMatch = material;
           bestConfidence = confidence;
         }
       }
-      
+
       // 5. Match por palavras da descrição (invertido - confiança 60-75%)
-      if (descWords.length > 0) {
-        const matchedDescWords = descWords.filter(descWord =>
+      if (descWords.length > 0 && nameNormalized) {
+        const matchedDescWords = descWords.filter((descWord) =>
           nameNormalized.includes(descWord)
         );
-        
+
         const matchPercentage = matchedDescWords.length / descWords.length;
         const confidence = Math.round(matchPercentage * 75); // Max 75%
-        
+
         if (confidence >= 50 && confidence > bestConfidence) {
           bestMatch = material;
           bestConfidence = confidence;
         }
       }
     }
-    
+
+    if (!bestMatch) {
+      console.debug("Material não encontrado para descrição:", description);
+    }
+
     return bestMatch ? { ...bestMatch, confidence: bestConfidence } : null;
   };
 
