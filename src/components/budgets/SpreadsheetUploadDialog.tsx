@@ -34,6 +34,7 @@ interface ProcessedItem {
   material_id: string | null;
   matched: boolean;
   confidence?: number;
+  originalRow?: any; // Armazena a linha original da planilha
 }
 
 export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: SpreadsheetUploadDialogProps) => {
@@ -41,6 +42,8 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
   const [showReview, setShowReview] = useState(false);
+  const [originalData, setOriginalData] = useState<any[]>([]); // Armazena dados originais
+  const [columnMapping, setColumnMapping] = useState<any>({}); // Mapeia colunas originais
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -430,9 +433,13 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         
         if (match && match.confidence > 0.6) {
           const material = match.material;
+          // Usa o current_price como base, ou soma material_price + labor_price como fallback
           const materialPrice = material.material_price || 0;
           const laborPrice = material.labor_price || 0;
-          const totalPrice = materialPrice + laborPrice;
+          const currentPrice = material.current_price || 0;
+          
+          // Se current_price existe, usa ele; senão, usa a soma
+          const unitPrice = currentPrice > 0 ? currentPrice : (materialPrice + laborPrice);
           
           items.push({
             description,
@@ -440,10 +447,11 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
             unit,
             unit_price_material: materialPrice,
             unit_price_labor: laborPrice,
-            total: quantity * totalPrice,
+            total: quantity * unitPrice,
             material_id: material.id,
             matched: true,
-            confidence: match.confidence
+            confidence: match.confidence,
+            originalRow: rowData
           });
         } else {
           // Material não encontrado
@@ -455,7 +463,8 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
             unit_price_labor: 0,
             total: 0,
             material_id: null,
-            matched: false
+            matched: false,
+            originalRow: rowData
           });
         }
       }
@@ -482,6 +491,31 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         });
       }
 
+      // Armazena dados originais para exportação
+      setOriginalData(jsonData);
+      
+      // Mapeia colunas encontradas
+      if (jsonData.length > 0) {
+        const firstRow = jsonData[0];
+        const mapping: any = {};
+        
+        Object.keys(firstRow).forEach(key => {
+          const normalizedKey = normalizeText(key);
+          if (normalizedKey.includes('descri') || normalizedKey.includes('item') || 
+              normalizedKey.includes('material') || normalizedKey.includes('servico')) {
+            mapping.description = key;
+          }
+          if (normalizedKey.includes('quant') || normalizedKey.includes('qtd')) {
+            mapping.quantity = key;
+          }
+          if (normalizedKey.includes('unid') || normalizedKey.includes('unit')) {
+            mapping.unit = key;
+          }
+        });
+        
+        setColumnMapping(mapping);
+      }
+      
       setProcessedItems(items);
       setShowReview(true);
     } catch (error: any) {
@@ -500,25 +534,42 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       // Primeiro, salva no backend
       await importMutation.mutateAsync(processedItems);
 
-      // Depois, exporta a planilha
-      const exportData = processedItems.map(item => ({
-        'Descrição': item.description,
-        'Unidade': item.unit,
-        'Quantidade': item.quantity,
-        'Preço Unitário Material': item.unit_price_material.toFixed(2),
-        'Preço Unitário Mão de Obra': item.unit_price_labor.toFixed(2),
-        'Preço Total': item.total.toFixed(2),
-        'Status': item.matched ? 'Precificado' : 'Sem Preço'
-      }));
+      // Exporta no formato original da planilha
+      const exportData = processedItems.map((item, index) => {
+        const originalRow = item.originalRow || {};
+        const exportRow = { ...originalRow };
+        
+        // Adiciona/atualiza colunas de preço
+        exportRow['Preço Unitário Material (R$)'] = item.unit_price_material.toFixed(2);
+        exportRow['Preço Unitário M.O. (R$)'] = item.unit_price_labor.toFixed(2);
+        exportRow['Preço Total (R$)'] = item.total.toFixed(2);
+        exportRow['Status Precificação'] = item.matched ? 'Precificado Automaticamente' : 'Aguardando Preço';
+        
+        // Se houver confiança, adiciona
+        if (item.confidence) {
+          exportRow['Confiança (%)'] = (item.confidence * 100).toFixed(0) + '%';
+        }
+        
+        return exportRow;
+      });
 
       const ws = XLSX.utils.json_to_sheet(exportData);
+      
+      // Auto-ajusta largura das colunas
+      const colWidths = Object.keys(exportData[0] || {}).map(key => ({
+        wch: Math.max(key.length, 15)
+      }));
+      ws['!cols'] = colWidths;
+      
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Orçamento');
-      XLSX.writeFile(wb, `orcamento_${new Date().getTime()}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, 'Orçamento Precificado');
+      
+      const fileName = file?.name.replace(/\.(xlsx|xls|pdf)$/i, '') || 'orcamento';
+      XLSX.writeFile(wb, `${fileName}_precificado_${new Date().getTime()}.xlsx`);
 
       toast({
         title: "Sucesso",
-        description: "Orçamento exportado e salvo no sistema!",
+        description: "Orçamento exportado no formato original com preços adicionados!",
       });
       
       handleClose();
@@ -538,6 +589,8 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
   const handleClose = () => {
     setFile(null);
     setProcessedItems([]);
+    setOriginalData([]);
+    setColumnMapping({});
     setShowReview(false);
     onOpenChange(false);
   };
