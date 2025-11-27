@@ -79,10 +79,45 @@ export const PriceManagementTable = () => {
     }
   });
 
-  const filteredMaterials = materials?.filter(material => 
-    material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    material.brand?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // Função para normalizar texto para busca
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const filteredMaterials = materials?.filter(material => {
+    if (!searchTerm) return true;
+    
+    const search = normalizeText(searchTerm);
+    
+    // Busca em múltiplos campos
+    const matchName = normalizeText(material.name).includes(search);
+    const matchBrand = material.brand ? normalizeText(material.brand).includes(search) : false;
+    const matchCategory = material.category ? normalizeText(material.category).includes(search) : false;
+    const matchSupplier = material.supplier ? normalizeText(material.supplier).includes(search) : false;
+    const matchDescription = material.description ? normalizeText(material.description).includes(search) : false;
+    
+    // Busca em palavras-chave
+    const matchKeywords = material.keywords && Array.isArray(material.keywords) 
+      ? material.keywords.some((kw: string) => normalizeText(kw).includes(search))
+      : false;
+    
+    // Busca em tokens (palavras individuais)
+    const searchTokens = search.split(' ').filter(t => t.length >= 2);
+    const materialText = normalizeText(
+      `${material.name} ${material.brand || ''} ${material.category || ''} ${material.description || ''}`
+    );
+    const matchTokens = searchTokens.length > 0 
+      ? searchTokens.every(token => materialText.includes(token))
+      : false;
+    
+    return matchName || matchBrand || matchCategory || matchSupplier || 
+           matchDescription || matchKeywords || matchTokens;
+  }) || [];
 
   const startEdit = (id: string, currentPrice: number) => {
     setEditingId(id);
