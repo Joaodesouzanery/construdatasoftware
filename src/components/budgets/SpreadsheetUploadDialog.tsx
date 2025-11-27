@@ -445,11 +445,18 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         if (match && match.confidence > 0.6) {
           const material = match.material;
           
-          // PRIORIDADE: current_price da Gestão de Preços
-          const unitPrice = material.current_price || 0;
-          const materialPrice = material.material_price || 0;
-          const laborPrice = material.labor_price || 0;
-          
+          // PRIORIDADE ABSOLUTA: preço unitário oficial da Gestão de Preços
+          // 1) Tenta usar current_price (Preço Total cadastrado na Gestão de Preços)
+          // 2) Se estiver nulo/zero, faz fallback para material_price + labor_price
+          const baseMaterialPrice = (material.material_price ?? 0) as number;
+          const baseLaborPrice = (material.labor_price ?? 0) as number;
+          const computedFallbackPrice = baseMaterialPrice + baseLaborPrice;
+          const unitPrice = (material.current_price && material.current_price > 0
+            ? material.current_price
+            : computedFallbackPrice) || 0;
+          const materialPrice = baseMaterialPrice;
+          const laborPrice = baseLaborPrice;
+
           // Determina tipo de match baseado na confiança
           let matchType = 'Baixa';
           if (match.confidence >= 0.95) matchType = 'Exata';
