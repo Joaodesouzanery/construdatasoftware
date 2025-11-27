@@ -10,10 +10,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.process-alerts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.process-spreadsheet]
 verify_jwt = true
 
 [functions.extract-pdf-data]
-verify_jwt = true
+verify_jwt = false

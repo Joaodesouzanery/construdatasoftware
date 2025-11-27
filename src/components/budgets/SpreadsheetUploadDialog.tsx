@@ -54,6 +54,14 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       .trim();
   };
 
+  // Função para extrair tokens importantes (palavras-chave individuais)
+  const extractKeyTokens = (text: string): string[] => {
+    const normalized = normalizeText(text);
+    const words = normalized.split(" ");
+    // Considera palavras com 2+ caracteres ou siglas importantes
+    return words.filter(word => word.length >= 2);
+  };
+
   // Função para calcular similaridade entre duas strings
   const calculateSimilarity = (str1: string, str2: string): number => {
     const s1 = normalizeText(str1);
@@ -62,20 +70,31 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
     // Verifica se uma string contém a outra
     if (s1.includes(s2) || s2.includes(s1)) return 0.9;
     
-    // Conta palavras em comum
-    const words1 = s1.split(" ");
-    const words2 = s2.split(" ");
-    const commonWords = words1.filter(word => words2.includes(word) && word.length > 2);
+    // Extrai tokens importantes de ambas as strings
+    const tokens1 = extractKeyTokens(str1);
+    const tokens2 = extractKeyTokens(str2);
     
-    if (commonWords.length === 0) return 0;
+    // Conta tokens em comum
+    const commonTokens = tokens1.filter(token => tokens2.includes(token));
     
-    return commonWords.length / Math.max(words1.length, words2.length);
+    if (commonTokens.length === 0) return 0;
+    
+    // Dá peso maior para tokens curtos importantes (como "ART", "PVC", etc)
+    const shortTokenMatches = commonTokens.filter(token => token.length <= 4).length;
+    const baseScore = commonTokens.length / Math.max(tokens1.length, tokens2.length);
+    const shortTokenBonus = shortTokenMatches > 0 ? 0.2 : 0;
+    
+    return Math.min(baseScore + shortTokenBonus, 1.0);
   };
 
   // Função para buscar material correspondente
   const findMatchingMaterial = async (description: string, unit?: string) => {
     const { data: materials } = await supabase
       .from('materials')
+      .select('*');
+    
+    const { data: customKeywords } = await supabase
+      .from('custom_keywords')
       .select('*');
     
     if (!materials || materials.length === 0) return null;
@@ -86,24 +105,76 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
     );
     if (exactMatch) return { material: exactMatch, confidence: 1.0 };
 
-    // Busca por similaridade
+    // Extrai tokens da descrição buscada
+    const descriptionTokens = extractKeyTokens(description);
+
+    // Busca por similaridade considerando nome, descrição e palavras-chave
     let bestMatch = null;
     let bestSimilarity = 0;
 
     for (const material of materials) {
+      let maxSimilarity = 0;
+
+      // Similaridade com nome
       const nameSimilarity = calculateSimilarity(material.name, description);
-      const descSimilarity = material.description 
-        ? calculateSimilarity(material.description, description)
-        : 0;
-      
-      const similarity = Math.max(nameSimilarity, descSimilarity);
+      maxSimilarity = Math.max(maxSimilarity, nameSimilarity);
+
+      // Similaridade com descrição
+      if (material.description) {
+        const descSimilarity = calculateSimilarity(material.description, description);
+        maxSimilarity = Math.max(maxSimilarity, descSimilarity);
+      }
+
+      // Similaridade com palavras-chave do material
+      if (material.keywords && Array.isArray(material.keywords)) {
+        for (const keyword of material.keywords) {
+          const keywordSimilarity = calculateSimilarity(keyword, description);
+          maxSimilarity = Math.max(maxSimilarity, keywordSimilarity);
+
+          // Busca por tokens individuais das keywords
+          const keywordTokens = extractKeyTokens(keyword);
+          const matchingTokens = descriptionTokens.filter(token => 
+            keywordTokens.includes(token)
+          );
+          if (matchingTokens.length > 0) {
+            const tokenScore = matchingTokens.length / Math.max(keywordTokens.length, 1);
+            maxSimilarity = Math.max(maxSimilarity, tokenScore * 0.85);
+          }
+        }
+      }
+
+      // Similaridade com custom keywords e sinônimos
+      if (customKeywords) {
+        for (const ck of customKeywords) {
+          const ckSimilarity = calculateSimilarity(ck.keyword_value, description);
+          maxSimilarity = Math.max(maxSimilarity, ckSimilarity);
+
+          // Verifica sinônimos
+          if (ck.synonyms && Array.isArray(ck.synonyms)) {
+            for (const synonym of ck.synonyms) {
+              const synSimilarity = calculateSimilarity(synonym, description);
+              maxSimilarity = Math.max(maxSimilarity, synSimilarity);
+
+              // Busca por tokens nos sinônimos
+              const synonymTokens = extractKeyTokens(synonym);
+              const matchingTokens = descriptionTokens.filter(token => 
+                synonymTokens.includes(token)
+              );
+              if (matchingTokens.length > 0) {
+                const tokenScore = matchingTokens.length / Math.max(synonymTokens.length, 1);
+                maxSimilarity = Math.max(maxSimilarity, tokenScore * 0.85);
+              }
+            }
+          }
+        }
+      }
       
       // Considera correspondência de unidade
       const unitMatch = !unit || !material.unit || 
         normalizeText(material.unit) === normalizeText(unit);
-      const finalSimilarity = unitMatch ? similarity : similarity * 0.8;
+      const finalSimilarity = unitMatch ? maxSimilarity : maxSimilarity * 0.8;
 
-      if (finalSimilarity > bestSimilarity && finalSimilarity > 0.6) {
+      if (finalSimilarity > bestSimilarity && finalSimilarity > 0.5) {
         bestSimilarity = finalSimilarity;
         bestMatch = material;
       }
@@ -219,11 +290,13 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         console.log('PDF processed successfully:', jsonData.length, 'items found');
         
       } else {
-        // Processa arquivo Excel
+        // Processa arquivo Excel localmente
+        console.log('Processing Excel file...');
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data);
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log('Excel processed:', jsonData.length, 'rows found');
       }
 
       if (!jsonData || jsonData.length === 0) {
