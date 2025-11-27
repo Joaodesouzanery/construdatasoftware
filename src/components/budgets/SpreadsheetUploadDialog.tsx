@@ -28,12 +28,15 @@ interface ProcessedItem {
   description: string;
   quantity: number;
   unit: string;
+  unit_price: number; // Preço unitário total (da Gestão de Preços)
   unit_price_material: number;
   unit_price_labor: number;
   total: number;
   material_id: string | null;
+  material_name?: string; // Nome do material encontrado
   matched: boolean;
   confidence?: number;
+  match_type?: string; // Tipo de match: Exato, Alta, Média, Baixa
   originalRow?: any; // Armazena a linha original da planilha
 }
 
@@ -278,22 +281,30 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         ? existingItems[0].item_number + 1 
         : 1;
 
-      const itemsToInsert = items.map((item, index) => ({
-        budget_id: budgetId,
-        item_number: startNumber + index,
-        description: item.description,
-        unit: item.unit || 'UN',
-        quantity: parseFloat(item.quantity) || 0,
-        unit_price_material: item.unit_price_material || 0,
-        unit_price_labor: item.unit_price_labor || 0,
-        bdi_percentage: item.bdi_percentage || 0,
-        subtotal_material: item.subtotal_material || 0,
-        subtotal_labor: item.subtotal_labor || 0,
-        subtotal_bdi: item.subtotal_bdi || 0,
-        total: item.total || 0,
-        material_id: item.material_id || null,
-        price_at_creation: item.price_at_creation || null
-      }));
+      const itemsToInsert = items.map((item, index) => {
+        const qty = parseFloat(String(item.quantity)) || 0;
+        const unitPrice = item.unit_price || 0;
+        const subtotalMat = qty * (item.unit_price_material || 0);
+        const subtotalLab = qty * (item.unit_price_labor || 0);
+        const total = qty * unitPrice;
+        
+        return {
+          budget_id: budgetId,
+          item_number: startNumber + index,
+          description: item.description,
+          unit: item.unit || 'UN',
+          quantity: qty,
+          unit_price_material: item.unit_price_material || 0,
+          unit_price_labor: item.unit_price_labor || 0,
+          bdi_percentage: 0,
+          subtotal_material: subtotalMat,
+          subtotal_labor: subtotalLab,
+          subtotal_bdi: 0,
+          total: total,
+          material_id: item.material_id || null,
+          price_at_creation: unitPrice || null
+        };
+      });
 
       const { error } = await supabase
         .from('budget_items')
@@ -433,37 +444,64 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         
         if (match && match.confidence > 0.6) {
           const material = match.material;
-          // Usa o current_price como base, ou soma material_price + labor_price como fallback
+          
+          // PRIORIDADE: current_price da Gestão de Preços
+          const unitPrice = material.current_price || 0;
           const materialPrice = material.material_price || 0;
           const laborPrice = material.labor_price || 0;
-          const currentPrice = material.current_price || 0;
           
-          // Se current_price existe, usa ele; senão, usa a soma
-          const unitPrice = currentPrice > 0 ? currentPrice : (materialPrice + laborPrice);
+          // Determina tipo de match baseado na confiança
+          let matchType = 'Baixa';
+          if (match.confidence >= 0.95) matchType = 'Exata';
+          else if (match.confidence >= 0.8) matchType = 'Alta';
+          else if (match.confidence >= 0.65) matchType = 'Média';
+          
+          // Log detalhado do matching
+          console.log(`[MATCH] ${description}`, {
+            matched_id: material.id,
+            matched_name: material.name,
+            confidence: match.confidence.toFixed(2),
+            match_type: matchType,
+            unit_price: unitPrice,
+            total: quantity * unitPrice,
+            action: unitPrice > 0 ? 'price_filled' : 'price_missing_in_master'
+          });
           
           items.push({
             description,
             quantity,
             unit,
+            unit_price: unitPrice,
             unit_price_material: materialPrice,
             unit_price_labor: laborPrice,
             total: quantity * unitPrice,
             material_id: material.id,
+            material_name: material.name,
             matched: true,
             confidence: match.confidence,
+            match_type: matchType,
             originalRow: rowData
           });
         } else {
-          // Material não encontrado
+          // Material não encontrado - Log de erro
+          console.warn(`[NO_MATCH] ${description}`, {
+            matched_id: null,
+            confidence: match?.confidence || 0,
+            reason: match ? 'low_confidence' : 'no_match',
+            action: 'requires_manual_input'
+          });
+          
           items.push({
             description,
             quantity,
             unit,
+            unit_price: 0,
             unit_price_material: 0,
             unit_price_labor: 0,
             total: 0,
             material_id: null,
             matched: false,
+            match_type: 'Sem match',
             originalRow: rowData
           });
         }
@@ -540,10 +578,11 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         const exportRow = { ...originalRow };
         
         // Adiciona/atualiza colunas de preço
-        exportRow['Preço Unitário Material (R$)'] = item.unit_price_material.toFixed(2);
-        exportRow['Preço Unitário M.O. (R$)'] = item.unit_price_labor.toFixed(2);
+        exportRow['Material Encontrado'] = item.material_name || '';
+        exportRow['Preço Unitário (R$)'] = item.unit_price.toFixed(2);
         exportRow['Preço Total (R$)'] = item.total.toFixed(2);
         exportRow['Status Precificação'] = item.matched ? 'Precificado Automaticamente' : 'Aguardando Preço';
+        exportRow['Match'] = item.match_type || '';
         
         // Se houver confiança, adiciona
         if (item.confidence) {
@@ -673,11 +712,12 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                   <TableRow>
                     <TableHead>Status</TableHead>
                     <TableHead>Descrição</TableHead>
+                    <TableHead>Material Encontrado</TableHead>
                     <TableHead>Qtd</TableHead>
                     <TableHead>Un</TableHead>
-                    <TableHead>Preço Unit. Material</TableHead>
-                    <TableHead>Preço Unit. M.O.</TableHead>
-                    <TableHead>Total</TableHead>
+                    <TableHead>Preço Unitário</TableHead>
+                    <TableHead>Preço Total</TableHead>
+                    <TableHead>Match</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -690,12 +730,35 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                           <AlertCircle className="h-5 w-5 text-yellow-500" />
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{item.description}</TableCell>
+                      <TableCell className="font-medium max-w-xs truncate" title={item.description}>
+                        {item.description}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {item.material_name || '-'}
+                      </TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell>{item.unit}</TableCell>
-                      <TableCell>R$ {item.unit_price_material.toFixed(2)}</TableCell>
-                      <TableCell>R$ {item.unit_price_labor.toFixed(2)}</TableCell>
-                      <TableCell className="font-semibold">R$ {item.total.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <span className={item.unit_price > 0 ? "font-semibold text-green-600" : "text-muted-foreground"}>
+                          R$ {item.unit_price.toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        R$ {item.total.toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={
+                            item.match_type === 'Exata' ? 'default' : 
+                            item.match_type === 'Alta' ? 'secondary' : 
+                            item.match_type === 'Média' ? 'outline' : 
+                            'destructive'
+                          }
+                        >
+                          {item.match_type || '-'}
+                          {item.confidence && ` (${(item.confidence * 100).toFixed(0)}%)`}
+                        </Badge>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
