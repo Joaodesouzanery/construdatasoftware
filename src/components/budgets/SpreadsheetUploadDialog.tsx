@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Download, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, Download, Save, CheckCircle, AlertCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +43,7 @@ interface ProcessedItem {
 export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: SpreadsheetUploadDialogProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSearchingPrices, setIsSearchingPrices] = useState(false);
   const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [originalData, setOriginalData] = useState<any[]>([]); // Armazena dados originais
@@ -319,14 +320,14 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       toast({
         title: "Sucesso",
-        description: `Planilha importada! ${matchedCount} itens precificados automaticamente.`,
+        description: `Orçamento salvo! ${matchedCount} itens precificados.`,
       });
       onOpenChange(false);
       setFile(null);
     },
     onError: (error) => {
       toast({
-        title: "Erro ao importar",
+        title: "Erro ao salvar",
         description: error.message,
         variant: "destructive",
       });
@@ -439,79 +440,21 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
           continue;
         }
 
-        // Busca material correspondente
-        const match = await findMatchingMaterial(description, unit);
-        
-        if (match && match.confidence > 0.6) {
-          const material = match.material;
-          
-          // PRIORIDADE ABSOLUTA: preço unitário oficial da Gestão de Preços
-          // 1) Tenta usar current_price (Preço Total cadastrado na Gestão de Preços)
-          // 2) Se estiver nulo/zero, faz fallback para material_price + labor_price
-          const baseMaterialPrice = (material.material_price ?? 0) as number;
-          const baseLaborPrice = (material.labor_price ?? 0) as number;
-          const computedFallbackPrice = baseMaterialPrice + baseLaborPrice;
-          const unitPrice = (material.current_price && material.current_price > 0
-            ? material.current_price
-            : computedFallbackPrice) || 0;
-          const materialPrice = baseMaterialPrice;
-          const laborPrice = baseLaborPrice;
-
-          // Determina tipo de match baseado na confiança
-          let matchType = 'Baixa';
-          if (match.confidence >= 0.95) matchType = 'Exata';
-          else if (match.confidence >= 0.8) matchType = 'Alta';
-          else if (match.confidence >= 0.65) matchType = 'Média';
-          
-          // Log detalhado do matching
-          console.log(`[MATCH] ${description}`, {
-            matched_id: material.id,
-            matched_name: material.name,
-            confidence: match.confidence.toFixed(2),
-            match_type: matchType,
-            unit_price: unitPrice,
-            total: quantity * unitPrice,
-            action: unitPrice > 0 ? 'price_filled' : 'price_missing_in_master'
-          });
-          
-          items.push({
-            description,
-            quantity,
-            unit,
-            unit_price: unitPrice,
-            unit_price_material: materialPrice,
-            unit_price_labor: laborPrice,
-            total: quantity * unitPrice,
-            material_id: material.id,
-            material_name: material.name,
-            matched: true,
-            confidence: match.confidence,
-            match_type: matchType,
-            originalRow: rowData
-          });
-        } else {
-          // Material não encontrado - Log de erro
-          console.warn(`[NO_MATCH] ${description}`, {
-            matched_id: null,
-            confidence: match?.confidence || 0,
-            reason: match ? 'low_confidence' : 'no_match',
-            action: 'requires_manual_input'
-          });
-          
-          items.push({
-            description,
-            quantity,
-            unit,
-            unit_price: 0,
-            unit_price_material: 0,
-            unit_price_labor: 0,
-            total: 0,
-            material_id: null,
-            matched: false,
-            match_type: 'Sem match',
-            originalRow: rowData
-          });
-        }
+        // NÃO faz matching automático - apenas carrega os dados
+        items.push({
+          description,
+          quantity,
+          unit,
+          unit_price: 0, // Inicia sem preço
+          unit_price_material: 0,
+          unit_price_labor: 0,
+          total: 0,
+          material_id: null,
+          matched: false,
+          confidence: 0,
+          match_type: 'Não buscado',
+          originalRow: rowData
+        });
       }
 
       if (items.length === 0) {
@@ -524,16 +467,6 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         }
         errorMsg += "\n\nVerifique se a planilha contém as colunas: Descrição, Quantidade e Unidade";
         throw new Error(errorMsg);
-      }
-
-      // Feedback sobre linhas ignoradas
-      if (skippedRows.length > 0) {
-        console.warn(`${skippedRows.length} linhas foram ignoradas:`, skippedRows);
-        toast({
-          title: "Atenção",
-          description: `${items.length} itens processados. ${skippedRows.length} linhas foram ignoradas por dados inválidos.`,
-          variant: "default",
-        });
       }
 
       // Armazena dados originais para exportação
@@ -563,6 +496,17 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       
       setProcessedItems(items);
       setShowReview(true);
+
+      // Feedback sobre linhas ignoradas
+      if (skippedRows.length > 0) {
+        console.warn(`${skippedRows.length} linhas foram ignoradas:`, skippedRows);
+      }
+
+      toast({
+        title: "Planilha importada",
+        description: `${items.length} itens carregados. Clique em "Buscar na Gestão de Preços" para precificar.`,
+      });
+
     } catch (error: any) {
       toast({
         title: "Erro ao processar arquivo",
@@ -574,9 +518,97 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
     }
   };
 
+  // Nova função: buscar preços na Gestão de Preços
+  const searchPrices = async () => {
+    setIsSearchingPrices(true);
+    try {
+      const updatedItems: ProcessedItem[] = [];
+      let matchedCount = 0;
+
+      for (const item of processedItems) {
+        // Busca material correspondente
+        const match = await findMatchingMaterial(item.description, item.unit);
+        
+        if (match && match.confidence > 0.6) {
+          const material = match.material;
+          
+          // PRIORIDADE: current_price da Gestão de Preços
+          const baseMaterialPrice = (material.material_price ?? 0) as number;
+          const baseLaborPrice = (material.labor_price ?? 0) as number;
+          const computedFallbackPrice = baseMaterialPrice + baseLaborPrice;
+          const unitPrice = (material.current_price && material.current_price > 0
+            ? material.current_price
+            : computedFallbackPrice) || 0;
+          const materialPrice = baseMaterialPrice;
+          const laborPrice = baseLaborPrice;
+
+          // Determina tipo de match
+          let matchType = 'Baixa';
+          if (match.confidence >= 0.95) matchType = 'Exata';
+          else if (match.confidence >= 0.8) matchType = 'Alta';
+          else if (match.confidence >= 0.65) matchType = 'Média';
+          
+          console.log(`[MATCH] ${item.description}`, {
+            matched_id: material.id,
+            matched_name: material.name,
+            confidence: match.confidence.toFixed(2),
+            match_type: matchType,
+            unit_price: unitPrice,
+            total: item.quantity * unitPrice,
+            action: unitPrice > 0 ? 'price_filled' : 'price_missing_in_master'
+          });
+          
+          updatedItems.push({
+            ...item,
+            unit_price: unitPrice,
+            unit_price_material: materialPrice,
+            unit_price_labor: laborPrice,
+            total: item.quantity * unitPrice,
+            material_id: material.id,
+            material_name: material.name,
+            matched: true,
+            confidence: match.confidence,
+            match_type: matchType,
+          });
+          
+          if (unitPrice > 0) matchedCount++;
+        } else {
+          console.log(`[NO MATCH] ${item.description}`, {
+            confidence: match?.confidence ?? 0,
+            action: 'user_selection_required'
+          });
+          
+          updatedItems.push({
+            ...item,
+            matched: false,
+            confidence: match?.confidence ?? 0,
+            match_type: 'Sem match',
+          });
+        }
+      }
+
+      setProcessedItems(updatedItems);
+      
+      toast({
+        title: "Busca concluída",
+        description: `${matchedCount} de ${updatedItems.length} itens precificados automaticamente.`,
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao buscar preços:', error);
+      toast({
+        title: "Erro ao buscar preços",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingPrices(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
-      // Primeiro, salva no backend
+      // SALVA automaticamente antes de exportar
       await importMutation.mutateAsync(processedItems);
 
       // Exporta no formato original da planilha
@@ -615,7 +647,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
 
       toast({
         title: "Sucesso",
-        description: "Orçamento exportado no formato original com preços adicionados!",
+        description: "Orçamento exportado e salvo no sistema!",
       });
       
       handleClose();
@@ -676,9 +708,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                 <br />
                 <strong>Formatos aceitos:</strong> Excel (.xlsx, .xls) ou PDF
                 <br />
-                Para PDFs, o sistema usa IA para extrair os dados automaticamente.
-                <br />
-                O sistema buscará preços automaticamente na Gestão de Preços.
+                Após importar, clique em "Buscar na Gestão de Preços" para precificar automaticamente.
               </p>
             </div>
 
@@ -691,7 +721,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                 disabled={!file || isProcessing}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {isProcessing ? "Processando..." : "Analisar Planilha"}
+                {isProcessing ? "Processando..." : "Importar Planilha"}
               </Button>
             </div>
           </div>
@@ -700,7 +730,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
             <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div className="space-y-1">
                 <p className="text-sm font-medium">
-                  {matchedCount} de {processedItems.length} itens precificados automaticamente
+                  {matchedCount} de {processedItems.length} itens precificados
                 </p>
                 <p className="text-2xl font-bold">
                   Total: R$ {totalValue.toFixed(2)}
@@ -763,7 +793,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                           }
                         >
                           {item.match_type || '-'}
-                          {item.confidence && ` (${(item.confidence * 100).toFixed(0)}%)`}
+                          {item.confidence && item.confidence > 0 && ` (${(item.confidence * 100).toFixed(0)}%)`}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -778,6 +808,14 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
               </Button>
               <div className="flex gap-2">
                 <Button 
+                  onClick={searchPrices}
+                  disabled={isSearchingPrices || processedItems.every(i => i.matched && i.unit_price > 0)}
+                  variant="secondary"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  {isSearchingPrices ? "Buscando..." : "Buscar na Gestão de Preços"}
+                </Button>
+                <Button 
                   variant="secondary" 
                   onClick={handleExport}
                   disabled={importMutation.isPending}
@@ -790,7 +828,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
                   disabled={importMutation.isPending}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  Importar para Orçamento
+                  Salvar Orçamento
                 </Button>
               </div>
             </div>
