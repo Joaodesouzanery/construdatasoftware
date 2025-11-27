@@ -3,11 +3,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload } from "lucide-react";
+import { Upload, Download, Save, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from 'xlsx';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface SpreadsheetUploadDialogProps {
   open: boolean;
@@ -15,9 +24,23 @@ interface SpreadsheetUploadDialogProps {
   budgetId: string;
 }
 
+interface ProcessedItem {
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price_material: number;
+  unit_price_labor: number;
+  total: number;
+  material_id: string | null;
+  matched: boolean;
+  confidence?: number;
+}
+
 export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: SpreadsheetUploadDialogProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
+  const [showReview, setShowReview] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -166,8 +189,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      const processedItems = [];
-      let matchedCount = 0;
+      const items: ProcessedItem[] = [];
 
       for (const row of jsonData) {
         const rowData: any = row;
@@ -200,57 +222,44 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         // Busca material correspondente
         const match = await findMatchingMaterial(description, unit);
         
-        let itemData: any = {
-          description,
-          quantity,
-          unit,
-          matched: false
-        };
-
         if (match && match.confidence > 0.6) {
           const material = match.material;
           const materialPrice = material.material_price || 0;
           const laborPrice = material.labor_price || 0;
           const totalPrice = materialPrice + laborPrice;
           
-          itemData = {
-            ...itemData,
+          items.push({
+            description,
+            quantity,
+            unit,
             unit_price_material: materialPrice,
             unit_price_labor: laborPrice,
-            bdi_percentage: 0,
-            subtotal_material: quantity * materialPrice,
-            subtotal_labor: quantity * laborPrice,
-            subtotal_bdi: 0,
             total: quantity * totalPrice,
             material_id: material.id,
-            price_at_creation: totalPrice,
-            matched: true
-          };
-          
-          matchedCount++;
+            matched: true,
+            confidence: match.confidence
+          });
         } else {
-          // Material não encontrado - adiciona sem preço
-          itemData = {
-            ...itemData,
+          // Material não encontrado
+          items.push({
+            description,
+            quantity,
+            unit,
             unit_price_material: 0,
             unit_price_labor: 0,
-            bdi_percentage: 0,
-            subtotal_material: 0,
-            subtotal_labor: 0,
-            subtotal_bdi: 0,
             total: 0,
+            material_id: null,
             matched: false
-          };
+          });
         }
-
-        processedItems.push(itemData);
       }
 
-      if (processedItems.length === 0) {
+      if (items.length === 0) {
         throw new Error("Nenhum item válido encontrado na planilha");
       }
 
-      await importMutation.mutateAsync(processedItems);
+      setProcessedItems(items);
+      setShowReview(true);
     } catch (error: any) {
       toast({
         title: "Erro ao processar arquivo",
@@ -262,41 +271,173 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Importar Planilha de Orçamento</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="file">Arquivo da Planilha (.xlsx, .xls)</Label>
-            <Input
-              id="file"
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileChange}
-              className="mt-2"
-            />
-            <p className="text-sm text-muted-foreground mt-2">
-              A planilha deve conter as colunas: Descrição, Unidade, Quantidade.
-              O sistema buscará preços automaticamente na Gestão de Preços.
-            </p>
-          </div>
+  const handleExport = async () => {
+    try {
+      // Primeiro, salva no backend
+      await importMutation.mutateAsync(processedItems);
 
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={processFile} 
-              disabled={!file || isProcessing}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {isProcessing ? "Processando..." : "Importar"}
-            </Button>
+      // Depois, exporta a planilha
+      const exportData = processedItems.map(item => ({
+        'Descrição': item.description,
+        'Unidade': item.unit,
+        'Quantidade': item.quantity,
+        'Preço Unitário Material': item.unit_price_material.toFixed(2),
+        'Preço Unitário Mão de Obra': item.unit_price_labor.toFixed(2),
+        'Preço Total': item.total.toFixed(2),
+        'Status': item.matched ? 'Precificado' : 'Sem Preço'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Orçamento');
+      XLSX.writeFile(wb, `orcamento_${new Date().getTime()}.xlsx`);
+
+      toast({
+        title: "Sucesso",
+        description: "Orçamento exportado e salvo no sistema!",
+      });
+      
+      handleClose();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao exportar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImport = async () => {
+    await importMutation.mutateAsync(processedItems);
+  };
+
+  const handleClose = () => {
+    setFile(null);
+    setProcessedItems([]);
+    setShowReview(false);
+    onOpenChange(false);
+  };
+
+  const matchedCount = processedItems.filter(i => i.matched).length;
+  const totalValue = processedItems.reduce((sum, item) => sum + item.total, 0);
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {showReview ? "Revisão do Orçamento" : "Importar Planilha de Orçamento"}
+          </DialogTitle>
+        </DialogHeader>
+
+        {!showReview ? (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="file">Arquivo da Planilha (.xlsx, .xls)</Label>
+              <Input
+                id="file"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileChange}
+                className="mt-2"
+              />
+              <p className="text-sm text-muted-foreground mt-2">
+                A planilha deve conter: Descrição, Unidade, Quantidade.
+                <br />
+                O sistema buscará preços automaticamente na Gestão de Preços.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleClose}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={processFile} 
+                disabled={!file || isProcessing}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isProcessing ? "Processando..." : "Analisar Planilha"}
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">
+                  {matchedCount} de {processedItems.length} itens precificados automaticamente
+                </p>
+                <p className="text-2xl font-bold">
+                  Total: R$ {totalValue.toFixed(2)}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Badge variant={matchedCount === processedItems.length ? "default" : "secondary"}>
+                  {matchedCount === processedItems.length ? "Todos precificados" : "Revisão necessária"}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Qtd</TableHead>
+                    <TableHead>Un</TableHead>
+                    <TableHead>Preço Unit. Material</TableHead>
+                    <TableHead>Preço Unit. M.O.</TableHead>
+                    <TableHead>Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {processedItems.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        {item.matched ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <AlertCircle className="h-5 w-5 text-yellow-500" />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{item.description}</TableCell>
+                      <TableCell>{item.quantity}</TableCell>
+                      <TableCell>{item.unit}</TableCell>
+                      <TableCell>R$ {item.unit_price_material.toFixed(2)}</TableCell>
+                      <TableCell>R$ {item.unit_price_labor.toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold">R$ {item.total.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <Button variant="outline" onClick={handleClose}>
+                Cancelar
+              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="secondary" 
+                  onClick={handleExport}
+                  disabled={importMutation.isPending}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar e Salvar
+                </Button>
+                <Button 
+                  onClick={handleImport}
+                  disabled={importMutation.isPending}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Importar para Orçamento
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
