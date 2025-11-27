@@ -1,9 +1,21 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Shield } from "lucide-react";
+import { ContactDialog } from "@/components/ContactDialog";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const [showContactDialog, setShowContactDialog] = useState(false);
+
+  useEffect(() => {
+    // Mostrar o pop-up após 3 segundos
+    const timer = setTimeout(() => {
+      setShowContactDialog(true);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -347,6 +359,9 @@ const Hero = () => {
           </div>
         </div>
       </section>
+
+      {/* Contact Dialog */}
+      <ContactDialog open={showContactDialog} onOpenChange={setShowContactDialog} />
     </div>
   );
 };
