@@ -532,22 +532,23 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
         if (match && match.confidence > 0.6) {
           const material = match.material;
           
-          // PRIORIDADE: current_price da Gestão de Preços
+          // PRIORIDADE: current_price da Gestão de Preços (campo "Novo Preço")
           const baseMaterialPrice = (material.material_price ?? 0) as number;
           const baseLaborPrice = (material.labor_price ?? 0) as number;
           const computedFallbackPrice = baseMaterialPrice + baseLaborPrice;
           const unitPrice = (material.current_price && material.current_price > 0
             ? material.current_price
             : computedFallbackPrice) || 0;
-          const materialPrice = baseMaterialPrice;
-          const laborPrice = baseLaborPrice;
 
-          // Determina tipo de match
+          // Determina tipo de match por similaridade de texto
           let matchType = 'Baixa';
           if (match.confidence >= 0.95) matchType = 'Exata';
           else if (match.confidence >= 0.8) matchType = 'Alta';
           else if (match.confidence >= 0.65) matchType = 'Média';
           
+          // Se ainda assim não houver preço (> 0), consideramos que falta preço na Gestão de Preços
+          const hasValidPrice = unitPrice > 0;
+
           console.log(`[MATCH] ${item.description}`, {
             matched_id: material.id,
             matched_name: material.name,
@@ -555,23 +556,24 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
             match_type: matchType,
             unit_price: unitPrice,
             total: item.quantity * unitPrice,
-            action: unitPrice > 0 ? 'price_filled' : 'price_missing_in_master'
+            action: hasValidPrice ? 'price_filled' : 'price_missing_in_master'
           });
           
           updatedItems.push({
             ...item,
-            unit_price: unitPrice,
-            unit_price_material: materialPrice,
-            unit_price_labor: laborPrice,
-            total: item.quantity * unitPrice,
+            unit_price: hasValidPrice ? unitPrice : 0,
+            unit_price_material: baseMaterialPrice,
+            unit_price_labor: baseLaborPrice,
+            total: hasValidPrice ? item.quantity * unitPrice : 0,
             material_id: material.id,
             material_name: material.name,
-            matched: true,
+            // Só marcamos como "precificado" quando há preço > 0
+            matched: hasValidPrice,
             confidence: match.confidence,
-            match_type: matchType,
+            match_type: hasValidPrice ? matchType : 'Sem preço na Gestão de Preços',
           });
           
-          if (unitPrice > 0) matchedCount++;
+          if (hasValidPrice) matchedCount++;
         } else {
           console.log(`[NO MATCH] ${item.description}`, {
             confidence: match?.confidence ?? 0,
@@ -673,7 +675,7 @@ export const SpreadsheetUploadDialog = ({ open, onOpenChange, budgetId }: Spread
     onOpenChange(false);
   };
 
-  const matchedCount = processedItems.filter(i => i.matched).length;
+  const matchedCount = processedItems.filter(i => i.matched && i.unit_price > 0).length;
   const totalValue = processedItems.reduce((sum, item) => sum + item.total, 0);
 
   return (
