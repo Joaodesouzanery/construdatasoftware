@@ -175,7 +175,7 @@ export const PriceSpreadsheetDialog = ({ open, onOpenChange }: PriceSpreadsheetD
       });
 
       const processed = jsonData.map((row: any, index: number) => {
-        // Função helper para buscar valores case-insensitive
+        // Função helper para buscar valores case-insensitive e com variações
         const getColumnValue = (possibleNames: string[]) => {
           for (const name of possibleNames) {
             // Tentar buscar exato
@@ -189,15 +189,42 @@ export const PriceSpreadsheetDialog = ({ open, onOpenChange }: PriceSpreadsheetD
             if (key && row[key] !== undefined && row[key] !== null && row[key] !== '') {
               return row[key];
             }
+            // Tentar buscar por substring (parcial)
+            const partialKey = Object.keys(row).find(k => 
+              k.toLowerCase().includes(name.toLowerCase()) || 
+              name.toLowerCase().includes(k.toLowerCase())
+            );
+            if (partialKey && row[partialKey] !== undefined && row[partialKey] !== null && row[partialKey] !== '') {
+              return row[partialKey];
+            }
           }
           return '';
         };
 
-        // Tentar identificar colunas comuns (case-insensitive)
-        const description = getColumnValue(['Descrição', 'DESCRIÇÃO', 'Material', 'MATERIAL', 'Item', 'ITEM', 'Produto', 'PRODUTO', 'Nome', 'NOME']);
-        const quantityRaw = getColumnValue(['Quantidade', 'QUANTIDADE', 'Qtd', 'QTD', 'QTDE']);
+        // Log para debug - ver quais colunas estão disponíveis
+        if (index === 0) {
+          console.log('Colunas disponíveis na planilha:', Object.keys(row));
+        }
+
+        // Tentar identificar colunas comuns (case-insensitive e variações)
+        const description = getColumnValue([
+          'Descrição', 'DESCRIÇÃO', 'Descricao', 'DESCRICAO', 'Descrição Original',
+          'Material', 'MATERIAL', 
+          'Item', 'ITEM', 
+          'Produto', 'PRODUTO', 
+          'Nome', 'NOME',
+          'Serviço', 'SERVIÇO', 'Servico', 'SERVICO',
+          'Desc', 'DESC'
+        ]);
+        const quantityRaw = getColumnValue([
+          'Quantidade', 'QUANTIDADE', 'Qtd', 'QTD', 'QTDE', 'Qtde', 
+          'Quant', 'QUANT', 'Qnt', 'QNT'
+        ]);
         const quantity = quantityRaw ? parseFloat(String(quantityRaw).replace(',', '.')) : 1;
-        const unit = getColumnValue(['Unidade', 'UNIDADE', 'Un', 'UN', 'Unit', 'UNIT', 'UNID.', 'UNID']) || 'UN';
+        const unit = getColumnValue([
+          'Unidade', 'UNIDADE', 'Un', 'UN', 'Unit', 'UNIT', 
+          'UNID.', 'UNID', 'Unid', 'UND', 'Und'
+        ]) || 'UN';
 
         // Buscar material correspondente no catálogo
         const matched = matchMaterial(description, catalogedMaterials);
