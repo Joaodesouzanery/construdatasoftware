@@ -49,25 +49,13 @@ const Support = () => {
                         construdata.contato@gmail.com
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleCopyEmail}
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Copy className="h-4 w-4" />
-                        Copiar Email
-                      </Button>
-                      <Button
-                        asChild
-                        className="gap-2"
-                      >
-                        <a href="mailto:construdata.contato@gmail.com">
-                          <Mail className="h-4 w-4" />
-                          Abrir Cliente de Email
-                        </a>
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={handleCopyEmail}
+                      className="gap-2"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar Email
+                    </Button>
                   </div>
 
                   <div className="text-center text-sm text-muted-foreground">
