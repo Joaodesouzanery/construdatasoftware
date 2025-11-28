@@ -236,7 +236,17 @@ export function AppSidebar() {
           </SidebarGroup>
         </Collapsible>
 
-        {isAdmin && (
+            {isAdmin && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Aprovações">
+                  <Link to="/approvals">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Aprovações</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+            {isSystemAdmin && (
           <Collapsible defaultOpen className="group/collapsible">
             <SidebarGroup>
               <SidebarGroupLabel className="text-sm font-medium">Administração</SidebarGroupLabel>

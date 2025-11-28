@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_approvals: {
+        Row: {
+          admin_user_id: string
+          approved: boolean
+          created_at: string | null
+          id: string
+          notes: string | null
+          pending_action_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          approved: boolean
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          pending_action_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          approved?: boolean
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          pending_action_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_approvals_pending_action_id_fkey"
+            columns: ["pending_action_id"]
+            isOneToOne: false
+            referencedRelation: "pending_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alertas_config: {
         Row: {
           ativo: boolean | null
@@ -164,6 +199,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          resource_id: string
+          resource_type: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          resource_id: string
+          resource_type: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          resource_id?: string
+          resource_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       backups: {
         Row: {
@@ -1695,6 +1763,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pending_actions: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          reason: string | null
+          requested_by_user_id: string
+          resource_data: Json | null
+          resource_id: string
+          resource_type: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_by_user_id: string
+          resource_data?: Json | null
+          resource_id: string
+          resource_type: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          requested_by_user_id?: string
+          resource_data?: Json | null
+          resource_id?: string
+          resource_type?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       price_history: {
         Row: {

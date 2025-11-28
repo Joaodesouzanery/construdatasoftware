@@ -54,6 +54,7 @@ import PurchaseManagement from "./pages/PurchaseManagement";
 import LaborTracking from "./pages/LaborTracking";
 import OperationalDashboard from "./pages/OperationalDashboard";
 import SystemTest from "./pages/SystemTest";
+import Approvals from "./pages/Approvals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,7 +67,8 @@ const AppContent = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/system-test" element={<SystemTest />} />
+          <Route path="/system-test" element={<SystemTest />} />
+          <Route path="/approvals" element={<Approvals />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/operational-dashboard" element={<OperationalDashboard />} />
