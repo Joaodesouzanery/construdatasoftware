@@ -599,27 +599,59 @@ const BudgetPricing = () => {
   });
 
   const handleExport = () => {
-    const exportData = processedItems.map((item) => ({
+    // Prepara dados com numeração de item
+    const exportData = processedItems.map((item, index) => ({
+      'Item': index + 1,
       'Descrição': item.description,
-      'Quantidade': item.quantity,
-      'Unidade': item.unit,
-      'Preço Material (R$)': item.unit_price_material.toFixed(2),
-      'Preço Mão de Obra (R$)': item.unit_price_labor.toFixed(2),
-      'Preço Unitário Total (R$)': item.unit_price.toFixed(2),
-      'Preço Total (R$)': item.total.toFixed(2),
-      'Status': item.match_type || 'Não buscado',
+      'Qtde': item.quantity,
+      'Unid.': item.unit,
+      'Preço Unitário: Preço do Material (MAT)': Number(item.unit_price_material || 0).toFixed(2),
+      'Preço da Mão de Obra (MDO)': Number(item.unit_price_labor || 0).toFixed(2),
+      'Preço Unitário Total': Number(item.unit_price || 0).toFixed(2),
+      'Total do Item': Number(item.total || 0).toFixed(2),
+      'Status Precificação': item.match_type || 'Não buscado',
     }));
 
+    // Adiciona linha de total
+    const totalRow: any = {
+      'Item': '',
+      'Descrição': 'TOTAL GERAL',
+      'Qtde': '',
+      'Unid.': '',
+      'Preço Unitário: Preço do Material (MAT)': '',
+      'Preço da Mão de Obra (MDO)': '',
+      'Preço Unitário Total': '',
+      'Total do Item': totalValue.toFixed(2),
+      'Status Precificação': '',
+    };
+    exportData.push(totalRow);
+
+    // Cria planilha
     const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Define larguras das colunas
+    const colWidths = [
+      { wch: 6 },   // Item
+      { wch: 50 },  // Descrição
+      { wch: 10 },  // Qtde
+      { wch: 8 },   // Unid.
+      { wch: 18 },  // MAT
+      { wch: 18 },  // MDO
+      { wch: 18 },  // Preço Unitário Total
+      { wch: 15 },  // Total do Item
+      { wch: 25 },  // Status
+    ];
+    ws['!cols'] = colWidths;
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Precificação');
+    XLSX.utils.book_append_sheet(wb, ws, 'Orçamento Precificado');
     
     const fileName = file?.name.replace(/\.(xlsx|xls|pdf)$/i, '') || 'orcamento';
     XLSX.writeFile(wb, `${fileName}_precificado_${new Date().getTime()}.xlsx`);
 
     toast({
       title: "Sucesso",
-      description: "Planilha exportada!",
+      description: "Planilha exportada com formatação organizada!",
     });
   };
 
@@ -698,6 +730,7 @@ const BudgetPricing = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">Item</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Qtd</TableHead>
                     <TableHead>Un</TableHead>
@@ -711,6 +744,7 @@ const BudgetPricing = () => {
                 <TableBody>
                   {processedItems.map((item, index) => (
                     <TableRow key={index}>
+                      <TableCell className="text-center font-medium">{index + 1}</TableCell>
                       <TableCell className="font-medium max-w-xs" title={item.description}>
                         {item.description}
                       </TableCell>
