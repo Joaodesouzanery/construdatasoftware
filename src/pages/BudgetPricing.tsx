@@ -66,143 +66,13 @@ const BudgetPricing = () => {
     }
   });
 
-  // Stopwords (palavras irrelevantes)
-  const STOPWORDS = new Set([
-    'de', 'da', 'do', 'das', 'dos', 'para', 'com', 'em', 'e', 'ou', 'a', 'o', 'os', 'as',
-    'um', 'uma', 'fornecimento', 'servico', 'execucao', 'tipo'
-  ]);
-
-  // Dicionário de siglas
-  const SIGLAS: Record<string, string[]> = {
-    'art': ['anotacao de responsabilidade tecnica', 'anotacao responsabilidade tecnica'],
-    'pcmso': ['programa de controle medico de saude ocupacional', 'programa controle medico saude ocupacional'],
-    'aso': ['atestado de saude ocupacional', 'atestado saude ocupacional'],
-    'ppp': ['perfil profissiografico previdenciario'],
-    'epi': ['equipamento de protecao individual', 'equipamento protecao individual'],
-    'epc': ['equipamento de protecao coletiva', 'equipamento protecao coletiva'],
-    'mdo': ['mao de obra'],
-    'mat': ['material'],
-    'fck': ['resistencia caracteristica compressao']
-  };
-
-  // Dicionário de sinônimos
-  const SINONIMOS: Record<string, string[]> = {
-    'limpeza pos obra': ['limpeza final', 'pos obra', 'limpeza apos obra'],
-    'limpeza final': ['limpeza pos obra', 'pos obra'],
-    'concreto': ['concreto usinado', 'concreto estrutural'],
-    'engenharia': ['servico tecnico', 'servicos tecnicos'],
-    'mao de obra': ['servico', 'servicos', 'mdo'],
-    'alvenaria': ['levantamento de parede', 'parede'],
-    'demolicao': ['retirada', 'remocao']
-  };
-
-  // Palavras com peso maior (relevância)
-  const PALAVRAS_RELEVANTES = new Set([
-    'concreto', 'alvenaria', 'demolicao', 'art', 'limpeza', 'mao', 'obra',
-    'engenharia', 'pintura', 'instalacao', 'eletrica', 'hidraulica', 'estrutural',
-    'fundacao', 'revestimento', 'piso', 'telhado', 'cobertura'
-  ]);
-
   const normalizeText = (text: string): string => {
     return text
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\w\s]/g, " ") // Remove símbolos
-      .replace(/\d+/g, " ") // Remove números isolados
       .replace(/\s+/g, " ")
       .trim();
-  };
-
-  // Tokeniza e remove stopwords
-  const tokenize = (text: string): string[] => {
-    const normalized = normalizeText(text);
-    return normalized
-      .split(/\s+/)
-      .filter(word => word.length > 2 && !STOPWORDS.has(word));
-  };
-
-  // Expande siglas e sinônimos
-  const expandText = (text: string): Set<string> => {
-    const variations = new Set<string>();
-    const normalized = normalizeText(text);
-    variations.add(normalized);
-
-    // Expande siglas
-    for (const [sigla, expansoes] of Object.entries(SIGLAS)) {
-      if (normalized.includes(sigla)) {
-        expansoes.forEach(exp => variations.add(normalized.replace(sigla, exp)));
-      }
-      expansoes.forEach(exp => {
-        if (normalized.includes(exp)) {
-          variations.add(normalized.replace(exp, sigla));
-        }
-      });
-    }
-
-    // Expande sinônimos
-    for (const [termo, sinonimos] of Object.entries(SINONIMOS)) {
-      if (normalized.includes(termo)) {
-        sinonimos.forEach(sin => variations.add(normalized.replace(termo, sin)));
-      }
-    }
-
-    return variations;
-  };
-
-  // Calcula distância de Levenshtein
-  const levenshteinDistance = (str1: string, str2: string): number => {
-    const len1 = str1.length;
-    const len2 = str2.length;
-    const matrix: number[][] = [];
-
-    for (let i = 0; i <= len1; i++) {
-      matrix[i] = [i];
-    }
-    for (let j = 0; j <= len2; j++) {
-      matrix[0][j] = j;
-    }
-
-    for (let i = 1; i <= len1; i++) {
-      for (let j = 1; j <= len2; j++) {
-        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j - 1] + cost
-        );
-      }
-    }
-
-    return matrix[len1][len2];
-  };
-
-  // Calcula similaridade ponderada por tokens
-  const calculateSimilarity = (desc1: string, desc2: string): number => {
-    const tokens1 = tokenize(desc1);
-    const tokens2 = tokenize(desc2);
-
-    if (tokens1.length === 0 || tokens2.length === 0) return 0;
-
-    let totalScore = 0;
-    let maxScore = 0;
-
-    tokens1.forEach(token1 => {
-      const weight = PALAVRAS_RELEVANTES.has(token1) ? 2 : 1;
-      maxScore += weight;
-
-      let bestMatch = 0;
-      tokens2.forEach(token2 => {
-        const maxLen = Math.max(token1.length, token2.length);
-        const distance = levenshteinDistance(token1, token2);
-        const similarity = 1 - distance / maxLen;
-        bestMatch = Math.max(bestMatch, similarity);
-      });
-
-      totalScore += bestMatch * weight;
-    });
-
-    return maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
   };
 
   const findMatchingMaterial = async (description: string) => {
@@ -213,74 +83,26 @@ const BudgetPricing = () => {
     if (!materials || materials.length === 0) return null;
 
     const normalizedDescription = normalizeText(description);
-    const descVariations = expandText(description);
 
-    // CAMADA 1: BUSCA EXATA
-    for (const variation of descVariations) {
-      const exactMatch = materials.find(m => 
-        normalizeText(m.name) === variation
-      );
-      if (exactMatch) {
-        console.log(`[MATCH EXATO] ${description} → ${exactMatch.name}`);
-        return { material: exactMatch, matchType: 'Exato', similarity: 100 };
-      }
+    // 1. BUSCA EXATA
+    const exactMatch = materials.find(m => 
+      normalizeText(m.name) === normalizedDescription
+    );
+    if (exactMatch) {
+      console.log(`[MATCH EXATO] ${description} → ${exactMatch.name}`);
+      return { material: exactMatch, matchType: 'Exato' };
     }
 
-    // CAMADA 2: BUSCA "CONTÉM" (com expansões)
-    for (const variation of descVariations) {
-      const containsMatch = materials.find(m => {
-        const normalizedMaterialName = normalizeText(m.name);
-        const materialVariations = expandText(m.name);
-        
-        // Verifica se uma variação contém a outra
-        for (const matVar of materialVariations) {
-          if (variation.includes(matVar) || matVar.includes(variation)) {
-            return true;
-          }
-        }
-        
-        return variation.includes(normalizedMaterialName) || 
-               normalizedMaterialName.includes(variation);
-      });
-      
-      if (containsMatch) {
-        console.log(`[MATCH PARCIAL] ${description} → ${containsMatch.name}`);
-        return { material: containsMatch, matchType: 'Parcial', similarity: 85 };
-      }
-    }
-
-    // CAMADA 3: BUSCA POR SIMILARIDADE
-    let bestMatch: { material: any; similarity: number } | null = null;
-
-    materials.forEach(material => {
-      const materialVariations = expandText(material.name);
-      
-      let maxSimilarity = 0;
-      
-      // Calcula similaridade entre todas as variações
-      descVariations.forEach(descVar => {
-        materialVariations.forEach(matVar => {
-          const similarity = calculateSimilarity(descVar, matVar);
-          maxSimilarity = Math.max(maxSimilarity, similarity);
-        });
-      });
-
-      // Também calcula similaridade direta
-      const directSimilarity = calculateSimilarity(description, material.name);
-      maxSimilarity = Math.max(maxSimilarity, directSimilarity);
-
-      if (maxSimilarity >= 70 && (!bestMatch || maxSimilarity > bestMatch.similarity)) {
-        bestMatch = { material, similarity: maxSimilarity };
-      }
+    // 2. BUSCA PARCIAL
+    const partialMatch = materials.find(m => {
+      const normalizedMaterialName = normalizeText(m.name);
+      return normalizedDescription.includes(normalizedMaterialName) || 
+             normalizedMaterialName.includes(normalizedDescription);
     });
-
-    if (bestMatch) {
-      console.log(`[MATCH SIMILARIDADE ${bestMatch.similarity.toFixed(1)}%] ${description} → ${bestMatch.material.name}`);
-      return { 
-        material: bestMatch.material, 
-        matchType: 'Similaridade', 
-        similarity: bestMatch.similarity 
-      };
+    
+    if (partialMatch) {
+      console.log(`[MATCH PARCIAL] ${description} → ${partialMatch.name}`);
+      return { material: partialMatch, matchType: 'Parcial' };
     }
 
     console.log(`[SEM MATCH] ${description}`);
@@ -463,15 +285,6 @@ const BudgetPricing = () => {
 
           const hasValidPrice = totalUnitPrice > 0;
 
-          let matchTypeLabel = '';
-          if (match.matchType === 'Exato') {
-            matchTypeLabel = 'Encontrado (exato)';
-          } else if (match.matchType === 'Parcial') {
-            matchTypeLabel = 'Encontrado (contém)';
-          } else if (match.matchType === 'Similaridade') {
-            matchTypeLabel = `Encontrado (similaridade ${match.similarity.toFixed(0)}%)`;
-          }
-
           updatedItems.push({
             ...item,
             unit_price: hasValidPrice ? totalUnitPrice : 0,
@@ -481,7 +294,7 @@ const BudgetPricing = () => {
             material_id: material.id,
             material_name: material.name,
             matched: hasValidPrice,
-            match_type: hasValidPrice ? matchTypeLabel : 'Preço não encontrado',
+            match_type: hasValidPrice ? 'Encontrado na Gestão' : 'Preço não encontrado',
           });
           
           if (hasValidPrice) foundCount++;
@@ -490,7 +303,7 @@ const BudgetPricing = () => {
           updatedItems.push({
             ...item,
             matched: false,
-            match_type: item.match_type === 'Importado da planilha' ? 'Importado da planilha' : 'Não encontrado',
+            match_type: item.match_type === 'Importado da planilha' ? 'Importado da planilha' : 'Preço não encontrado',
           });
           if (item.match_type !== 'Importado da planilha') {
             notFoundCount++;
@@ -716,9 +529,7 @@ const BudgetPricing = () => {
                       <TableCell>
                         <Badge 
                           variant={
-                            item.match_type?.startsWith('Encontrado (exato)') ? 'default' :
-                            item.match_type?.startsWith('Encontrado (contém)') ? 'default' :
-                            item.match_type?.startsWith('Encontrado (similaridade') ? 'secondary' :
+                            item.match_type === 'Encontrado na Gestão' ? 'default' : 
                             item.match_type === 'Importado da planilha' ? 'secondary' : 
                             'destructive'
                           }
