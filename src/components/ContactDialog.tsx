@@ -38,7 +38,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
               className="justify-start gap-2 h-auto py-3"
               asChild
             >
-              <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer">
+              <a href="https://calendly.com/joaodsouzanery/apresentacao-personalrh" target="_blank" rel="noopener noreferrer">
                 <Calendar className="h-4 w-4 flex-shrink-0" />
                 <div className="text-left">
                   <div className="font-semibold">Agendar um atendimento</div>

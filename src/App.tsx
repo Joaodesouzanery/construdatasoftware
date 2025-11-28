@@ -53,6 +53,7 @@ import Occurrences from "./pages/Occurrences";
 import PurchaseManagement from "./pages/PurchaseManagement";
 import LaborTracking from "./pages/LaborTracking";
 import OperationalDashboard from "./pages/OperationalDashboard";
+import SystemTest from "./pages/SystemTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const AppContent = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/system-test" element={<SystemTest />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/operational-dashboard" element={<OperationalDashboard />} />
