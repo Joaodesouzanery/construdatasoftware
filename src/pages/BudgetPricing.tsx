@@ -212,32 +212,41 @@ const BudgetPricing = () => {
     
     if (!materials || materials.length === 0) return null;
 
-    // Filtra materiais que tenham pelo menos um dos preços definidos
-    const materialsWithPrice = materials.filter(m => 
-      (m.material_price && m.material_price > 0) || 
-      (m.labor_price && m.labor_price > 0)
-    );
-
-    // Se não houver materiais com preços, usa todos
-    const materialsToSearch = materialsWithPrice.length > 0 ? materialsWithPrice : materials;
-
     const normalizedDescription = normalizeText(description);
     const descVariations = expandText(description);
 
-    // CAMADA 1: BUSCA EXATA
+    // Função auxiliar para verificar se material tem preço válido
+    const hasValidPrice = (material: any) => {
+      const matPrice = (material.material_price ?? 0) as number;
+      const labPrice = (material.labor_price ?? 0) as number;
+      return matPrice > 0 || labPrice > 0;
+    };
+
+    // CAMADA 1: BUSCA EXATA (com prioridade para materiais com preço)
+    const exactMatches = [];
     for (const variation of descVariations) {
-      const exactMatch = materialsToSearch.find(m => 
+      const matches = materials.filter(m => 
         normalizeText(m.name) === variation
       );
-      if (exactMatch) {
-        console.log(`[MATCH EXATO] ${description} → ${exactMatch.name}`);
-        return { material: exactMatch, matchType: 'Exato', similarity: 100 };
-      }
+      exactMatches.push(...matches);
     }
 
-    // CAMADA 2: BUSCA "CONTÉM" (com expansões)
+    if (exactMatches.length > 0) {
+      // Prioriza materiais com preço
+      const matchWithPrice = exactMatches.find(hasValidPrice);
+      if (matchWithPrice) {
+        console.log(`[MATCH EXATO COM PREÇO] ${description} → ${matchWithPrice.name}`);
+        return { material: matchWithPrice, matchType: 'Exato', similarity: 100 };
+      }
+      // Se nenhum com preço, retorna o primeiro mas sinaliza sem preço
+      console.log(`[MATCH EXATO SEM PREÇO] ${description} → ${exactMatches[0].name}`);
+      return { material: exactMatches[0], matchType: 'Exato', similarity: 100 };
+    }
+
+    // CAMADA 2: BUSCA "CONTÉM" (com prioridade para materiais com preço)
+    const containsMatches = [];
     for (const variation of descVariations) {
-      const containsMatch = materialsToSearch.find(m => {
+      const matches = materials.filter(m => {
         const normalizedMaterialName = normalizeText(m.name);
         const materialVariations = expandText(m.name);
         
@@ -251,17 +260,29 @@ const BudgetPricing = () => {
         return variation.includes(normalizedMaterialName) || 
                normalizedMaterialName.includes(variation);
       });
+      containsMatches.push(...matches);
+    }
+
+    if (containsMatches.length > 0) {
+      // Remove duplicatas
+      const uniqueMatches = Array.from(new Set(containsMatches.map(m => m.id)))
+        .map(id => containsMatches.find(m => m.id === id)!);
       
-      if (containsMatch) {
-        console.log(`[MATCH PARCIAL] ${description} → ${containsMatch.name}`);
-        return { material: containsMatch, matchType: 'Parcial', similarity: 85 };
+      // Prioriza materiais com preço
+      const matchWithPrice = uniqueMatches.find(hasValidPrice);
+      if (matchWithPrice) {
+        console.log(`[MATCH PARCIAL COM PREÇO] ${description} → ${matchWithPrice.name}`);
+        return { material: matchWithPrice, matchType: 'Parcial', similarity: 85 };
       }
+      // Se nenhum com preço, retorna o primeiro
+      console.log(`[MATCH PARCIAL SEM PREÇO] ${description} → ${uniqueMatches[0].name}`);
+      return { material: uniqueMatches[0], matchType: 'Parcial', similarity: 85 };
     }
 
     // CAMADA 3: BUSCA POR SIMILARIDADE
     let bestMatch: { material: any; similarity: number } | null = null;
 
-    materialsToSearch.forEach(material => {
+    materials.forEach(material => {
       const materialVariations = expandText(material.name);
       
       let maxSimilarity = 0;
@@ -284,7 +305,8 @@ const BudgetPricing = () => {
     });
 
     if (bestMatch) {
-      console.log(`[MATCH SIMILARIDADE ${bestMatch.similarity.toFixed(1)}%] ${description} → ${bestMatch.material.name}`);
+      const hasPriceLabel = hasValidPrice(bestMatch.material) ? "COM PREÇO" : "SEM PREÇO";
+      console.log(`[MATCH SIMILARIDADE ${bestMatch.similarity.toFixed(1)}% ${hasPriceLabel}] ${description} → ${bestMatch.material.name}`);
       return { 
         material: bestMatch.material, 
         matchType: 'Similaridade', 
