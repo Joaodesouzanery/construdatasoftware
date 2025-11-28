@@ -365,13 +365,6 @@ const BudgetPricing = () => {
         return '';
       };
 
-      const parsePrice = (value: string): number => {
-        if (!value) return 0;
-        // Remove R$, espaços, e converte vírgula para ponto
-        const cleaned = value.replace(/[R$\s]/g, '').replace(',', '.');
-        return parseFloat(cleaned) || 0;
-      };
-
       const items: ProcessedItem[] = [];
 
       for (let i = 0; i < jsonData.length; i++) {
@@ -390,32 +383,22 @@ const BudgetPricing = () => {
           'unidade', 'unit', 'un', 'und'
         ]) || 'UN';
 
-        // Busca preços de Material (MAT) e Mão de Obra (MDO) na planilha
-        const materialPriceStr = findColumnValue(rowData, [
-          'material', 'mat', 'preco material', 'preco mat', 'unitario material'
-        ]);
-        const laborPriceStr = findColumnValue(rowData, [
-          'mao de obra', 'mdo', 'mao obra', 'labor', 'preco mdo', 'unitario mdo'
-        ]);
-
-        const importedMaterialPrice = parsePrice(materialPriceStr);
-        const importedLaborPrice = parsePrice(laborPriceStr);
-
         if (!description || description.length < 2 || quantity <= 0) {
           continue;
         }
 
+        // Cria item sem preços - serão buscados automaticamente da Gestão de Preços
         items.push({
           description,
           quantity,
           unit,
-          unit_price: importedMaterialPrice + importedLaborPrice,
-          unit_price_material: importedMaterialPrice,
-          unit_price_labor: importedLaborPrice,
-          total: quantity * (importedMaterialPrice + importedLaborPrice),
+          unit_price: 0,
+          unit_price_material: 0,
+          unit_price_labor: 0,
+          total: 0,
           material_id: null,
           matched: false,
-          match_type: importedMaterialPrice > 0 || importedLaborPrice > 0 ? 'Importado da planilha' : 'Não buscado',
+          match_type: 'Aguardando precificação',
           originalRow: rowData
         });
       }
@@ -429,8 +412,12 @@ const BudgetPricing = () => {
 
       toast({
         title: "Planilha importada",
-        description: `${items.length} itens carregados. Clique em "Buscar Preços" para precificar.`,
+        description: `${items.length} itens carregados. Buscando preços automaticamente...`,
       });
+
+      // Busca preços automaticamente após importação
+      setIsProcessing(false);
+      await searchPricesAutomatically(items);
 
     } catch (error: any) {
       toast({
@@ -438,25 +425,24 @@ const BudgetPricing = () => {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
       setIsProcessing(false);
     }
   };
 
-  const searchPrices = async () => {
+  const searchPricesAutomatically = async (items: ProcessedItem[]) => {
     setIsSearchingPrices(true);
     try {
       const updatedItems: ProcessedItem[] = [];
       let foundCount = 0;
       let notFoundCount = 0;
 
-      for (const item of processedItems) {
+      for (const item of items) {
         const match = await findMatchingMaterial(item.description);
         
         if (match) {
           const material = match.material;
           
-          // Obtém preços separados de Material e Mão de Obra
+          // Obtém preços separados de Material e Mão de Obra da Gestão de Preços
           const materialPrice = (material.material_price ?? 0) as number;
           const laborPrice = (material.labor_price ?? 0) as number;
           const totalUnitPrice = materialPrice + laborPrice;
@@ -481,7 +467,7 @@ const BudgetPricing = () => {
             material_id: material.id,
             material_name: material.name,
             matched: hasValidPrice,
-            match_type: hasValidPrice ? matchTypeLabel : 'Preço não encontrado',
+            match_type: hasValidPrice ? matchTypeLabel : 'Preço não cadastrado',
           });
           
           if (hasValidPrice) foundCount++;
@@ -490,19 +476,17 @@ const BudgetPricing = () => {
           updatedItems.push({
             ...item,
             matched: false,
-            match_type: item.match_type === 'Importado da planilha' ? 'Importado da planilha' : 'Não encontrado',
+            match_type: 'Não encontrado',
           });
-          if (item.match_type !== 'Importado da planilha') {
-            notFoundCount++;
-          }
+          notFoundCount++;
         }
       }
 
       setProcessedItems(updatedItems);
       
       toast({
-        title: "Precificação concluída",
-        description: `${foundCount} itens precificados e ${notFoundCount} não encontrados.`,
+        title: "Precificação automática concluída",
+        description: `${foundCount} itens precificados automaticamente e ${notFoundCount} não encontrados.`,
       });
 
     } catch (error: any) {
@@ -514,6 +498,10 @@ const BudgetPricing = () => {
     } finally {
       setIsSearchingPrices(false);
     }
+  };
+
+  const searchPrices = async () => {
+    await searchPricesAutomatically(processedItems);
   };
 
   const saveMutation = useMutation({
@@ -610,7 +598,7 @@ const BudgetPricing = () => {
   };
 
   const matchedCount = processedItems.filter(i => 
-    (i.matched && i.unit_price > 0) || i.match_type === 'Importado da planilha'
+    i.matched && i.unit_price > 0
   ).length;
   const totalValue = processedItems.reduce((sum, item) => sum + item.total, 0);
 
@@ -641,7 +629,7 @@ const BudgetPricing = () => {
                 <p className="text-sm text-muted-foreground">
                   Colunas obrigatórias: <strong>Descrição</strong>, <strong>Quantidade</strong> e <strong>Unidade</strong>
                   <br />
-                  Colunas opcionais: <strong>Preço Material (MAT)</strong> e <strong>Preço Mão de Obra (MDO)</strong>
+                  Os preços MAT e MDO serão buscados automaticamente na <strong>Gestão de Preços</strong>
                   <br />
                   <strong>Formatos aceitos:</strong> Excel (.xlsx, .xls) ou PDF
                 </p>
@@ -719,11 +707,11 @@ const BudgetPricing = () => {
                             item.match_type?.startsWith('Encontrado (exato)') ? 'default' :
                             item.match_type?.startsWith('Encontrado (contém)') ? 'default' :
                             item.match_type?.startsWith('Encontrado (similaridade') ? 'secondary' :
-                            item.match_type === 'Importado da planilha' ? 'secondary' : 
+                            item.match_type === 'Aguardando precificação' ? 'outline' :
                             'destructive'
                           }
                         >
-                          {item.match_type || 'Não buscado'}
+                          {item.match_type || 'Não encontrado'}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -760,7 +748,7 @@ const BudgetPricing = () => {
                     variant="secondary"
                   >
                     <Search className="h-4 w-4 mr-2" />
-                    {isSearchingPrices ? "Buscando..." : "Buscar Preços na Gestão de Preços"}
+                    {isSearchingPrices ? "Buscando..." : "Buscar Preços Novamente"}
                   </Button>
                   <Button 
                     variant="secondary" 
