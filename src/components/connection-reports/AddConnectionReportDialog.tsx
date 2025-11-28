@@ -145,9 +145,12 @@ export function AddConnectionReportDialog({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from("connection-report-photos")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year expiry
+
+      if (signedUrlError) throw signedUrlError;
+      const publicUrl = signedUrlData.signedUrl;
 
       return publicUrl;
     } catch (error) {
@@ -173,9 +176,12 @@ export function AddConnectionReportDialog({
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from("connection-report-photos")
-          .getPublicUrl(fileName);
+          .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year expiry
+
+        if (signedUrlError) throw signedUrlError;
+        const publicUrl = signedUrlData.signedUrl;
 
         uploadedUrls.push(publicUrl);
       }

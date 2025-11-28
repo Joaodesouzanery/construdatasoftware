@@ -6,8 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Shield, Users, Database } from "lucide-react";
+import { ArrowLeft, Shield, Users, Database, UserPlus } from "lucide-react";
 
 interface UserRole {
   id: string;
@@ -25,6 +28,11 @@ export default function Admin() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
+  const [newUserProject, setNewUserProject] = useState("");
 
   useEffect(() => {
     checkAdminAccess();
@@ -38,7 +46,6 @@ export default function Admin() {
         return;
       }
 
-      // Check if user is admin
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("*")
@@ -89,6 +96,49 @@ export default function Admin() {
     }
 
     setUserRoles(data || []);
+  };
+
+  const addNewUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserProject) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    try {
+      // Create the user using Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: newUserPassword,
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error("Falha ao criar usuário");
+      }
+
+      // Add the user role
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: authData.user.id,
+          role: newUserRole,
+          project_id: newUserProject,
+        });
+
+      if (roleError) throw roleError;
+
+      toast.success("Usuário criado com sucesso!");
+      setAddUserOpen(false);
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserRole('user');
+      setNewUserProject("");
+      await loadUserRoles();
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      toast.error(error.message || "Erro ao criar usuário");
+    }
   };
 
   const updateUserRole = async (roleId: string, newRole: 'admin' | 'user') => {
@@ -157,6 +207,79 @@ export default function Admin() {
               </p>
             </div>
           </div>
+          <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Adicionar Usuário
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Usuário</DialogTitle>
+                <DialogDescription>
+                  Crie um novo usuário com acesso ao sistema
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="usuario@exemplo.com"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Senha segura"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="role">Função</Label>
+                  <Select value={newUserRole} onValueChange={(value: 'admin' | 'user') => setNewUserRole(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="user">Colaborador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="project">Projeto</Label>
+                  <Select value={newUserProject} onValueChange={setNewUserProject}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um projeto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setAddUserOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={addNewUser}>
+                  Criar Usuário
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -218,7 +341,7 @@ export default function Admin() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={role.role === 'admin' ? 'default' : 'secondary'}>
-                        {role.role === 'admin' ? 'Administrador' : 'Usuário'}
+                        {role.role === 'admin' ? 'Administrador' : 'Colaborador'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -237,7 +360,7 @@ export default function Admin() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="user">Usuário</SelectItem>
+                            <SelectItem value="user">Colaborador</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button

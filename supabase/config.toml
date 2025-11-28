@@ -16,4 +16,4 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.extract-pdf-data]
-verify_jwt = false
+verify_jwt = true
