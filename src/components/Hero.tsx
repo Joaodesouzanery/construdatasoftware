@@ -19,8 +19,28 @@ const Hero = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Top Navigation Bar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="text-xl font-bold">ConstruData</div>
+          <div className="flex gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/auth')}
+            >
+              Entrar
+            </Button>
+            <Button 
+              onClick={() => navigate('/system-test')}
+            >
+              Adquirir
+            </Button>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section - BLOCO 1 */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-20">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container mx-auto px-4 z-10">
           <div className="max-w-5xl mx-auto text-center space-y-8">
@@ -65,7 +85,7 @@ const Hero = () => {
                 className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
                 onClick={() => navigate('/system-test')}
               >
-                🔥 Quero testar o Sistema
+                Teste Grátis do Sistema
               </Button>
               <Button 
                 size="lg" 
@@ -73,7 +93,7 @@ const Hero = () => {
                 className="text-lg px-8 py-6 rounded-full"
                 onClick={() => navigate('/auth')}
               >
-                👉 Quero ver o Construdata na prática
+                Quero ver o Construdata na prática
               </Button>
               <p className="text-sm text-muted-foreground">
                 Demonstração rápida e sem compromisso.
@@ -271,7 +291,158 @@ const Hero = () => {
         </div>
       </section>
 
-      {/* Quebra de Objeções - BLOCO 6 */}
+      {/* Problema → Solução - BLOCO 6 */}
+      <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+              Problema → Solução
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-12 items-start">
+              {/* Problemas */}
+              <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-destructive mb-6">Problemas Típicos:</h3>
+                <div className="space-y-4">
+                  <ProblemItem icon="📋" text="Planilhas desatualizadas e dados espalhados" />
+                  <ProblemItem icon="💸" text="Desperdício de materiais não rastreado" />
+                  <ProblemItem icon="⏰" text="Atrasos constantes por falta de visibilidade" />
+                  <ProblemItem icon="📱" text="Comunicação perdida no WhatsApp" />
+                  <ProblemItem icon="❓" text="Chamados de manutenção que somem" />
+                  <ProblemItem icon="🤷" text="Sem evidências fotográficas organizadas" />
+                </div>
+              </div>
+
+              {/* Benefícios */}
+              <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-green-600 mb-6">Com o ConstruData:</h3>
+                <div className="space-y-4">
+                  <BenefitItem icon="✓" text="Todos os dados centralizados em tempo real" />
+                  <BenefitItem icon="✓" text="Controle preciso de entrada e saída de materiais" />
+                  <BenefitItem icon="✓" text="Visibilidade total do progresso de cada frente" />
+                  <BenefitItem icon="✓" text="Histórico completo e organizado de comunicações" />
+                  <BenefitItem icon="✓" text="QR Codes para rastreamento de ativos e chamados" />
+                  <BenefitItem icon="✓" text="Galeria de fotos por obra, tarefa e data" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Como Funciona - BLOCO 7 */}
+      <section className="py-24 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Como Funciona
+            </h2>
+            
+            <div className="space-y-8">
+              <MethodologyCard
+                number="1"
+                title="Cadastre suas obras e equipes"
+                description="Configure projetos, funcionários e materiais em minutos. Importe dados de planilhas se necessário."
+              />
+              <MethodologyCard
+                number="2"
+                title="Registre em tempo real"
+                description="Equipes registram produção, materiais e ocorrências direto do celular. Com fotos, GPS e hora."
+              />
+              <MethodologyCard
+                number="3"
+                title="Acompanhe no dashboard"
+                description="Gestores veem tudo centralizado: custos, produtividade, alertas e indicadores em tempo real."
+              />
+              <MethodologyCard
+                number="4"
+                title="Exporte relatórios completos"
+                description="RDOs, relatórios de consumo, histórico de manutenção — tudo pronto para enviar ao cliente."
+              />
+            </div>
+
+            <div className="mt-12 p-6 bg-card border rounded-lg">
+              <h3 className="text-xl font-bold mb-4">O que está incluso:</h3>
+              <ul className="grid md:grid-cols-2 gap-3 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Usuários ilimitados</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Armazenamento de fotos e documentos</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Acesso via web e mobile</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Suporte técnico incluído</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Atualizações automáticas</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500">✔</span>
+                  <span>Backup diário automático</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Garantia / Segurança - BLOCO 8 */}
+      <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 backdrop-blur-sm mb-4">
+                <Shield className="w-4 h-4" />
+                <span className="text-sm font-semibold">100% Seguro e Confiável</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Seus dados protegidos
+              </h2>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              <SecurityFeature
+                icon="🔐"
+                title="Criptografia de ponta a ponta"
+                description="Todos os dados são criptografados com tecnologia bancária. Ninguém acessa suas informações sem autorização."
+              />
+              <SecurityFeature
+                icon="🛡️"
+                title="Conformidade LGPD"
+                description="Sistema totalmente adequado à Lei Geral de Proteção de Dados. Seus dados e dos seus clientes protegidos."
+              />
+              <SecurityFeature
+                icon="☁️"
+                title="Backup automático diário"
+                description="Seus dados são salvos automaticamente todos os dias. Recuperação disponível a qualquer momento."
+              />
+              <SecurityFeature
+                icon="🔒"
+                title="Controle de acesso"
+                description="Defina permissões por usuário. Cada pessoa vê apenas o que precisa para seu trabalho."
+              />
+            </div>
+
+            <div className="text-center p-8 bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-lg border border-green-500/20">
+              <h3 className="text-2xl font-bold mb-4">Garantia de Satisfação</h3>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Teste sem compromisso. Se não funcionar para você, sem problemas. 
+                Estamos aqui para resolver problemas reais, não para criar mais dor de cabeça.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quebra de Objeções - BLOCO 9 */}
       <section className="py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
@@ -302,7 +473,7 @@ const Hero = () => {
         </div>
       </section>
 
-      {/* Security Trust Section */}
+      {/* Security Trust Section - BLOCO 10 */}
       <section id="security" className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
@@ -359,7 +530,7 @@ const Hero = () => {
               className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
               onClick={() => navigate('/auth')}
             >
-              👉 Quero ver o Construdata na prática
+              Quero ver o Construdata na prática
             </Button>
             <p className="text-primary-foreground/80">
               Demonstração rápida. Sem compromisso.
@@ -379,6 +550,32 @@ const SecurityFeature = ({ icon, title, description }: { icon: string; title: st
     <div className="text-4xl mb-4">{icon}</div>
     <h3 className="text-lg font-bold mb-2">{title}</h3>
     <p className="text-sm text-muted-foreground">{description}</p>
+  </div>
+);
+
+const ProblemItem = ({ icon, text }: { icon: string; text: string }) => (
+  <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+    <span className="text-2xl flex-shrink-0">{icon}</span>
+    <span className="text-base">{text}</span>
+  </div>
+);
+
+const BenefitItem = ({ icon, text }: { icon: string; text: string }) => (
+  <div className="flex items-start gap-3 p-4 rounded-lg bg-green-500/5 border border-green-500/20">
+    <span className="text-2xl flex-shrink-0 text-green-600">{icon}</span>
+    <span className="text-base">{text}</span>
+  </div>
+);
+
+const MethodologyCard = ({ number, title, description }: { number: string; title: string; description: string }) => (
+  <div className="flex gap-6 items-start p-6 rounded-lg border bg-card">
+    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
+      {number}
+    </div>
+    <div>
+      <h3 className="text-xl font-bold mb-2">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
+    </div>
   </div>
 );
 
