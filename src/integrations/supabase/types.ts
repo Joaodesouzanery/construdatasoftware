@@ -2377,6 +2377,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_super_admin: boolean | null
           project_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string | null
@@ -2385,6 +2386,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          is_super_admin?: boolean | null
           project_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
@@ -2393,6 +2395,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          is_super_admin?: boolean | null
           project_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string | null
