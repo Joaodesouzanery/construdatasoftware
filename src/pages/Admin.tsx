@@ -18,7 +18,6 @@ interface UserRole {
   role: 'admin' | 'user';
   project_id: string;
   created_at: string;
-  is_super_admin: boolean;
   projects?: { name: string };
 }
 
@@ -26,7 +25,6 @@ export default function Admin() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
@@ -62,7 +60,6 @@ export default function Admin() {
       }
 
       setIsAdmin(true);
-      setIsSuperAdmin(roleData.is_super_admin || false);
       await loadProjects();
       await loadUserRoles();
     } catch (error) {
@@ -107,12 +104,6 @@ export default function Admin() {
       return;
     }
 
-    // Apenas super admins podem criar admins
-    if (newUserRole === 'admin' && !isSuperAdmin) {
-      toast.error("Apenas o super administrador pode criar outros administradores");
-      return;
-    }
-
     try {
       // Create the user using Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -151,12 +142,6 @@ export default function Admin() {
   };
 
   const updateUserRole = async (roleId: string, newRole: 'admin' | 'user') => {
-    // Apenas super admins podem alterar roles para admin
-    if (newRole === 'admin' && !isSuperAdmin) {
-      toast.error("Apenas o super administrador pode promover usuários a administrador");
-      return;
-    }
-
     const { error } = await supabase
       .from("user_roles")
       .update({ role: newRole })
@@ -219,7 +204,6 @@ export default function Admin() {
               </h1>
               <p className="text-muted-foreground">
                 Gerencie usuários e permissões do sistema
-                {isSuperAdmin && <span className="ml-2 text-[#FFA500] font-semibold">• Você é o Super Administrador</span>}
               </p>
             </div>
           </div>
@@ -265,17 +249,10 @@ export default function Admin() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin" disabled={!isSuperAdmin}>
-                        Administrador {!isSuperAdmin && "(Apenas Super Admin)"}
-                      </SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="user">Colaborador</SelectItem>
                     </SelectContent>
                   </Select>
-                  {!isSuperAdmin && (
-                    <p className="text-xs text-muted-foreground">
-                      Apenas o Super Administrador pode criar outros administradores
-                    </p>
-                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="project">Projeto</Label>
@@ -362,52 +339,37 @@ export default function Admin() {
                     <TableCell>
                       {role.projects?.name || "N/A"}
                     </TableCell>
-                     <TableCell>
-                       <div className="flex items-center gap-2">
-                         <Badge variant={role.role === 'admin' ? 'default' : 'secondary'}>
-                           {role.role === 'admin' ? 'Administrador' : 'Colaborador'}
-                         </Badge>
-                         {role.is_super_admin && (
-                           <Badge className="bg-[#FFA500] text-black hover:bg-[#FF8C00]">
-                             Super Admin
-                           </Badge>
-                         )}
-                       </div>
-                     </TableCell>
+                    <TableCell>
+                      <Badge variant={role.role === 'admin' ? 'default' : 'secondary'}>
+                        {role.role === 'admin' ? 'Administrador' : 'Colaborador'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       {new Date(role.created_at).toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {!role.is_super_admin ? (
-                          <>
-                            <Select
-                              value={role.role}
-                              onValueChange={(value: 'admin' | 'user') =>
-                                updateUserRole(role.id, value)
-                              }
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="user">Colaborador</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteUserRole(role.id)}
-                            >
-                              Remover
-                            </Button>
-                          </>
-                        ) : (
-                          <Badge variant="outline" className="border-[#FFA500]/30 text-[#FFA500]">
-                            Não pode ser alterado
-                          </Badge>
-                        )}
+                        <Select
+                          value={role.role}
+                          onValueChange={(value: 'admin' | 'user') =>
+                            updateUserRole(role.id, value)
+                          }
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="user">Colaborador</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteUserRole(role.id)}
+                        >
+                          Remover
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
