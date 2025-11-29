@@ -46,11 +46,19 @@ const RDONew = () => {
   const [productionTargets, setProductionTargets] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
 
+  // Helper to get today's date in local timezone (avoids UTC shifting)
+  const getTodayLocalDate = () => {
+    const now = new Date();
+    const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+    const local = new Date(now.getTime() - tzOffsetMs);
+    return local.toISOString().split('T')[0];
+  };
+
   // Form state
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [selectedServiceFronts, setSelectedServiceFronts] = useState<string[]>([]);
   const [selectedConstructionSites, setSelectedConstructionSites] = useState<string[]>([]);
-  const [reportDate, setReportDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [reportDate, setReportDate] = useState<string>(getTodayLocalDate());
   const [executedServices, setExecutedServices] = useState<ExecutedService[]>([
     { service_id: "", quantity: "", unit: "", equipment_used: "" }
   ]);
@@ -430,7 +438,7 @@ const RDONew = () => {
       // Reset form
       setSelectedServiceFronts([]);
       setSelectedConstructionSites([]);
-      setReportDate(new Date().toISOString().split('T')[0]);
+      setReportDate(getTodayLocalDate());
       setExecutedServices([{ service_id: "", quantity: "", unit: "", equipment_used: "", employee_id: "" }]);
       setTerrainCondition("");
       setLocation("");
@@ -957,7 +965,7 @@ const RDONew = () => {
                     type="date"
                     value={reportDate}
                     onChange={(e) => setReportDate(e.target.value)}
-                    max={new Date().toISOString().split('T')[0]}
+                    max={getTodayLocalDate()}
                     required
                   />
                 </div>
