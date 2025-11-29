@@ -304,6 +304,23 @@ const RDONew = () => {
     setIsLoading(true);
     
     try {
+      // Check if RDO already exists for this date
+      const { data: existingRDO, error: checkError } = await supabase
+        .from('daily_reports')
+        .select('id')
+        .eq('project_id', selectedProject)
+        .eq('report_date', reportDate)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingRDO) {
+        toast.error("Já existe um RDO para esta data neste projeto");
+        setIsLoading(false);
+        return;
+      }
       // Create ONE daily report using the first selected front and construction site
       // (Note: All selected fronts/sites are included in the observations)
       const serviceFrontId = selectedServiceFronts[0];
@@ -324,7 +341,7 @@ const RDONew = () => {
 
       const { data: dailyReport, error: reportError } = await supabase
         .from('daily_reports')
-        .insert([{
+        .insert({
           report_date: reportDate,
           project_id: selectedProject,
           construction_site_id: constructionSiteId,
@@ -340,7 +357,7 @@ const RDONew = () => {
           general_observations: enhancedObservations || null,
           visits: visits || null,
           occurrences_summary: occurrences || null
-        }])
+        })
         .select()
         .single();
 
@@ -481,7 +498,7 @@ const RDONew = () => {
       yPos += 8;
       doc.text(`Local: ${rdoData.construction_site?.name || 'N/A'}`, 20, yPos);
       yPos += 8;
-      doc.text(`Data: ${new Date(rdoData.report_date).toLocaleDateString('pt-BR')}`, 20, yPos);
+      doc.text(`Data do Relatório: ${new Date(rdoData.report_date + 'T00:00:00').toLocaleDateString('pt-BR')}`, 20, yPos);
       yPos += 15;
       
       // Serviços executados
