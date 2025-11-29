@@ -940,6 +940,7 @@ const RDONew = () => {
                     type="date"
                     value={reportDate}
                     onChange={(e) => setReportDate(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
                     required
                   />
                 </div>
