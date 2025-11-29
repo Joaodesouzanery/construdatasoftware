@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Shield, Users, Database, UserPlus } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface UserRole {
   id: string;
@@ -23,8 +24,8 @@ interface UserRole {
 
 export default function Admin() {
   const navigate = useNavigate();
+  const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
@@ -35,39 +36,15 @@ export default function Admin() {
   const [newUserProject, setNewUserProject] = useState("");
 
   useEffect(() => {
-    checkAdminAccess();
-  }, []);
-
-  const checkAdminAccess = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .single();
-
-      if (!roleData) {
-        toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
-        navigate("/dashboard");
-        return;
-      }
-
-      setIsAdmin(true);
-      await loadProjects();
-      await loadUserRoles();
-    } catch (error) {
-      console.error("Error checking admin access:", error);
-      navigate("/dashboard");
-    } finally {
-      setLoading(false);
+    if (!roleLoading && isSuperAdmin) {
+      loadData();
     }
+  }, [roleLoading, isSuperAdmin]);
+
+  const loadData = async () => {
+    await loadProjects();
+    await loadUserRoles();
+    setLoading(false);
   };
 
   const loadProjects = async () => {
@@ -173,16 +150,40 @@ export default function Admin() {
     await loadUserRoles();
   };
 
+  if (roleLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="text-center">Acesso Negado</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              Apenas o super administrador pode acessar esta página.
+            </p>
+            <Button onClick={() => navigate('/')}>
+              Voltar para Início
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">Carregando...</div>
       </div>
     );
-  }
-
-  if (!isAdmin) {
-    return null;
   }
 
   return (

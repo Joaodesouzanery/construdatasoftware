@@ -55,8 +55,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
               <a href="mailto:construdata.contato@gmail.com">
                 <Mail className="h-4 w-4 flex-shrink-0" />
                 <div className="text-left">
-                  <div className="font-semibold">Falar com o suporte</div>
-                  <div className="text-xs text-muted-foreground">Tive um problema e quero solução sem enrolação.</div>
+                  <div className="font-semibold">construdata.contato@gmail.com</div>
                 </div>
               </a>
             </Button>

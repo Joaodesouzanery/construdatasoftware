@@ -263,7 +263,7 @@ export default function SystemTest() {
                     <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
                   </Button>
                   <Button type="submit" className="flex-1">
-                    🔥 Quero Agendar Minha Demo
+                    Quero Agendar Minha Demo
                   </Button>
                 </div>
               </form>
@@ -315,7 +315,7 @@ export default function SystemTest() {
                 Nos vemos na call!
               </p>
               <Button onClick={() => navigate("/")} size="lg">
-                ➡ Voltar para a Página Inicial
+                Voltar para a Página Inicial
               </Button>
             </CardContent>
           </Card>
