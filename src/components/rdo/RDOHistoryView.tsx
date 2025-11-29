@@ -232,7 +232,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     const dataByDate = new Map();
 
     filtered.forEach(rdo => {
-      const date = new Date(rdo.report_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      // Parse date correctly to avoid timezone issues
+      const date = new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
       
       rdo.executed_services?.forEach((es: any) => {
         if (selectedService === 'all' || es.service_id === selectedService) {
@@ -246,7 +247,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     return Array.from(dataByDate.values()).sort((a, b) => {
       const [dayA, monthA] = a.date.split('/');
       const [dayB, monthB] = b.date.split('/');
-      return new Date(`2024-${monthA}-${dayA}`).getTime() - new Date(`2024-${monthB}-${dayB}`).getTime();
+      const year = new Date().getFullYear();
+      return new Date(`${year}-${monthA}-${dayA}`).getTime() - new Date(`${year}-${monthB}-${dayB}`).getTime();
     });
   };
 
@@ -272,9 +274,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     let csvContent = "Data,Local,Frente,Serviço,Quantidade,Unidade,Equipamentos,Executado Por\n";
 
     filtered.forEach(rdo => {
+      const formattedDate = new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR');
       rdo.executed_services?.forEach((es: any) => {
         csvContent += [
-          rdo.report_date,
+          formattedDate,
           rdo.construction_sites?.name || 'N/A',
           rdo.service_fronts?.name || 'N/A',
           es.services_catalog?.name || 'N/A',
@@ -309,9 +312,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
     const tableData: any[] = [];
     filtered.forEach(rdo => {
+      const formattedDate = new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR');
       rdo.executed_services?.forEach((es: any) => {
         tableData.push([
-          new Date(rdo.report_date).toLocaleDateString('pt-BR'),
+          formattedDate,
           rdo.construction_sites?.name || 'N/A',
           rdo.service_fronts?.name || 'N/A',
           es.services_catalog?.name || 'N/A',
@@ -513,8 +517,13 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <div className="font-semibold">
-                        {new Date(rdo.report_date).toLocaleDateString('pt-BR')}
+                      <div className="font-semibold text-lg">
+                        {new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR', { 
+                          weekday: 'short',
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         Local: {rdo.construction_sites?.name} | Frente: {rdo.service_fronts?.name}
