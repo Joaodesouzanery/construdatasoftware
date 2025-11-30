@@ -53,90 +53,38 @@ const UserMetrics = () => {
     try {
       setLoading(true);
 
-      // Get all users from auth
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      if (authError) throw authError;
-
-      // Get user roles
-      const { data: userRoles } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
-
-      const userMetrics: UserMetrics[] = [];
-      let totalProjects = 0;
-      let totalEmployees = 0;
-      let totalMaterials = 0;
-
-      for (const user of authUsers.users) {
-        const role = userRoles?.find(r => r.user_id === user.id)?.role || 'user';
-
-        // Count projects
-        const { count: projectsCount } = await supabase
-          .from("projects")
-          .select("*", { count: "exact", head: true })
-          .eq("created_by_user_id", user.id);
-
-        // Count employees
-        const { count: employeesCount } = await supabase
-          .from("employees")
-          .select("*", { count: "exact", head: true })
-          .eq("created_by_user_id", user.id);
-
-        // Count materials
-        const { count: materialsCount } = await supabase
-          .from("materials")
-          .select("*", { count: "exact", head: true })
-          .eq("created_by_user_id", user.id);
-
-        // Count RDOs
-        const { count: rdosCount } = await supabase
-          .from("daily_reports")
-          .select("*", { count: "exact", head: true })
-          .eq("executed_by_user_id", user.id);
-
-        // Count material requests
-        const { count: materialRequestsCount } = await supabase
-          .from("material_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("requested_by_user_id", user.id);
-
-        // Get last activity (most recent project update)
-        const { data: lastProject } = await supabase
-          .from("projects")
-          .select("updated_at")
-          .eq("created_by_user_id", user.id)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        totalProjects += projectsCount || 0;
-        totalEmployees += employeesCount || 0;
-        totalMaterials += materialsCount || 0;
-
-        userMetrics.push({
-          user_id: user.id,
-          email: user.email || '',
-          role,
-          created_at: user.created_at,
-          total_projects: projectsCount || 0,
-          total_employees: employeesCount || 0,
-          total_materials: materialsCount || 0,
-          total_rdos: rdosCount || 0,
-          total_material_requests: materialRequestsCount || 0,
-          last_activity: lastProject?.updated_at || null,
-        });
+      // Call edge function to get metrics (requires super admin)
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        return;
       }
 
-      setMetrics(userMetrics);
-      setTotals({
-        totalUsers: authUsers.users.length,
-        totalProjects,
-        totalEmployees,
-        totalMaterials,
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-user-metrics`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao carregar métricas');
+      }
+
+      const data = await response.json();
+      
+      console.log("Metrics loaded:", data);
+      
+      setMetrics(data.metrics);
+      setTotals(data.totals);
     } catch (error) {
       console.error("Error loading metrics:", error);
-      toast.error("Erro ao carregar métricas");
+      toast.error(error instanceof Error ? error.message : "Erro ao carregar métricas");
     } finally {
       setLoading(false);
     }
