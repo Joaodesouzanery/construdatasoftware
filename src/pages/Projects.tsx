@@ -131,6 +131,22 @@ const Projects = () => {
       return;
     }
 
+    // Check quota if creating new project
+    if (!editingProject && user) {
+      const { data: canCreate, error: quotaError } = await supabase
+        .rpc('can_create_project', { user_uuid: user.id });
+
+      if (quotaError) {
+        toast.error("Erro ao verificar limite de projetos");
+        return;
+      }
+
+      if (!canCreate) {
+        toast.error("Você atingiu o limite de projetos permitido. Entre em contato com o administrador.");
+        return;
+      }
+    }
+
     // Validar UUID do company_id se foi preenchido
     const isValidUUID = (str: string) => {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
