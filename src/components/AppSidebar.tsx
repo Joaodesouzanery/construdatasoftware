@@ -74,6 +74,7 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     checkIfAdmin();
@@ -86,12 +87,12 @@ export function AppSidebar() {
       
       const { data } = await supabase
         .from("user_roles")
-        .select("*")
+        .select("role, is_super_admin")
         .eq("user_id", user.id)
-        .eq("role", "admin")
         .single();
       
-      setIsAdmin(!!data);
+      setIsAdmin(data?.role === 'admin');
+      setIsSuperAdmin(data?.is_super_admin === true);
     } catch (error) {
       console.error("Error checking admin status:", error);
     }
@@ -252,16 +253,23 @@ export function AppSidebar() {
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    {adminItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <NavLink to={item.url} end className={getNavCls}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
+                    {adminItems.map((item) => {
+                      // Show "Métricas de Usuários" only to super admins
+                      if (item.title === "Métricas de Usuários" && !isSuperAdmin) {
+                        return null;
+                      }
+                      
+                      return (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild>
+                            <NavLink to={item.url} end className={getNavCls}>
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
