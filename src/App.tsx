@@ -55,6 +55,7 @@ import LaborTracking from "./pages/LaborTracking";
 import OperationalDashboard from "./pages/OperationalDashboard";
 import SystemTest from "./pages/SystemTest";
 import Approvals from "./pages/Approvals";
+import UserMetrics from "./pages/UserMetrics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -118,6 +119,7 @@ const AppContent = () => {
         
         {/* Admin and System routes */}
         <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/metrics" element={<UserMetrics />} />
         <Route path="/backup" element={<Backup />} />
         <Route path="/support" element={<Support />} />
         
