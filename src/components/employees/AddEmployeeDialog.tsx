@@ -72,6 +72,22 @@ export const AddEmployeeDialog = ({ open, onOpenChange, projectId, onSuccess }: 
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
+
+      // Check quota before creating
+      const { data: canCreate, error: quotaError } = await supabase
+        .rpc('can_create_employee', { user_uuid: session?.user.id });
+
+      if (quotaError) {
+        toast.error("Erro ao verificar limite de funcionários");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!canCreate) {
+        toast.error("Você atingiu o limite de funcionários permitido. Entre em contato com o administrador.");
+        setIsLoading(false);
+        return;
+      }
       
       const { error } = await supabase
         .from('employees')

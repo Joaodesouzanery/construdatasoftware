@@ -2373,6 +2373,33 @@ export type Database = {
           },
         ]
       }
+      user_quotas: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_employees: number | null
+          max_projects: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_employees?: number | null
+          max_projects?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_employees?: number | null
+          max_projects?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -2416,6 +2443,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_employee: { Args: { user_uuid: string }; Returns: boolean }
+      can_create_project: { Args: { user_uuid: string }; Returns: boolean }
       has_role: {
         Args: {
           _project_id?: string

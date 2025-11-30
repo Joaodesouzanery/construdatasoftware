@@ -22,6 +22,13 @@ interface UserRole {
   projects?: { name: string };
 }
 
+interface UserQuota {
+  id: string;
+  user_id: string;
+  max_projects: number;
+  max_employees: number;
+}
+
 export default function Admin() {
   const navigate = useNavigate();
   const { isSuperAdmin, loading: roleLoading } = useUserRole();
@@ -34,6 +41,9 @@ export default function Admin() {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
   const [newUserProject, setNewUserProject] = useState("");
+  const [maxProjects, setMaxProjects] = useState(3);
+  const [maxEmployees, setMaxEmployees] = useState(50);
+  const [userQuotas, setUserQuotas] = useState<UserQuota[]>([]);
 
   useEffect(() => {
     if (!roleLoading && isSuperAdmin) {
@@ -44,6 +54,7 @@ export default function Admin() {
   const loadData = async () => {
     await loadProjects();
     await loadUserRoles();
+    await loadUserQuotas();
     setLoading(false);
   };
 
@@ -73,6 +84,19 @@ export default function Admin() {
     }
 
     setUserRoles(data || []);
+  };
+
+  const loadUserQuotas = async () => {
+    const { data, error } = await supabase
+      .from("user_quotas")
+      .select("*");
+
+    if (error) {
+      toast.error("Erro ao carregar quotas de usuários");
+      return;
+    }
+
+    setUserQuotas(data || []);
   };
 
   const addNewUser = async () => {
@@ -105,13 +129,27 @@ export default function Admin() {
 
       if (roleError) throw roleError;
 
+      // Add user quota
+      const { error: quotaError } = await supabase
+        .from("user_quotas")
+        .insert({
+          user_id: authData.user.id,
+          max_projects: maxProjects,
+          max_employees: maxEmployees,
+        });
+
+      if (quotaError) throw quotaError;
+
       toast.success("Usuário criado com sucesso!");
       setAddUserOpen(false);
       setNewUserEmail("");
       setNewUserPassword("");
       setNewUserRole('user');
       setNewUserProject("");
+      setMaxProjects(3);
+      setMaxEmployees(50);
       await loadUserRoles();
+      await loadUserQuotas();
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast.error(error.message || "Erro ao criar usuário");
@@ -269,6 +307,26 @@ export default function Admin() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="maxProjects">Limite de Projetos</Label>
+                  <Input
+                    id="maxProjects"
+                    type="number"
+                    min="1"
+                    value={maxProjects}
+                    onChange={(e) => setMaxProjects(parseInt(e.target.value) || 3)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="maxEmployees">Limite de Funcionários</Label>
+                  <Input
+                    id="maxEmployees"
+                    type="number"
+                    min="1"
+                    value={maxEmployees}
+                    onChange={(e) => setMaxEmployees(parseInt(e.target.value) || 50)}
+                  />
                 </div>
               </div>
               <DialogFooter>
