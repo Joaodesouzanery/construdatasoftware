@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2 } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -67,6 +67,7 @@ const settingsItems = [
 
 const adminItems = [
   { title: "Painel Admin", url: "/admin", icon: Shield },
+  { title: "Métricas de Usuários", url: "/admin/metrics", icon: BarChart3 },
 ];
 
 export function AppSidebar() {
