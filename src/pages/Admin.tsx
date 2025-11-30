@@ -73,17 +73,40 @@ export default function Admin() {
   };
 
   const loadUserRoles = async () => {
-    const { data, error } = await supabase
+    // Get all auth users first
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError) {
+      toast.error("Erro ao carregar usuários");
+      return;
+    }
+
+    // Get user roles
+    const { data: rolesData, error: rolesError } = await supabase
       .from("user_roles")
       .select("*, projects(name)")
       .order("created_at", { ascending: false });
 
-    if (error) {
+    if (rolesError) {
       toast.error("Erro ao carregar funções de usuários");
       return;
     }
 
-    setUserRoles(data || []);
+    // Merge auth users with roles data
+    const usersWithRoles = authUsers.users.map(user => {
+      const userRole = rolesData?.find(role => role.user_id === user.id);
+      return {
+        id: userRole?.id || user.id,
+        user_id: user.id,
+        email: user.email,
+        role: userRole?.role || 'user',
+        project_id: userRole?.project_id || null,
+        created_at: userRole?.created_at || user.created_at,
+        projects: userRole?.projects
+      };
+    });
+
+    setUserRoles(usersWithRoles as any);
   };
 
   const loadUserQuotas = async () => {
@@ -386,6 +409,7 @@ export default function Admin() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Email</TableHead>
                   <TableHead>Projeto</TableHead>
                   <TableHead>Função</TableHead>
                   <TableHead>Data de Criação</TableHead>
@@ -393,10 +417,13 @@ export default function Admin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {userRoles.map((role) => (
-                  <TableRow key={role.id}>
+                {userRoles.map((role: any) => (
+                  <TableRow key={role.user_id}>
+                    <TableCell className="font-medium">
+                      {role.email}
+                    </TableCell>
                     <TableCell>
-                      {role.projects?.name || "N/A"}
+                      {role.projects?.name || "Sem projeto"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={role.role === 'admin' ? 'default' : 'secondary'}>
