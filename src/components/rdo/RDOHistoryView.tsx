@@ -300,41 +300,73 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   };
 
   const handleExportPDF = () => {
-    const filtered = getFilteredData();
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text("Histórico de RDOs", 14, 22);
-    
-    doc.setFontSize(11);
-    doc.text(`Data de Exportação: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
-    doc.text(`Total de RDOs: ${filtered.length}`, 14, 36);
+    try {
+      const filtered = getFilteredData();
+      
+      if (filtered.length === 0) {
+        toast.error("Nenhum RDO para exportar");
+        return;
+      }
+      
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text("Histórico de RDOs", 14, 22);
+      
+      doc.setFontSize(11);
+      doc.text(`Data de Exportação: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+      doc.text(`Total de RDOs: ${filtered.length}`, 14, 36);
 
-    const tableData: any[] = [];
-    filtered.forEach(rdo => {
-      const formattedDate = new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR');
-      rdo.executed_services?.forEach((es: any) => {
-        tableData.push([
-          formattedDate,
-          rdo.construction_sites?.name || 'N/A',
-          rdo.service_fronts?.name || 'N/A',
-          es.services_catalog?.name || 'N/A',
-          es.quantity,
-          es.unit || 'N/A'
-        ]);
+      const tableData: any[] = [];
+      filtered.forEach(rdo => {
+        const formattedDate = new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR');
+        
+        if (rdo.executed_services && rdo.executed_services.length > 0) {
+          rdo.executed_services.forEach((es: any) => {
+            tableData.push([
+              formattedDate,
+              rdo.construction_sites?.name || 'N/A',
+              rdo.service_fronts?.name || 'N/A',
+              es.services_catalog?.name || 'N/A',
+              es.quantity || 0,
+              es.unit || 'N/A'
+            ]);
+          });
+        } else {
+          // Se não tiver serviços executados, adiciona uma linha com informações básicas
+          tableData.push([
+            formattedDate,
+            rdo.construction_sites?.name || 'N/A',
+            rdo.service_fronts?.name || 'N/A',
+            'Nenhum serviço registrado',
+            '-',
+            '-'
+          ]);
+        }
       });
-    });
 
-    (doc as any).autoTable({
-      head: [['Data', 'Local', 'Frente', 'Serviço', 'Qtd', 'Un']],
-      body: tableData,
-      startY: 42,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [59, 130, 246] },
-    });
+      if (typeof (doc as any).autoTable === 'function') {
+        (doc as any).autoTable({
+          head: [['Data', 'Local', 'Frente', 'Serviço', 'Qtd', 'Un']],
+          body: tableData,
+          startY: 42,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [59, 130, 246] },
+        });
+      } else {
+        console.error("autoTable não está disponível");
+        toast.error("Erro ao gerar tabela no PDF");
+        return;
+      }
 
-    doc.save(`historico_rdos_${new Date().toISOString().split('T')[0]}.pdf`);
-    toast.success("Histórico exportado em PDF com sucesso!");
+      const fileName = `historico_rdos_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      toast.success("Histórico exportado em PDF com sucesso!");
+      
+    } catch (error: any) {
+      console.error("Erro ao exportar PDF:", error);
+      toast.error("Erro ao exportar PDF: " + (error.message || "Erro desconhecido"));
+    }
   };
 
   if (isLoading) {
