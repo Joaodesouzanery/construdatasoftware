@@ -40,7 +40,6 @@ export default function Admin() {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
-  const [newUserProject, setNewUserProject] = useState("");
   const [maxProjects, setMaxProjects] = useState(3);
   const [maxEmployees, setMaxEmployees] = useState(50);
   const [userQuotas, setUserQuotas] = useState<UserQuota[]>([]);
@@ -123,7 +122,7 @@ export default function Admin() {
   };
 
   const addNewUser = async () => {
-    if (!newUserEmail || !newUserPassword || !newUserProject) {
+    if (!newUserEmail || !newUserPassword) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -141,13 +140,12 @@ export default function Admin() {
         throw new Error("Falha ao criar usuário");
       }
 
-      // Add the user role
+      // Add the user role (without project_id - user will create their own projects)
       const { error: roleError } = await supabase
         .from("user_roles")
         .insert({
           user_id: authData.user.id,
           role: newUserRole,
-          project_id: newUserProject,
         });
 
       if (roleError) throw roleError;
@@ -168,7 +166,6 @@ export default function Admin() {
       setNewUserEmail("");
       setNewUserPassword("");
       setNewUserRole('user');
-      setNewUserProject("");
       setMaxProjects(3);
       setMaxEmployees(50);
       await loadUserRoles();
@@ -313,21 +310,6 @@ export default function Admin() {
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="user">Colaborador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="project">Projeto</Label>
-                  <Select value={newUserProject} onValueChange={setNewUserProject}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um projeto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
                     </SelectContent>
                   </Select>
                 </div>
