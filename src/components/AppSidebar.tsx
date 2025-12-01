@@ -238,44 +238,6 @@ export function AppSidebar() {
           </SidebarGroup>
         </Collapsible>
 
-        {isAdmin && (
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-sm font-medium">Administração</SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/approvals" end className={getNavCls}>
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span>Aprovações</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    {adminItems.map((item) => {
-                      // Show "Métricas de Usuários" only to super admins
-                      if (item.title === "Métricas de Usuários" && !isSuperAdmin) {
-                        return null;
-                      }
-                      
-                      return (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild>
-                            <NavLink to={item.url} end className={getNavCls}>
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        )}
 
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
