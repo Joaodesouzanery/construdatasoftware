@@ -299,7 +299,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     toast.success("Histórico exportado em CSV com sucesso!");
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
       const filtered = getFilteredData();
       
@@ -308,7 +308,12 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         return;
       }
       
-      const doc = new jsPDF();
+      const jsPDFModule = await import("jspdf");
+      const autoTableModule: any = await import("jspdf-autotable");
+      const jsPDFLocal = jsPDFModule.default;
+      const autoTableFn = autoTableModule.default || (autoTableModule as any);
+
+      const doc = new jsPDFLocal();
       
       doc.setFontSize(18);
       doc.text("Histórico de RDOs", 14, 22);
@@ -333,7 +338,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
             ]);
           });
         } else {
-          // Se não tiver serviços executados, adiciona uma linha com informações básicas
           tableData.push([
             formattedDate,
             rdo.construction_sites?.name || 'N/A',
@@ -345,19 +349,13 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         }
       });
 
-      if (typeof (doc as any).autoTable === 'function') {
-        (doc as any).autoTable({
-          head: [['Data', 'Local', 'Frente', 'Serviço', 'Qtd', 'Un']],
-          body: tableData,
-          startY: 42,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [59, 130, 246] },
-        });
-      } else {
-        console.error("autoTable não está disponível");
-        toast.error("Erro ao gerar tabela no PDF");
-        return;
-      }
+      autoTableFn(doc as any, {
+        head: [['Data', 'Local', 'Frente', 'Serviço', 'Qtd', 'Un']],
+        body: tableData,
+        startY: 42,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] },
+      } as any);
 
       const fileName = `historico_rdos_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
@@ -369,9 +367,60 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     }
   };
 
-  if (isLoading) {
-    return <div className="text-center py-8">Carregando histórico...</div>;
-  }
+  const handleExportSingleRDO = async (rdo: any) => {
+    try {
+      const jsPDFModule = await import("jspdf");
+      const autoTableModule: any = await import("jspdf-autotable");
+      const jsPDFLocal = jsPDFModule.default;
+      const autoTableFn = autoTableModule.default || (autoTableModule as any);
+
+      const doc = new jsPDFLocal();
+      
+      doc.setFontSize(18);
+      doc.text("Relatório Diário de Obra (RDO)", 14, 22);
+
+      const reportDate = new Date(rdo.report_date + 'T12:00:00');
+      const formattedDate = reportDate.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+
+      doc.setFontSize(11);
+      doc.text(`Data: ${formattedDate}`, 14, 32);
+      doc.text(`Local: ${rdo.construction_sites?.name || 'N/A'}`, 14, 38);
+      doc.text(`Frente: ${rdo.service_fronts?.name || 'N/A'}`, 14, 44);
+
+      const tableData: any[] = [];
+      if (rdo.executed_services && rdo.executed_services.length > 0) {
+        rdo.executed_services.forEach((es: any) => {
+          tableData.push([
+            es.services_catalog?.name || 'N/A',
+            es.quantity || 0,
+            es.unit || 'N/A',
+          ]);
+        });
+      } else {
+        tableData.push(['Nenhum serviço registrado', '-', '-']);
+      }
+
+      autoTableFn(doc as any, {
+        head: [['Serviço', 'Qtd', 'Un']],
+        body: tableData,
+        startY: 52,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] },
+      } as any);
+
+      const safeProject = (rdo.project?.name || 'RDO').replace(/[^a-zA-Z0-9]/g, '_');
+      const dateStr = rdo.report_date.replace(/\-/g, '');
+      doc.save(`RDO_${safeProject}_${dateStr}.pdf`);
+      toast.success('RDO exportado em PDF com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao exportar RDO em PDF:', error);
+      toast.error('Erro ao exportar RDO em PDF: ' + (error.message || 'Erro desconhecido'));
+    }
+  };
 
   const chartData = getChartData();
   const serviceData = getServiceDistribution();
@@ -561,6 +610,15 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                         Local: {rdo.construction_sites?.name} | Frente: {rdo.service_fronts?.name}
                       </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                      onClick={() => handleExportSingleRDO(rdo)}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>PDF</span>
+                    </Button>
                     <Button
                       size="sm"
                       variant="destructive"
