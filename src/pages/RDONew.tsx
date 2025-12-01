@@ -475,6 +475,11 @@ const RDONew = () => {
         .single();
 
       if (rdoError) throw rdoError;
+      
+      if (!rdoData) {
+        toast.error("RDO não encontrado");
+        return;
+      }
 
       // Buscar serviços executados
       const { data: services, error: servicesError } = await supabase
@@ -487,8 +492,10 @@ const RDONew = () => {
 
       if (servicesError) throw servicesError;
 
-      // Gerar PDF
-      const jsPDF = (await import('jspdf')).default;
+      // Importar jsPDF dinamicamente
+      const jsPDFModule = await import('jspdf');
+      await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default;
       const doc = new jsPDF();
       
       let yPos = 20;
@@ -506,30 +513,47 @@ const RDONew = () => {
       yPos += 8;
       doc.text(`Local: ${rdoData.construction_site?.name || 'N/A'}`, 20, yPos);
       yPos += 8;
-      doc.text(`Data do Relatório: ${new Date(rdoData.report_date + 'T00:00:00').toLocaleDateString('pt-BR')}`, 20, yPos);
+      
+      // Formatar data corretamente para evitar problemas de fuso horário
+      const reportDate = new Date(rdoData.report_date + 'T12:00:00');
+      const formattedDate = reportDate.toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      });
+      doc.text(`Data do Relatório: ${formattedDate}`, 20, yPos);
       yPos += 15;
       
       // Serviços executados
-      doc.setFontSize(14);
-      doc.text('Serviços Executados:', 20, yPos);
-      yPos += 10;
-      
-      doc.setFontSize(11);
-      services?.forEach((service: any, index: number) => {
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 20;
-        }
-        doc.text(`${index + 1}. ${service.service?.name || 'N/A'}`, 25, yPos);
-        yPos += 6;
-        doc.text(`   Quantidade: ${service.quantity} ${service.unit}`, 25, yPos);
-        yPos += 6;
-        if (service.equipment_used) {
-          doc.text(`   Equipamentos: ${JSON.stringify(service.equipment_used)}`, 25, yPos);
+      if (services && services.length > 0) {
+        doc.setFontSize(14);
+        doc.text('Serviços Executados:', 20, yPos);
+        yPos += 10;
+        
+        doc.setFontSize(11);
+        services.forEach((service: any, index: number) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text(`${index + 1}. ${service.service?.name || 'N/A'}`, 25, yPos);
           yPos += 6;
-        }
-        yPos += 4;
-      });
+          doc.text(`   Quantidade: ${service.quantity} ${service.unit}`, 25, yPos);
+          yPos += 6;
+          if (service.equipment_used) {
+            const equipmentText = typeof service.equipment_used === 'object' 
+              ? JSON.stringify(service.equipment_used) 
+              : service.equipment_used;
+            doc.text(`   Equipamentos: ${equipmentText}`, 25, yPos);
+            yPos += 6;
+          }
+          yPos += 4;
+        });
+      } else {
+        doc.setFontSize(11);
+        doc.text('Nenhum serviço executado registrado', 20, yPos);
+        yPos += 10;
+      }
       
       // Campos opcionais
       if (terrainCondition) {
@@ -595,12 +619,15 @@ const RDONew = () => {
         });
       }
       
-      // Salvar PDF
-      doc.save(`RDO_${rdoData.project?.name}_${rdoData.report_date}.pdf`);
+      // Salvar PDF com nome formatado
+      const projectName = rdoData.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'RDO';
+      const dateStr = rdoData.report_date.replace(/\-/g, '');
+      doc.save(`RDO_${projectName}_${dateStr}.pdf`);
       toast.success("PDF gerado com sucesso!");
       
     } catch (error: any) {
-      toast.error("Erro ao gerar PDF: " + error.message);
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF: " + (error.message || "Erro desconhecido"));
     }
   };
 

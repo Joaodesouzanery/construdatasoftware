@@ -232,8 +232,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     const dataByDate = new Map();
 
     filtered.forEach(rdo => {
-      // Parse date correctly to avoid timezone issues
-      const date = new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      // Parse date correctly to avoid timezone issues - use midday to avoid edge cases
+      const date = new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
       
       rdo.executed_services?.forEach((es: any) => {
         if (selectedService === 'all' || es.service_id === selectedService) {
@@ -274,7 +274,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     let csvContent = "Data,Local,Frente,Serviço,Quantidade,Unidade,Equipamentos,Executado Por\n";
 
     filtered.forEach(rdo => {
-      const formattedDate = new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR');
+      const formattedDate = new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR');
       rdo.executed_services?.forEach((es: any) => {
         csvContent += [
           formattedDate,
@@ -312,7 +312,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
     const tableData: any[] = [];
     filtered.forEach(rdo => {
-      const formattedDate = new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR');
+      const formattedDate = new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR');
       rdo.executed_services?.forEach((es: any) => {
         tableData.push([
           formattedDate,
@@ -518,7 +518,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <div className="font-semibold text-lg">
-                        {new Date(rdo.report_date + 'T00:00:00').toLocaleDateString('pt-BR', { 
+                        {new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR', { 
                           weekday: 'short',
                           day: '2-digit', 
                           month: 'short', 

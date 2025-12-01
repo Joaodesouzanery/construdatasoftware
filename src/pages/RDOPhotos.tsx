@@ -230,7 +230,7 @@ const RDOPhotos = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
-                    RDO - {new Date(rdo.report_date).toLocaleDateString('pt-BR')}
+                    RDO - {new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </CardTitle>
                   <CardDescription>
                     <div className="flex flex-col gap-1 mt-2">
