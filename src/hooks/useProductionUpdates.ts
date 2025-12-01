@@ -56,7 +56,7 @@ export const useProductionUpdates = () => {
 
           if (projectData) {
             toast.info('RDO registrado', {
-              description: `${projectData.name} - ${new Date(rdo.report_date).toLocaleDateString('pt-BR')}`,
+              description: `${projectData.name} - ${new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR')}`,
               duration: 5000,
             });
           }
