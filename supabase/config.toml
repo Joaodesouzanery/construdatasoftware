@@ -10,7 +10,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.process-alerts]
-verify_jwt = false
+verify_jwt = true
+
+[functions.get-user-metrics]
+verify_jwt = true
 
 [functions.process-spreadsheet]
 verify_jwt = true

@@ -369,52 +369,45 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
   const handleExportSingleRDO = async (rdo: any) => {
     try {
-      const jsPDFModule = await import("jspdf");
-      const autoTableModule: any = await import("jspdf-autotable");
-      const jsPDFLocal = jsPDFModule.default;
-      const autoTableFn = autoTableModule.default || (autoTableModule as any);
+      // Fetch complete RDO data with all relationships
+      const { data: completeRDO, error: rdoError } = await supabase
+        .from('daily_reports')
+        .select(`
+          *,
+          project:projects!inner(name),
+          construction_site:construction_sites!inner(name, address),
+          service_front:service_fronts!inner(name),
+          executed_services(
+            quantity,
+            unit,
+            equipment_used,
+            services_catalog(name),
+            employees(name)
+          )
+        `)
+        .eq('id', rdo.id)
+        .single();
 
-      const doc = new jsPDFLocal();
+      if (rdoError) throw rdoError;
+
+      // Fetch photos
+      const { data: photos, error: photosError } = await supabase
+        .from('rdo_validation_photos')
+        .select('photo_url, uploaded_at')
+        .eq('daily_report_id', rdo.id)
+        .order('uploaded_at', { ascending: true });
+
+      if (photosError) throw photosError;
+
+      // Import the report generator
+      const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
       
-      doc.setFontSize(18);
-      doc.text("Relatório Diário de Obra (RDO)", 14, 22);
-
-      const reportDate = new Date(rdo.report_date + 'T12:00:00');
-      const formattedDate = reportDate.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
+      // Generate PDF with all data
+      await generateRDOReportPDF({
+        ...completeRDO,
+        photos: photos || []
       });
-
-      doc.setFontSize(11);
-      doc.text(`Data: ${formattedDate}`, 14, 32);
-      doc.text(`Local: ${rdo.construction_sites?.name || 'N/A'}`, 14, 38);
-      doc.text(`Frente: ${rdo.service_fronts?.name || 'N/A'}`, 14, 44);
-
-      const tableData: any[] = [];
-      if (rdo.executed_services && rdo.executed_services.length > 0) {
-        rdo.executed_services.forEach((es: any) => {
-          tableData.push([
-            es.services_catalog?.name || 'N/A',
-            es.quantity || 0,
-            es.unit || 'N/A',
-          ]);
-        });
-      } else {
-        tableData.push(['Nenhum serviço registrado', '-', '-']);
-      }
-
-      autoTableFn(doc as any, {
-        head: [['Serviço', 'Qtd', 'Un']],
-        body: tableData,
-        startY: 52,
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [59, 130, 246] },
-      } as any);
-
-      const safeProject = (rdo.project?.name || 'RDO').replace(/[^a-zA-Z0-9]/g, '_');
-      const dateStr = rdo.report_date.replace(/\-/g, '');
-      doc.save(`RDO_${safeProject}_${dateStr}.pdf`);
+      
       toast.success('RDO exportado em PDF com sucesso!');
     } catch (error: any) {
       console.error('Erro ao exportar RDO em PDF:', error);
