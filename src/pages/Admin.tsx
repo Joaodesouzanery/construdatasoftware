@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { ArrowLeft, Shield, Users, Database, UserPlus } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { z } from "zod";
 
 interface UserRole {
   id: string;
@@ -122,8 +123,26 @@ export default function Admin() {
   };
 
   const addNewUser = async () => {
-    if (!newUserEmail || !newUserPassword) {
-      toast.error("Preencha todos os campos obrigatórios");
+    // Validate inputs with Zod
+    const addUserSchema = z.object({
+      email: z.string().trim().email("Email inválido").max(255, "Email muito longo"),
+      password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres").max(128, "Senha muito longa"),
+      role: z.enum(['admin', 'user']),
+      maxProjects: z.number().min(1, "Mínimo 1 projeto").max(100, "Máximo 100 projetos"),
+      maxEmployees: z.number().min(1, "Mínimo 1 funcionário").max(10000, "Máximo 10000 funcionários")
+    });
+
+    const validation = addUserSchema.safeParse({
+      email: newUserEmail,
+      password: newUserPassword,
+      role: newUserRole,
+      maxProjects: maxProjects,
+      maxEmployees: maxEmployees
+    });
+
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => e.message).join(", ");
+      toast.error(errors);
       return;
     }
 

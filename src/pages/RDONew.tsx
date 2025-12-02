@@ -291,6 +291,12 @@ const RDONew = () => {
       return;
     }
 
+    // Validate observations (now required)
+    if (!generalObservations || generalObservations.trim().length === 0) {
+      toast.error("As observações gerais são obrigatórias");
+      return;
+    }
+
     // Validate executed services
     const validServices = executedServices.filter(s => s.service_id && s.quantity);
     if (validServices.length === 0) {
