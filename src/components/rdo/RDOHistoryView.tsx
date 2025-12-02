@@ -397,7 +397,31 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         .eq('daily_report_id', rdo.id)
         .order('uploaded_at', { ascending: true });
 
-      if (photosError) throw photosError;
+      const photosWithSignedUrls = await Promise.all(
+        (photos || []).map(async (photo: any) => {
+          const rawPath: string = photo.photo_url || "";
+          const path = rawPath.includes('rdo-photos/')
+            ? rawPath.split('rdo-photos/')[1]
+            : rawPath;
+
+          let signedUrl = rawPath;
+          try {
+            const { data: signed } = await supabase.storage
+              .from('rdo-photos')
+              .createSignedUrl(path, 10 * 60);
+            if (signed?.signedUrl) {
+              signedUrl = signed.signedUrl;
+            }
+          } catch (error) {
+            console.error('Erro ao gerar URL assinada para foto do PDF:', error);
+          }
+
+          return {
+            ...photo,
+            photo_url: signedUrl,
+          };
+        })
+      );
 
       // Import the report generator
       const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
@@ -405,7 +429,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       // Generate PDF with all data
       await generateRDOReportPDF({
         ...completeRDO,
-        photos: photos || []
+        photos: photosWithSignedUrls,
       });
       
       toast.success('RDO exportado em PDF com sucesso!');
