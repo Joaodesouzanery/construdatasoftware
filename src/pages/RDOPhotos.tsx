@@ -72,7 +72,6 @@ const RDOPhotos = () => {
 
   const loadPhotos = async () => {
     try {
-      // First get all photos with their daily reports
       const { data: photosData, error: photosError } = await supabase
         .from('rdo_validation_photos')
         .select(`
@@ -92,7 +91,6 @@ const RDOPhotos = () => {
         return;
       }
 
-      // Filter by project on the client side if needed
       let filteredPhotos = photosData || [];
       if (selectedProject !== 'all') {
         filteredPhotos = filteredPhotos.filter((photo: any) => 
@@ -100,20 +98,40 @@ const RDOPhotos = () => {
         );
       }
 
-      // Transform data to match expected structure
-      const transformedPhotos = filteredPhotos.map((photo: any) => ({
-        id: photo.id,
-        photo_url: photo.photo_url,
-        uploaded_at: photo.uploaded_at,
-        daily_report: {
-          id: photo.daily_reports.id,
-          report_date: photo.daily_reports.report_date,
-          project: photo.daily_reports.projects,
-          construction_site: photo.daily_reports.construction_sites
-        }
-      }));
+      const photosWithSignedUrls: RDOPhoto[] = await Promise.all(
+        filteredPhotos.map(async (photo: any) => {
+          const rawPath: string = photo.photo_url || "";
+          const path = rawPath.includes('rdo-photos/')
+            ? rawPath.split('rdo-photos/')[1]
+            : rawPath;
 
-      setPhotos(transformedPhotos);
+          let signedUrl = rawPath;
+          try {
+            const { data: signed } = await supabase.storage
+              .from('rdo-photos')
+              .createSignedUrl(path, 60 * 60);
+            if (signed?.signedUrl) {
+              signedUrl = signed.signedUrl;
+            }
+          } catch (error) {
+            console.error('Erro ao gerar URL assinada da foto:', error);
+          }
+
+          return {
+            id: photo.id,
+            photo_url: signedUrl,
+            uploaded_at: photo.uploaded_at,
+            daily_report: {
+              id: photo.daily_reports.id,
+              report_date: photo.daily_reports.report_date,
+              project: photo.daily_reports.projects,
+              construction_site: photo.daily_reports.construction_sites
+            }
+          } as RDOPhoto;
+        })
+      );
+
+      setPhotos(photosWithSignedUrls);
     } catch (error: any) {
       toast.error("Erro ao carregar fotos: " + error.message);
     }

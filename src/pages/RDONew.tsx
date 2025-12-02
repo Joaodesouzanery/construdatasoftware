@@ -391,17 +391,17 @@ const RDONew = () => {
             continue;
           }
 
-          const { data: photoData } = supabase.storage
-            .from('rdo-photos')
-            .getPublicUrl(fileName);
-
-          await supabase
+          const { error: insertError } = await supabase
             .from('rdo_validation_photos')
             .insert({
               daily_report_id: dailyReport.id,
-              photo_url: photoData.publicUrl,
+              photo_url: fileName,
               created_by_user_id: user.id
             });
+
+          if (insertError) {
+            console.error('Error saving photo record:', insertError);
+          }
         }
       }
 
