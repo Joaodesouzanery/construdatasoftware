@@ -19,6 +19,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface RDOHistoryViewProps {
   projectId: string;
@@ -32,6 +35,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [specificDate, setSpecificDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [deletingRdo, setDeletingRdo] = useState<any>(null);
+  const [exportingRdo, setExportingRdo] = useState<any>(null);
+  const [consolidateServices, setConsolidateServices] = useState(false);
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
@@ -430,9 +435,11 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       await generateRDOReportPDF({
         ...completeRDO,
         photos: photosWithSignedUrls,
-      });
+      }, consolidateServices);
       
       toast.success('RDO exportado em PDF com sucesso!');
+      setExportingRdo(null);
+      setConsolidateServices(false);
     } catch (error: any) {
       console.error('Erro ao exportar RDO em PDF:', error);
       toast.error('Erro ao exportar RDO em PDF: ' + (error.message || 'Erro desconhecido'));
@@ -631,7 +638,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                       variant="outline"
                       size="sm"
                       className="flex items-center gap-2"
-                      onClick={() => handleExportSingleRDO(rdo)}
+                      onClick={() => setExportingRdo(rdo)}
                     >
                       <Download className="w-4 h-4" />
                       <span>PDF</span>
@@ -696,6 +703,51 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Export PDF Dialog */}
+      <Dialog open={!!exportingRdo} onOpenChange={(open) => {
+        if (!open) {
+          setExportingRdo(null);
+          setConsolidateServices(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Exportar RDO para PDF</DialogTitle>
+            <DialogDescription>Configure as opções de exportação</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="consolidate-history" 
+                checked={consolidateServices}
+                onCheckedChange={(checked) => setConsolidateServices(checked === true)}
+              />
+              <Label 
+                htmlFor="consolidate-history" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Consolidar serviços iguais
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ao ativar esta opção, serviços com o mesmo nome e unidade serão somados e exibidos como um único item no PDF.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => {
+                setExportingRdo(null);
+                setConsolidateServices(false);
+              }}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={() => exportingRdo && handleExportSingleRDO(exportingRdo)}>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

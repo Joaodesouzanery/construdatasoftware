@@ -41,12 +41,42 @@ const loadImage = (url: string): Promise<HTMLImageElement> => {
   });
 };
 
-export async function generateRDOReportPDF(report: RDOReport) {
+export async function generateRDOReportPDF(report: RDOReport, consolidateServices: boolean = false) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   let yPos = margin;
+
+  // Consolidate services if requested
+  let processedServices = report.executed_services || [];
+  if (consolidateServices && processedServices.length > 0) {
+    const serviceMap = new Map<string, any>();
+    
+    processedServices.forEach((service) => {
+      const serviceName = service.services_catalog?.name || 'N/A';
+      const key = `${serviceName}_${service.unit}`;
+      
+      if (serviceMap.has(key)) {
+        const existing = serviceMap.get(key);
+        existing.quantity = (parseFloat(existing.quantity) || 0) + (parseFloat(String(service.quantity)) || 0);
+        // Concatenate equipment
+        if (service.equipment_used) {
+          const existingEquip = existing.equipment_used?.equipment || '';
+          const newEquip = typeof service.equipment_used === 'object' 
+            ? service.equipment_used.equipment 
+            : service.equipment_used;
+          if (newEquip && !existingEquip.includes(newEquip)) {
+            existing.equipment_used = { equipment: existingEquip ? `${existingEquip}, ${newEquip}` : newEquip };
+          }
+        }
+      } else {
+        serviceMap.set(key, { ...service, quantity: parseFloat(String(service.quantity)) || 0 });
+      }
+    });
+    
+    processedServices = Array.from(serviceMap.values());
+  }
 
   // Title
   doc.setFontSize(18);
@@ -144,19 +174,20 @@ export async function generateRDOReportPDF(report: RDOReport) {
   }
 
   // Executed Services
-  if (report.executed_services && report.executed_services.length > 0) {
-    addSectionTitle("SERVIÇOS EXECUTADOS");
+  if (processedServices && processedServices.length > 0) {
+    addSectionTitle(consolidateServices ? "SERVIÇOS EXECUTADOS (CONSOLIDADOS)" : "SERVIÇOS EXECUTADOS");
     
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     
-    report.executed_services.forEach((service, index) => {
+    processedServices.forEach((service, index) => {
       if (yPos > pageHeight - 40) {
         doc.addPage();
         yPos = margin + 10;
       }
       
-      const serviceLine = `${index + 1}. ${service.services_catalog.name} - ${service.quantity} ${service.unit}`;
+      const serviceName = service.services_catalog?.name || 'Serviço não especificado';
+      const serviceLine = `${index + 1}. ${serviceName} - ${service.quantity} ${service.unit}`;
       doc.text(serviceLine, contentMargin + 2, yPos);
       yPos += 5;
       
