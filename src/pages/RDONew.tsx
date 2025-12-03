@@ -8,14 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Trash2, FileText, BarChart3, Eye, MapPin, Image, Cloud, Download } from "lucide-react";
+import { Building2, Plus, Trash2, FileText, BarChart3, Eye, MapPin, Image, Cloud, Download, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddServiceFrontDialog } from "@/components/rdo/AddServiceFrontDialog";
 import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteDialog";
 import { AddServiceDialog } from "@/components/rdo/AddServiceDialog";
 import { RDOHistoryView } from "@/components/rdo/RDOHistoryView";
-
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Checkbox } from "@/components/ui/checkbox";
 interface ExecutedService {
   service_id: string;
   quantity: string;
@@ -77,6 +78,14 @@ const RDONew = () => {
   const [lastCreatedRDOId, setLastCreatedRDOId] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+
+  // PDF Export options
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [consolidateServices, setConsolidateServices] = useState(false);
+
+  // Search filters for lists
+  const [serviceFrontSearch, setServiceFrontSearch] = useState("");
+  const [constructionSiteSearch, setConstructionSiteSearch] = useState("");
 
   // Dialog states
   const [showServiceFrontDialog, setShowServiceFrontDialog] = useState(false);
@@ -461,7 +470,7 @@ const RDONew = () => {
     }
   };
 
-  const exportRDOToPDF = async () => {
+  const exportRDOToPDF = async (shouldConsolidate: boolean = false) => {
     if (!lastCreatedRDOId) {
       toast.error("Nenhum RDO para exportar");
       return;
@@ -498,6 +507,40 @@ const RDONew = () => {
 
       if (servicesError) throw servicesError;
 
+      // Buscar fotos
+      const { data: photos } = await supabase
+        .from('rdo_validation_photos')
+        .select('*')
+        .eq('daily_report_id', lastCreatedRDOId);
+
+      // Consolidar serviços se solicitado
+      let processedServices = services || [];
+      if (shouldConsolidate && services && services.length > 0) {
+        const serviceMap = new Map<string, any>();
+        
+        services.forEach((service: any) => {
+          const serviceName = service.service?.name || 'N/A';
+          const key = `${serviceName}_${service.unit}`;
+          
+          if (serviceMap.has(key)) {
+            const existing = serviceMap.get(key);
+            existing.quantity = (parseFloat(existing.quantity) || 0) + (parseFloat(service.quantity) || 0);
+            // Concatenar equipamentos
+            if (service.equipment_used) {
+              const existingEquip = existing.equipment_used?.equipment || '';
+              const newEquip = service.equipment_used?.equipment || '';
+              if (newEquip && !existingEquip.includes(newEquip)) {
+                existing.equipment_used = { equipment: existingEquip ? `${existingEquip}, ${newEquip}` : newEquip };
+              }
+            }
+          } else {
+            serviceMap.set(key, { ...service, quantity: parseFloat(service.quantity) || 0 });
+          }
+        });
+        
+        processedServices = Array.from(serviceMap.values());
+      }
+
       // Importar jsPDF dinamicamente
       const jsPDFModule = await import('jspdf');
       await import('jspdf-autotable');
@@ -528,16 +571,47 @@ const RDONew = () => {
         year: 'numeric' 
       });
       doc.text(`Data do Relatório: ${formattedDate}`, 20, yPos);
-      yPos += 15;
+      yPos += 8;
+
+      // Dados climáticos
+      if (rdoData.temperature || rdoData.humidity || rdoData.wind_speed) {
+        yPos += 5;
+        doc.setFontSize(14);
+        doc.text('Dados Climáticos:', 20, yPos);
+        yPos += 8;
+        doc.setFontSize(11);
+        if (rdoData.temperature) {
+          doc.text(`Temperatura: ${rdoData.temperature}°C`, 25, yPos);
+          yPos += 6;
+        }
+        if (rdoData.humidity) {
+          doc.text(`Umidade: ${rdoData.humidity}%`, 25, yPos);
+          yPos += 6;
+        }
+        if (rdoData.wind_speed) {
+          doc.text(`Vento: ${rdoData.wind_speed} km/h`, 25, yPos);
+          yPos += 6;
+        }
+        if (rdoData.will_rain !== null) {
+          doc.text(`Previsão de Chuva: ${rdoData.will_rain ? 'Sim' : 'Não'}`, 25, yPos);
+          yPos += 6;
+        }
+        if (rdoData.weather_description) {
+          doc.text(`Condição: ${rdoData.weather_description}`, 25, yPos);
+          yPos += 6;
+        }
+      }
+
+      yPos += 5;
       
       // Serviços executados
-      if (services && services.length > 0) {
+      if (processedServices && processedServices.length > 0) {
         doc.setFontSize(14);
-        doc.text('Serviços Executados:', 20, yPos);
+        doc.text(shouldConsolidate ? 'Serviços Executados (Consolidados):' : 'Serviços Executados:', 20, yPos);
         yPos += 10;
         
         doc.setFontSize(11);
-        services.forEach((service: any, index: number) => {
+        processedServices.forEach((service: any, index: number) => {
           if (yPos > 270) {
             doc.addPage();
             yPos = 20;
@@ -548,7 +622,7 @@ const RDONew = () => {
           yPos += 6;
           if (service.equipment_used) {
             const equipmentText = typeof service.equipment_used === 'object' 
-              ? JSON.stringify(service.equipment_used) 
+              ? (service.equipment_used.equipment || JSON.stringify(service.equipment_used))
               : service.equipment_used;
             doc.text(`   Equipamentos: ${equipmentText}`, 25, yPos);
             yPos += 6;
@@ -562,25 +636,25 @@ const RDONew = () => {
       }
       
       // Campos opcionais
-      if (terrainCondition) {
+      if (rdoData.terrain_condition || terrainCondition) {
         yPos += 5;
         doc.setFontSize(12);
-        doc.text(`Condição do Terreno: ${terrainCondition}`, 20, yPos);
+        doc.text(`Condição do Terreno: ${rdoData.terrain_condition || terrainCondition}`, 20, yPos);
         yPos += 8;
       }
       
-      if (location) {
-        doc.text(`Localização: ${location}`, 20, yPos);
+      if (rdoData.gps_location || location) {
+        doc.text(`Localização GPS: ${rdoData.gps_location || location}`, 20, yPos);
         yPos += 8;
       }
       
-      if (visits) {
+      if (rdoData.visits || visits) {
         yPos += 5;
         doc.setFontSize(12);
         doc.text('Visitas Recebidas:', 20, yPos);
         yPos += 8;
         doc.setFontSize(11);
-        const visitLines = doc.splitTextToSize(visits, 170);
+        const visitLines = doc.splitTextToSize(rdoData.visits || visits, 170);
         visitLines.forEach((line: string) => {
           if (yPos > 270) {
             doc.addPage();
@@ -591,13 +665,13 @@ const RDONew = () => {
         });
       }
 
-      if (occurrences) {
+      if (rdoData.occurrences_summary || occurrences) {
         yPos += 5;
         doc.setFontSize(12);
         doc.text('Ocorrências:', 20, yPos);
         yPos += 8;
         doc.setFontSize(11);
-        const occurrenceLines = doc.splitTextToSize(occurrences, 170);
+        const occurrenceLines = doc.splitTextToSize(rdoData.occurrences_summary || occurrences, 170);
         occurrenceLines.forEach((line: string) => {
           if (yPos > 270) {
             doc.addPage();
@@ -608,13 +682,13 @@ const RDONew = () => {
         });
       }
       
-      if (generalObservations) {
+      if (rdoData.general_observations || generalObservations) {
         yPos += 5;
         doc.setFontSize(12);
         doc.text('Observações Gerais:', 20, yPos);
         yPos += 8;
         doc.setFontSize(11);
-        const lines = doc.splitTextToSize(generalObservations, 170);
+        const lines = doc.splitTextToSize(rdoData.general_observations || generalObservations, 170);
         lines.forEach((line: string) => {
           if (yPos > 270) {
             doc.addPage();
@@ -624,12 +698,79 @@ const RDONew = () => {
           yPos += 6;
         });
       }
+
+      // Fotos (com URLs assinadas)
+      if (photos && photos.length > 0) {
+        doc.addPage();
+        yPos = 20;
+        doc.setFontSize(14);
+        doc.text('Fotos de Validação:', 20, yPos);
+        yPos += 10;
+        
+        doc.setFontSize(11);
+        doc.text(`Total de fotos: ${photos.length}`, 20, yPos);
+        yPos += 10;
+
+        for (const photo of photos) {
+          try {
+            const rawPath = photo.photo_url || "";
+            const path = rawPath.includes('rdo-photos/')
+              ? rawPath.split('rdo-photos/')[1]
+              : rawPath;
+
+            const { data: signedData } = await supabase.storage
+              .from('rdo-photos')
+              .createSignedUrl(path, 60 * 5);
+
+            if (signedData?.signedUrl) {
+              // Load and add image to PDF
+              const img = document.createElement('img') as HTMLImageElement;
+              img.crossOrigin = 'anonymous';
+              
+              await new Promise<void>((resolve, reject) => {
+                img.onload = () => {
+                  if (yPos > 200) {
+                    doc.addPage();
+                    yPos = 20;
+                  }
+                  
+                  const maxWidth = 170;
+                  const maxHeight = 100;
+                  let width = img.width;
+                  let height = img.height;
+                  
+                  if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                  }
+                  if (height > maxHeight) {
+                    width = (maxHeight / height) * width;
+                    height = maxHeight;
+                  }
+
+                  doc.addImage(img, 'JPEG', 20, yPos, width, height);
+                  yPos += height + 10;
+                  resolve();
+                };
+                img.onerror = () => {
+                  console.error('Erro ao carregar imagem');
+                  resolve();
+                };
+                img.src = signedData.signedUrl;
+              });
+            }
+          } catch (err) {
+            console.error('Erro ao processar foto:', err);
+          }
+        }
+      }
       
       // Salvar PDF com nome formatado
       const projectName = rdoData.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'RDO';
       const dateStr = rdoData.report_date.replace(/\-/g, '');
       doc.save(`RDO_${projectName}_${dateStr}.pdf`);
       toast.success("PDF gerado com sucesso!");
+      setShowExportDialog(false);
       
     } catch (error: any) {
       console.error("Erro ao gerar PDF:", error);
@@ -685,21 +826,17 @@ const RDONew = () => {
                     <CardTitle className="text-base">Projeto *</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Select 
-                      value={selectedProject} 
+                    <SearchableSelect
+                      options={projects.map(project => ({
+                        value: project.id,
+                        label: project.name
+                      }))}
+                      value={selectedProject}
                       onValueChange={setSelectedProject}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o projeto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projects.map(project => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Selecione o projeto"
+                      searchPlaceholder="Pesquisar projeto..."
+                      emptyMessage="Nenhum projeto encontrado."
+                    />
                   </CardContent>
                 </Card>
 
@@ -710,11 +847,22 @@ const RDONew = () => {
                     <CardDescription className="text-xs">Selecione uma ou mais frentes</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar frentes..."
+                        value={serviceFrontSearch}
+                        onChange={(e) => setServiceFrontSearch(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
                     <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2">
                       {serviceFronts.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Nenhuma frente disponível</p>
                       ) : (
-                        serviceFronts.map(front => (
+                        serviceFronts
+                          .filter(front => front.name.toLowerCase().includes(serviceFrontSearch.toLowerCase()))
+                          .map(front => (
                           <label key={front.id} className="flex items-center space-x-2 cursor-pointer">
                             <input
                               type="checkbox"
@@ -755,11 +903,22 @@ const RDONew = () => {
                     <CardDescription className="text-xs">Selecione um ou mais locais</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar locais..."
+                        value={constructionSiteSearch}
+                        onChange={(e) => setConstructionSiteSearch(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
                     <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-2">
                       {constructionSites.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Nenhum local disponível</p>
                       ) : (
-                        constructionSites.map(site => (
+                        constructionSites
+                          .filter(site => site.name.toLowerCase().includes(constructionSiteSearch.toLowerCase()))
+                          .map(site => (
                           <label key={site.id} className="flex items-center space-x-2 cursor-pointer">
                             <input
                               type="checkbox"
@@ -830,21 +989,18 @@ const RDONew = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>Serviço</Label>
-                              <Select
+                              <SearchableSelect
+                                options={servicesCatalog.map(s => ({
+                                  value: s.id,
+                                  label: s.name,
+                                  sublabel: s.unit
+                                }))}
                                 value={service.service_id}
                                 onValueChange={(value) => updateExecutedService(index, 'service_id', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o serviço" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {servicesCatalog.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      {s.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                placeholder="Selecione o serviço"
+                                searchPlaceholder="Pesquisar serviço..."
+                                emptyMessage="Nenhum serviço encontrado."
+                              />
                             </div>
 
                             <div className="space-y-2">
@@ -879,21 +1035,18 @@ const RDONew = () => {
 
                             <div className="space-y-2">
                               <Label>Funcionário Responsável (opcional)</Label>
-                              <Select
-                                value={service.employee_id}
+                              <SearchableSelect
+                                options={employees.map(emp => ({
+                                  value: emp.id,
+                                  label: emp.name,
+                                  sublabel: emp.role || undefined
+                                }))}
+                                value={service.employee_id || ""}
                                 onValueChange={(value) => updateExecutedService(index, 'employee_id', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o funcionário" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {employees.map(emp => (
-                                    <SelectItem key={emp.id} value={emp.id}>
-                                      {emp.name} {emp.role ? `- ${emp.role}` : ''}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                placeholder="Selecione o funcionário"
+                                searchPlaceholder="Pesquisar funcionário..."
+                                emptyMessage="Nenhum funcionário encontrado."
+                              />
                             </div>
                           </div>
 
@@ -977,18 +1130,17 @@ const RDONew = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="project">Obra *</Label>
-                  <Select value={selectedProject} onValueChange={setSelectedProject}>
-                    <SelectTrigger id="project">
-                      <SelectValue placeholder="Selecione a obra" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map(project => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={projects.map(project => ({
+                      value: project.id,
+                      label: project.name
+                    }))}
+                    value={selectedProject}
+                    onValueChange={setSelectedProject}
+                    placeholder="Selecione a obra"
+                    searchPlaceholder="Pesquisar obra..."
+                    emptyMessage="Nenhuma obra encontrada."
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -1007,18 +1159,20 @@ const RDONew = () => {
               {/* Condição do Terreno */}
               <div className="space-y-2">
                 <Label htmlFor="terrainCondition">Condição do Terreno (opcional)</Label>
-                <Select value={terrainCondition} onValueChange={setTerrainCondition}>
-                  <SelectTrigger id="terrainCondition">
-                    <SelectValue placeholder="Selecione a condição" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="seco">Seco</SelectItem>
-                    <SelectItem value="umido">Úmido</SelectItem>
-                    <SelectItem value="molhado">Molhado</SelectItem>
-                    <SelectItem value="lamacento">Lamacento</SelectItem>
-                    <SelectItem value="alagado">Alagado</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={[
+                    { value: "seco", label: "Seco" },
+                    { value: "umido", label: "Úmido" },
+                    { value: "molhado", label: "Molhado" },
+                    { value: "lamacento", label: "Lamacento" },
+                    { value: "alagado", label: "Alagado" }
+                  ]}
+                  value={terrainCondition}
+                  onValueChange={setTerrainCondition}
+                  placeholder="Selecione a condição"
+                  searchPlaceholder="Pesquisar condição..."
+                  emptyMessage="Nenhuma condição encontrada."
+                />
               </div>
 
               {/* Localização */}
@@ -1137,7 +1291,7 @@ const RDONew = () => {
                       <Button 
                         type="button" 
                         variant="outline"
-                        onClick={exportRDOToPDF}
+                        onClick={() => setShowExportDialog(true)}
                         className="flex items-center gap-2"
                       >
                         <Download className="w-4 h-4" />
@@ -1326,6 +1480,43 @@ const RDONew = () => {
               </Button>
               <Button type="button" onClick={addCustomQuestion}>
                 Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Exportar PDF */}
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Exportar RDO para PDF</DialogTitle>
+            <DialogDescription>Configure as opções de exportação</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="consolidate" 
+                checked={consolidateServices}
+                onCheckedChange={(checked) => setConsolidateServices(checked === true)}
+              />
+              <label 
+                htmlFor="consolidate" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Consolidar serviços iguais
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ao ativar esta opção, serviços com o mesmo nome e unidade serão somados e exibidos como um único item no PDF.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setShowExportDialog(false)}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={() => exportRDOToPDF(consolidateServices)}>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
               </Button>
             </div>
           </div>
