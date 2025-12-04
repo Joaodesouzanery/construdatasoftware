@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -96,6 +97,7 @@ export function AddConnectionReportDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      project_id: "",
       team_name: "",
       report_date: new Date(),
       address: "",
@@ -219,7 +221,7 @@ export function AddConnectionReportDialog({
 
       const { error } = await supabase.from("connection_reports").insert({
         created_by_user_id: session.user.id,
-        project_id: values.project_id,
+        project_id: values.project_id || null,
         team_name: values.team_name,
         report_date: format(values.report_date, "yyyy-MM-dd"),
         address: values.address,
@@ -268,6 +270,9 @@ export function AddConnectionReportDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Relatório de Ligação</DialogTitle>
+          <DialogDescription>
+            Preencha as informações do relatório de ligação abaixo.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -278,13 +283,14 @@ export function AddConnectionReportDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Projeto (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um projeto" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="">Nenhum projeto</SelectItem>
                       {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}

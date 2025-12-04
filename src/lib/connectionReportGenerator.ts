@@ -12,6 +12,8 @@ interface ConnectionReport {
   water_meter_number: string;
   os_number: string;
   service_type: string;
+  service_category?: string | null;
+  connection_type?: string | null;
   observations: string | null;
   materials_used: any[] | null;
   photos_urls: string[];
@@ -247,7 +249,19 @@ export async function generateConnectionReportPDF(report: ConnectionReport) {
   doc.save(fileName);
 }
 
-// Gera relatório consolidado com todos os relatórios do dia
+// Interface para serviços consolidados
+interface ConsolidatedService {
+  service_type: string;
+  service_category: string | null;
+  connection_type: string | null;
+  quantity: number;
+  teams: Set<string>;
+  os_numbers: string[];
+  clients: string[];
+  addresses: string[];
+}
+
+// Gera relatório consolidado com todos os relatórios do dia - COM SOMA DE SERVIÇOS IGUAIS
 export async function generateConsolidatedReportPDF(reports: ConnectionReport[], date: string) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -268,12 +282,40 @@ export async function generateConsolidatedReportPDF(reports: ConnectionReport[],
   doc.text(`Total de serviços: ${reports.length}`, pageWidth / 2, yPos, { align: "center" });
   yPos += 15;
 
+  // Consolidar serviços iguais
+  const consolidatedMap = new Map<string, ConsolidatedService>();
+  
+  reports.forEach(r => {
+    // Criar chave única baseada no tipo de serviço, categoria e tipo de conexão
+    const key = `${r.service_type}|${r.service_category || ''}|${r.connection_type || ''}`;
+    
+    if (consolidatedMap.has(key)) {
+      const existing = consolidatedMap.get(key)!;
+      existing.quantity += 1;
+      existing.teams.add(r.team_name);
+      existing.os_numbers.push(r.os_number);
+      existing.clients.push(r.client_name);
+      existing.addresses.push(r.address + (r.address_complement ? `, ${r.address_complement}` : ''));
+    } else {
+      consolidatedMap.set(key, {
+        service_type: r.service_type,
+        service_category: r.service_category || null,
+        connection_type: r.connection_type || null,
+        quantity: 1,
+        teams: new Set([r.team_name]),
+        os_numbers: [r.os_number],
+        clients: [r.client_name],
+        addresses: [r.address + (r.address_complement ? `, ${r.address_complement}` : '')]
+      });
+    }
+  });
+
+  const consolidatedServices = Array.from(consolidatedMap.values());
+
   // Resumo por equipe
   const byTeam: Record<string, number> = {};
-  const byServiceType: Record<string, number> = {};
   reports.forEach(r => {
     byTeam[r.team_name] = (byTeam[r.team_name] || 0) + 1;
-    byServiceType[r.service_type] = (byServiceType[r.service_type] || 0) + 1;
   });
 
   doc.setFontSize(11);
@@ -286,36 +328,66 @@ export async function generateConsolidatedReportPDF(reports: ConnectionReport[],
     doc.text(`• ${team}: ${count} serviço(s)`, margin + 5, yPos);
     yPos += 5;
   });
-  yPos += 5;
+  yPos += 8;
 
+  // RESUMO CONSOLIDADO POR TIPO DE SERVIÇO (COM SOMA)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text("RESUMO POR TIPO DE SERVIÇO:", margin, yPos);
-  yPos += 6;
+  doc.setFillColor(230, 230, 250);
+  doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 8, "F");
+  doc.text("SERVIÇOS CONSOLIDADOS (SOMADOS):", margin + 2, yPos + 1);
+  yPos += 10;
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  Object.entries(byServiceType).forEach(([type, count]) => {
-    doc.text(`• ${type}: ${count}`, margin + 5, yPos);
+
+  // Tabela de serviços consolidados
+  consolidatedServices.forEach(service => {
+    if (yPos > pageHeight - 40) {
+      doc.addPage();
+      yPos = margin;
+    }
+
+    const serviceDesc = [
+      service.service_type,
+      service.service_category ? `(${service.service_category})` : '',
+      service.connection_type ? `- ${service.connection_type}` : ''
+    ].filter(Boolean).join(' ');
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`• ${serviceDesc}`, margin + 5, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Quantidade: ${service.quantity}`, pageWidth - margin - 40, yPos);
     yPos += 5;
+
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`Equipes: ${Array.from(service.teams).join(', ')}`, margin + 10, yPos);
+    yPos += 4;
+    doc.text(`OS: ${service.os_numbers.join(', ')}`, margin + 10, yPos);
+    doc.setTextColor(0);
+    doc.setFontSize(10);
+    yPos += 7;
   });
-  yPos += 10;
+
+  yPos += 5;
 
   // Linha divisória
   doc.setDrawColor(200);
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 10;
 
-  // Lista de serviços
+  // Lista detalhada de todos os serviços
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text("DETALHAMENTO DOS SERVIÇOS:", margin, yPos);
+  doc.text("DETALHAMENTO INDIVIDUAL DOS SERVIÇOS:", margin, yPos);
   yPos += 8;
 
   for (let i = 0; i < reports.length; i++) {
     const report = reports[i];
     
     // Verifica se precisa nova página
-    if (yPos > pageHeight - 60) {
+    if (yPos > pageHeight - 55) {
       doc.addPage();
       yPos = margin;
     }
@@ -323,7 +395,7 @@ export async function generateConsolidatedReportPDF(reports: ConnectionReport[],
     // Box do serviço
     doc.setDrawColor(200);
     doc.setFillColor(248, 248, 248);
-    doc.roundedRect(margin, yPos - 3, pageWidth - 2 * margin, 45, 2, 2, "FD");
+    doc.roundedRect(margin, yPos - 3, pageWidth - 2 * margin, 42, 2, 2, "FD");
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
@@ -352,15 +424,11 @@ export async function generateConsolidatedReportPDF(reports: ConnectionReport[],
     });
 
     if (report.observations) {
-      const obsText = `Obs: ${report.observations}`;
-      const obsLines = doc.splitTextToSize(obsText, pageWidth - 2 * margin - 10);
-      obsLines.slice(0, 1).forEach((line: string) => {
-        doc.text(line, col1X, lineY);
-        lineY += 5;
-      });
+      const obsText = `Obs: ${report.observations.substring(0, 80)}${report.observations.length > 80 ? '...' : ''}`;
+      doc.text(obsText, col1X, lineY);
     }
 
-    yPos += 50;
+    yPos += 47;
   }
 
   // Footer em todas as páginas
@@ -370,7 +438,7 @@ export async function generateConsolidatedReportPDF(reports: ConnectionReport[],
     doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text(
-      `Página ${i} de ${pageCount}`,
+      `Página ${i} de ${pageCount} - Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`,
       pageWidth / 2,
       pageHeight - 10,
       { align: "center" }

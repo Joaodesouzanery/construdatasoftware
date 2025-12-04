@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, X } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -119,6 +120,7 @@ export function EditConnectionReportDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      project_id: "",
       team_name: "",
       report_date: new Date(),
       address: "",
@@ -135,13 +137,13 @@ export function EditConnectionReportDialog({
   });
 
   useEffect(() => {
-    if (report) {
+    if (report && open) {
       const materialsStr = report.materials_used && Array.isArray(report.materials_used) 
         ? report.materials_used.map(m => `"${m}"`).join(', ') 
         : "";
       
       form.reset({
-        project_id: report.project_id || undefined,
+        project_id: report.project_id || "",
         team_name: report.team_name || "",
         report_date: report.report_date ? new Date(report.report_date) : new Date(),
         address: report.address || "",
@@ -160,7 +162,7 @@ export function EditConnectionReportDialog({
       setPhotos([]);
       setLogo(null);
     }
-  }, [report, form]);
+  }, [report, open, form]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -326,6 +328,9 @@ export function EditConnectionReportDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Relatório de Ligação</DialogTitle>
+          <DialogDescription>
+            Atualize as informações do relatório de ligação abaixo.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -336,13 +341,14 @@ export function EditConnectionReportDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Projeto (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um projeto" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="">Nenhum projeto</SelectItem>
                       {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}
