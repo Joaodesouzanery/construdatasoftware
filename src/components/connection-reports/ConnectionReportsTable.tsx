@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -10,8 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Pencil, Trash2 } from "lucide-react";
-import { generateConnectionReportPDF } from "@/lib/connectionReportGenerator";
+import { FileText, Download, Pencil, Trash2, Calendar, FileStack } from "lucide-react";
+import { generateConnectionReportPDF, generateConsolidatedReportPDF } from "@/lib/connectionReportGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { EditConnectionReportDialog } from "./EditConnectionReportDialog";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +26,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ConnectionReport {
   id: string;
@@ -57,6 +64,27 @@ export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps)
   const [editingReport, setEditingReport] = useState<ConnectionReport | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [deletingReport, setDeletingReport] = useState<ConnectionReport | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
+  // Agrupa relatórios por data
+  const reportsByDate = useMemo(() => {
+    const grouped: Record<string, ConnectionReport[]> = {};
+    reports.forEach(report => {
+      const date = report.report_date;
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(report);
+    });
+    return grouped;
+  }, [reports]);
+
+  // Lista de datas disponíveis
+  const availableDates = useMemo(() => {
+    return Object.keys(reportsByDate).sort((a, b) => 
+      new Date(b).getTime() - new Date(a).getTime()
+    );
+  }, [reportsByDate]);
 
   const deleteMutation = useMutation({
     mutationFn: async (reportId: string) => {
@@ -113,8 +141,73 @@ export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps)
     setShowEditDialog(true);
   };
 
+  const handleExportConsolidated = async (date: string) => {
+    const reportsForDate = reportsByDate[date];
+    if (!reportsForDate || reportsForDate.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Nenhum relatório encontrado para esta data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Gerando PDF consolidado...",
+        description: `Consolidando ${reportsForDate.length} relatório(s) do dia ${format(new Date(date), "dd/MM/yyyy", { locale: ptBR })}`,
+      });
+
+      await generateConsolidatedReportPDF(reportsForDate, date);
+
+      toast({
+        title: "Sucesso!",
+        description: "Relatório consolidado exportado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Error generating consolidated PDF:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao gerar o relatório consolidado.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="border rounded-lg">
+    <div className="space-y-4">
+      {/* Exportar Consolidado */}
+      <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border">
+        <FileStack className="h-5 w-5 text-muted-foreground" />
+        <div className="flex-1">
+          <p className="text-sm font-medium">Exportar Relatório Consolidado</p>
+          <p className="text-xs text-muted-foreground">Gere um PDF com todos os relatórios de um dia específico</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={selectedDate} onValueChange={setSelectedDate}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Selecione a data" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableDates.map(date => (
+                <SelectItem key={date} value={date}>
+                  {format(new Date(date), "dd/MM/yyyy", { locale: ptBR })} ({reportsByDate[date].length})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="secondary" 
+            onClick={() => selectedDate && handleExportConsolidated(selectedDate)}
+            disabled={!selectedDate}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar Consolidado
+          </Button>
+        </div>
+      </div>
+
+      <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
@@ -210,6 +303,7 @@ export function ConnectionReportsTable({ reports }: ConnectionReportsTableProps)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }
