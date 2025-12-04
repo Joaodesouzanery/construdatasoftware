@@ -25,9 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SimilarMaterialApprovalDialog } from "@/components/materials/SimilarMaterialApprovalDialog";
 
 interface ProcessedItem {
   description: string;
+  cleanedDescription?: string;
   quantity: number;
   unit: string;
   unit_price: number;
@@ -38,7 +40,22 @@ interface ProcessedItem {
   material_name?: string;
   matched: boolean;
   match_type?: string;
+  similarity?: number;
+  needsApproval?: boolean;
+  approved?: boolean;
   originalRow?: any;
+}
+
+interface SimilarMaterial {
+  material: any;
+  similarity: number;
+  matchType: string;
+}
+
+interface PendingApproval {
+  index: number;
+  description: string;
+  match: SimilarMaterial;
 }
 
 const BudgetPricing = () => {
@@ -52,6 +69,11 @@ const BudgetPricing = () => {
   const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const [showReview, setShowReview] = useState(false);
+  
+  // Approval flow states
+  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
+  const [currentApprovalIndex, setCurrentApprovalIndex] = useState(0);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
 
   const { data: budgets } = useQuery({
     queryKey: ['budgets'],
@@ -112,6 +134,35 @@ const BudgetPricing = () => {
       .replace(/\d+/g, " ") // Remove números isolados
       .replace(/\s+/g, " ")
       .trim();
+  };
+
+  // Limpa descrição extraída - melhora identificação
+  const cleanDescription = (text: string): string => {
+    if (!text) return '';
+    
+    let cleaned = text
+      // Remove códigos/números no início (ex: "1.1", "01.", "A1-", etc)
+      .replace(/^[\d\.\-]+\s*/g, '')
+      .replace(/^[A-Z]?\d+[\.\-\s]+/gi, '')
+      // Remove referências a itens (ex: "(item 1)", "[ref: 123]")
+      .replace(/\(item\s*\d+\)/gi, '')
+      .replace(/\[ref[:\s]*\d+\]/gi, '')
+      // Remove unidades no final entre parênteses
+      .replace(/\s*\([^)]*(?:un|m2|m3|m|kg|l|pç|pc|cx|und|vb|cj|gb|mês)\s*\)$/gi, '')
+      // Remove "fornecimento e instalação de" etc redundantes
+      .replace(/^(?:fornecimento\s*(?:e\s*)?(?:instalação|execução|aplicação)\s*(?:de|do|da)?\s*)/gi, '')
+      .replace(/^(?:serviço\s*(?:de|do|da)\s*)/gi, '')
+      .replace(/^(?:execução\s*(?:de|do|da)\s*)/gi, '')
+      // Limpa espaços extras
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Se ficou muito curto, usa o original
+    if (cleaned.length < 3 && text.length > 3) {
+      cleaned = text.trim();
+    }
+    
+    return cleaned;
   };
 
   // Tokeniza e remove stopwords
@@ -403,9 +454,12 @@ const BudgetPricing = () => {
       for (let i = 0; i < jsonData.length; i++) {
         const rowData: any = jsonData[i];
         
-        const description = findColumnValue(rowData, [
+        const rawDescription = findColumnValue(rowData, [
           'descricao', 'description', 'desc', 'item', 'material', 'servico'
         ]);
+        
+        // Limpa a descrição para melhor identificação
+        const cleanedDesc = cleanDescription(rawDescription);
         
         const quantityStr = findColumnValue(rowData, [
           'quantidade', 'quantity', 'qtd', 'qtde'
@@ -416,13 +470,14 @@ const BudgetPricing = () => {
           'unidade', 'unit', 'un', 'und'
         ]) || 'UN';
 
-        if (!description || description.length < 2 || quantity <= 0) {
+        if (!rawDescription || rawDescription.length < 2 || quantity <= 0) {
           continue;
         }
 
-        // Cria item sem preços - serão buscados automaticamente da Gestão de Preços
+        // Cria item com descrição limpa para matching
         items.push({
-          description,
+          description: rawDescription,
+          cleanedDescription: cleanedDesc,
           quantity,
           unit,
           unit_price: 0,
@@ -431,6 +486,8 @@ const BudgetPricing = () => {
           total: 0,
           material_id: null,
           matched: false,
+          needsApproval: false,
+          approved: false,
           match_type: 'Aguardando precificação',
           originalRow: rowData
         });
@@ -466,45 +523,69 @@ const BudgetPricing = () => {
     setIsSearchingPrices(true);
     try {
       const updatedItems: ProcessedItem[] = [];
+      const pendingApprovalsList: PendingApproval[] = [];
       let foundCount = 0;
       let notFoundCount = 0;
+      let pendingCount = 0;
 
-      for (const item of items) {
-        const match = await findMatchingMaterial(item.description);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        // Usa descrição limpa para melhor matching
+        const searchDesc = item.cleanedDescription || item.description;
+        const match = await findMatchingMaterial(searchDesc);
         
         if (match) {
           const material = match.material;
-          
-          // Obtém preços separados de Material e Mão de Obra da Gestão de Preços
           const materialPrice = (material.material_price ?? 0) as number;
           const laborPrice = (material.labor_price ?? 0) as number;
           const totalUnitPrice = materialPrice + laborPrice;
-
           const hasValidPrice = totalUnitPrice > 0;
+
+          // Se for match por similaridade (não exato), precisa de aprovação
+          const needsUserApproval = match.matchType === 'Similaridade' || match.matchType === 'Parcial';
 
           let matchTypeLabel = '';
           if (match.matchType === 'Exato') {
             matchTypeLabel = 'Encontrado (exato)';
           } else if (match.matchType === 'Parcial') {
-            matchTypeLabel = 'Encontrado (contém)';
+            matchTypeLabel = `Aguardando aprovação (parcial)`;
           } else if (match.matchType === 'Similaridade') {
-            matchTypeLabel = `Encontrado (similaridade ${match.similarity.toFixed(0)}%)`;
+            matchTypeLabel = `Aguardando aprovação (${match.similarity.toFixed(0)}%)`;
           }
 
-          updatedItems.push({
+          const newItem: ProcessedItem = {
             ...item,
-            unit_price: hasValidPrice ? totalUnitPrice : 0,
-            unit_price_material: materialPrice,
-            unit_price_labor: laborPrice,
-            total: hasValidPrice ? item.quantity * totalUnitPrice : 0,
-            material_id: material.id,
-            material_name: material.name,
-            matched: hasValidPrice,
-            match_type: hasValidPrice ? matchTypeLabel : 'Preço não cadastrado',
-          });
+            unit_price: needsUserApproval ? 0 : (hasValidPrice ? totalUnitPrice : 0),
+            unit_price_material: needsUserApproval ? 0 : materialPrice,
+            unit_price_labor: needsUserApproval ? 0 : laborPrice,
+            total: needsUserApproval ? 0 : (hasValidPrice ? item.quantity * totalUnitPrice : 0),
+            material_id: needsUserApproval ? null : material.id,
+            material_name: needsUserApproval ? undefined : material.name,
+            matched: needsUserApproval ? false : hasValidPrice,
+            match_type: needsUserApproval ? matchTypeLabel : (hasValidPrice ? matchTypeLabel : 'Preço não cadastrado'),
+            similarity: match.similarity,
+            needsApproval: needsUserApproval && hasValidPrice,
+            approved: false,
+          };
           
-          if (hasValidPrice) foundCount++;
-          else notFoundCount++;
+          updatedItems.push(newItem);
+
+          if (needsUserApproval && hasValidPrice) {
+            pendingApprovalsList.push({
+              index: i,
+              description: item.description,
+              match: {
+                material,
+                similarity: match.similarity,
+                matchType: match.matchType
+              }
+            });
+            pendingCount++;
+          } else if (hasValidPrice) {
+            foundCount++;
+          } else {
+            notFoundCount++;
+          }
         } else {
           updatedItems.push({
             ...item,
@@ -516,11 +597,23 @@ const BudgetPricing = () => {
       }
 
       setProcessedItems(updatedItems);
-      
-      toast({
-        title: "Precificação automática concluída",
-        description: `${foundCount} itens precificados automaticamente e ${notFoundCount} não encontrados.`,
-      });
+
+      // Se há itens pendentes de aprovação, mostra o dialog
+      if (pendingApprovalsList.length > 0) {
+        setPendingApprovals(pendingApprovalsList);
+        setCurrentApprovalIndex(0);
+        setShowApprovalDialog(true);
+        
+        toast({
+          title: "Revisão necessária",
+          description: `${pendingCount} itens encontrados por similaridade precisam da sua aprovação.`,
+        });
+      } else {
+        toast({
+          title: "Precificação automática concluída",
+          description: `${foundCount} itens precificados automaticamente e ${notFoundCount} não encontrados.`,
+        });
+      }
 
     } catch (error: any) {
       toast({
@@ -530,6 +623,67 @@ const BudgetPricing = () => {
       });
     } finally {
       setIsSearchingPrices(false);
+    }
+  };
+
+  // Approval handlers
+  const handleApproval = (approve: boolean) => {
+    const pending = pendingApprovals[currentApprovalIndex];
+    if (!pending) return;
+
+    const material = pending.match.material;
+    const materialPrice = (material.material_price ?? 0) as number;
+    const laborPrice = (material.labor_price ?? 0) as number;
+    const totalUnitPrice = materialPrice + laborPrice;
+
+    setProcessedItems(prev => {
+      const updated = [...prev];
+      const itemIndex = pending.index;
+      
+      if (approve) {
+        updated[itemIndex] = {
+          ...updated[itemIndex],
+          unit_price: totalUnitPrice,
+          unit_price_material: materialPrice,
+          unit_price_labor: laborPrice,
+          total: updated[itemIndex].quantity * totalUnitPrice,
+          material_id: material.id,
+          material_name: material.name,
+          matched: true,
+          match_type: `Aprovado (${pending.match.similarity.toFixed(0)}%)`,
+          needsApproval: false,
+          approved: true,
+        };
+      } else {
+        updated[itemIndex] = {
+          ...updated[itemIndex],
+          match_type: 'Rejeitado - buscar manualmente',
+          needsApproval: false,
+          approved: false,
+        };
+      }
+      return updated;
+    });
+
+    moveToNextApproval();
+  };
+
+  const handleSkipApproval = () => {
+    moveToNextApproval();
+  };
+
+  const moveToNextApproval = () => {
+    if (currentApprovalIndex < pendingApprovals.length - 1) {
+      setCurrentApprovalIndex(prev => prev + 1);
+    } else {
+      setShowApprovalDialog(false);
+      setPendingApprovals([]);
+      setCurrentApprovalIndex(0);
+      
+      toast({
+        title: "Revisão concluída",
+        description: "Todos os itens similares foram revisados.",
+      });
     }
   };
 
@@ -772,8 +926,8 @@ const BudgetPricing = () => {
                         <Badge 
                           variant={
                             item.match_type?.startsWith('Encontrado (exato)') ? 'default' :
-                            item.match_type?.startsWith('Encontrado (contém)') ? 'default' :
-                            item.match_type?.startsWith('Encontrado (similaridade') ? 'secondary' :
+                            item.match_type?.startsWith('Aprovado') ? 'default' :
+                            item.match_type?.startsWith('Aguardando aprovação') ? 'secondary' :
                             item.match_type === 'Aguardando precificação' ? 'outline' :
                             'destructive'
                           }
@@ -839,6 +993,18 @@ const BudgetPricing = () => {
           </div>
         )}
       </div>
+      
+      {/* Dialog de aprovação de materiais similares */}
+      <SimilarMaterialApprovalDialog
+        open={showApprovalDialog}
+        onOpenChange={setShowApprovalDialog}
+        pending={pendingApprovals[currentApprovalIndex] || null}
+        onApprove={() => handleApproval(true)}
+        onReject={() => handleApproval(false)}
+        onSkip={handleSkipApproval}
+        totalPending={pendingApprovals.length}
+        currentIndex={currentApprovalIndex}
+      />
     </div>
   );
 };

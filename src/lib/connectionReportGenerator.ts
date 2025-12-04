@@ -246,3 +246,138 @@ export async function generateConnectionReportPDF(report: ConnectionReport) {
   )}.pdf`;
   doc.save(fileName);
 }
+
+// Gera relatório consolidado com todos os relatórios do dia
+export async function generateConsolidatedReportPDF(reports: ConnectionReport[], date: string) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let yPos = margin;
+
+  // Header
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("RELATÓRIO CONSOLIDADO DE LIGAÇÕES", pageWidth / 2, yPos, { align: "center" });
+  yPos += 8;
+  
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Data: ${format(new Date(date), "dd/MM/yyyy", { locale: ptBR })}`, pageWidth / 2, yPos, { align: "center" });
+  yPos += 5;
+  doc.text(`Total de serviços: ${reports.length}`, pageWidth / 2, yPos, { align: "center" });
+  yPos += 15;
+
+  // Resumo por equipe
+  const byTeam: Record<string, number> = {};
+  const byServiceType: Record<string, number> = {};
+  reports.forEach(r => {
+    byTeam[r.team_name] = (byTeam[r.team_name] || 0) + 1;
+    byServiceType[r.service_type] = (byServiceType[r.service_type] || 0) + 1;
+  });
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("RESUMO POR EQUIPE:", margin, yPos);
+  yPos += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  Object.entries(byTeam).forEach(([team, count]) => {
+    doc.text(`• ${team}: ${count} serviço(s)`, margin + 5, yPos);
+    yPos += 5;
+  });
+  yPos += 5;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("RESUMO POR TIPO DE SERVIÇO:", margin, yPos);
+  yPos += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  Object.entries(byServiceType).forEach(([type, count]) => {
+    doc.text(`• ${type}: ${count}`, margin + 5, yPos);
+    yPos += 5;
+  });
+  yPos += 10;
+
+  // Linha divisória
+  doc.setDrawColor(200);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+
+  // Lista de serviços
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("DETALHAMENTO DOS SERVIÇOS:", margin, yPos);
+  yPos += 8;
+
+  for (let i = 0; i < reports.length; i++) {
+    const report = reports[i];
+    
+    // Verifica se precisa nova página
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = margin;
+    }
+
+    // Box do serviço
+    doc.setDrawColor(200);
+    doc.setFillColor(248, 248, 248);
+    doc.roundedRect(margin, yPos - 3, pageWidth - 2 * margin, 45, 2, 2, "FD");
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${i + 1}. OS: ${report.os_number}`, margin + 3, yPos + 3);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    
+    const col1X = margin + 3;
+    const col2X = pageWidth / 2;
+    let lineY = yPos + 10;
+
+    doc.text(`Equipe: ${report.team_name}`, col1X, lineY);
+    doc.text(`Tipo: ${report.service_type}`, col2X, lineY);
+    lineY += 5;
+
+    doc.text(`Cliente: ${report.client_name}`, col1X, lineY);
+    doc.text(`Hidrômetro: ${report.water_meter_number}`, col2X, lineY);
+    lineY += 5;
+
+    const address = report.address + (report.address_complement ? `, ${report.address_complement}` : '');
+    const addressLines = doc.splitTextToSize(`Endereço: ${address}`, pageWidth - 2 * margin - 10);
+    addressLines.slice(0, 2).forEach((line: string) => {
+      doc.text(line, col1X, lineY);
+      lineY += 5;
+    });
+
+    if (report.observations) {
+      const obsText = `Obs: ${report.observations}`;
+      const obsLines = doc.splitTextToSize(obsText, pageWidth - 2 * margin - 10);
+      obsLines.slice(0, 1).forEach((line: string) => {
+        doc.text(line, col1X, lineY);
+        lineY += 5;
+      });
+    }
+
+    yPos += 50;
+  }
+
+  // Footer em todas as páginas
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      `Página ${i} de ${pageCount}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: "center" }
+    );
+  }
+
+  // Save
+  const fileName = `relatorio-consolidado-${format(new Date(date), "yyyy-MM-dd")}.pdf`;
+  doc.save(fileName);
+}
