@@ -261,8 +261,34 @@ interface ConsolidatedService {
   addresses: string[];
 }
 
+// Interface para filtros de exportação
+interface ExportFilters {
+  includeTeamSummary?: boolean;
+  includeServiceSummary?: boolean;
+  includeDetailedList?: boolean;
+  includeMaterials?: boolean;
+  includeObservations?: boolean;
+  includePhotos?: boolean;
+  filterByTeam?: string;
+  filterByServiceType?: string;
+}
+
 // Gera relatório consolidado com todos os relatórios do dia - COM SOMA DE SERVIÇOS IGUAIS
-export async function generateConsolidatedReportPDF(reports: ConnectionReport[], date: string) {
+export async function generateConsolidatedReportPDF(
+  reports: ConnectionReport[], 
+  date: string, 
+  filters: ExportFilters = {}
+) {
+  // Valores padrão para os filtros
+  const {
+    includeTeamSummary = true,
+    includeServiceSummary = true,
+    includeDetailedList = true,
+    includeMaterials = true,
+    includeObservations = true,
+    includePhotos = false,
+  } = filters;
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -313,122 +339,206 @@ export async function generateConsolidatedReportPDF(reports: ConnectionReport[],
   const consolidatedServices = Array.from(consolidatedMap.values());
 
   // Resumo por equipe
-  const byTeam: Record<string, number> = {};
-  reports.forEach(r => {
-    byTeam[r.team_name] = (byTeam[r.team_name] || 0) + 1;
-  });
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("RESUMO POR EQUIPE:", margin, yPos);
-  yPos += 6;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  Object.entries(byTeam).forEach(([team, count]) => {
-    doc.text(`• ${team}: ${count} serviço(s)`, margin + 5, yPos);
-    yPos += 5;
-  });
-  yPos += 8;
-
-  // RESUMO CONSOLIDADO POR TIPO DE SERVIÇO (COM SOMA)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setFillColor(230, 230, 250);
-  doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 8, "F");
-  doc.text("SERVIÇOS CONSOLIDADOS (SOMADOS):", margin + 2, yPos + 1);
-  yPos += 10;
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-
-  // Tabela de serviços consolidados
-  consolidatedServices.forEach(service => {
-    if (yPos > pageHeight - 40) {
-      doc.addPage();
-      yPos = margin;
-    }
-
-    const serviceDesc = [
-      service.service_type,
-      service.service_category ? `(${service.service_category})` : '',
-      service.connection_type ? `- ${service.connection_type}` : ''
-    ].filter(Boolean).join(' ');
-
-    doc.setFont("helvetica", "bold");
-    doc.text(`• ${serviceDesc}`, margin + 5, yPos);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Quantidade: ${service.quantity}`, pageWidth - margin - 40, yPos);
-    yPos += 5;
-
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text(`Equipes: ${Array.from(service.teams).join(', ')}`, margin + 10, yPos);
-    yPos += 4;
-    doc.text(`OS: ${service.os_numbers.join(', ')}`, margin + 10, yPos);
-    doc.setTextColor(0);
-    doc.setFontSize(10);
-    yPos += 7;
-  });
-
-  yPos += 5;
-
-  // Linha divisória
-  doc.setDrawColor(200);
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
-
-  // Lista detalhada de todos os serviços
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("DETALHAMENTO INDIVIDUAL DOS SERVIÇOS:", margin, yPos);
-  yPos += 8;
-
-  for (let i = 0; i < reports.length; i++) {
-    const report = reports[i];
-    
-    // Verifica se precisa nova página
-    if (yPos > pageHeight - 55) {
-      doc.addPage();
-      yPos = margin;
-    }
-
-    // Box do serviço
-    doc.setDrawColor(200);
-    doc.setFillColor(248, 248, 248);
-    doc.roundedRect(margin, yPos - 3, pageWidth - 2 * margin, 42, 2, 2, "FD");
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${i + 1}. OS: ${report.os_number}`, margin + 3, yPos + 3);
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    
-    const col1X = margin + 3;
-    const col2X = pageWidth / 2;
-    let lineY = yPos + 10;
-
-    doc.text(`Equipe: ${report.team_name}`, col1X, lineY);
-    doc.text(`Tipo: ${report.service_type}`, col2X, lineY);
-    lineY += 5;
-
-    doc.text(`Cliente: ${report.client_name}`, col1X, lineY);
-    doc.text(`Hidrômetro: ${report.water_meter_number}`, col2X, lineY);
-    lineY += 5;
-
-    const address = report.address + (report.address_complement ? `, ${report.address_complement}` : '');
-    const addressLines = doc.splitTextToSize(`Endereço: ${address}`, pageWidth - 2 * margin - 10);
-    addressLines.slice(0, 2).forEach((line: string) => {
-      doc.text(line, col1X, lineY);
-      lineY += 5;
+  if (includeTeamSummary) {
+    const byTeam: Record<string, number> = {};
+    reports.forEach(r => {
+      byTeam[r.team_name] = (byTeam[r.team_name] || 0) + 1;
     });
 
-    if (report.observations) {
-      const obsText = `Obs: ${report.observations.substring(0, 80)}${report.observations.length > 80 ? '...' : ''}`;
-      doc.text(obsText, col1X, lineY);
-    }
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("RESUMO POR EQUIPE:", margin, yPos);
+    yPos += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    Object.entries(byTeam).forEach(([team, count]) => {
+      doc.text(`• ${team}: ${count} serviço(s)`, margin + 5, yPos);
+      yPos += 5;
+    });
+    yPos += 8;
+  }
 
-    yPos += 47;
+  // RESUMO CONSOLIDADO POR TIPO DE SERVIÇO (COM SOMA)
+  if (includeServiceSummary) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setFillColor(230, 230, 250);
+    doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 8, "F");
+    doc.text("SERVIÇOS CONSOLIDADOS (SOMADOS):", margin + 2, yPos + 1);
+    yPos += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+
+    // Tabela de serviços consolidados
+    consolidatedServices.forEach(service => {
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = margin;
+      }
+
+      const serviceDesc = [
+        service.service_type,
+        service.service_category ? `(${service.service_category})` : '',
+        service.connection_type ? `- ${service.connection_type}` : ''
+      ].filter(Boolean).join(' ');
+
+      doc.setFont("helvetica", "bold");
+      doc.text(`• ${serviceDesc}`, margin + 5, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Quantidade: ${service.quantity}`, pageWidth - margin - 40, yPos);
+      yPos += 5;
+
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(`Equipes: ${Array.from(service.teams).join(', ')}`, margin + 10, yPos);
+      yPos += 4;
+      doc.text(`OS: ${service.os_numbers.join(', ')}`, margin + 10, yPos);
+      doc.setTextColor(0);
+      doc.setFontSize(10);
+      yPos += 7;
+    });
+
+    yPos += 5;
+
+    // Linha divisória
+    doc.setDrawColor(200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+  }
+
+  // Lista detalhada de todos os serviços
+  if (includeDetailedList) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("DETALHAMENTO INDIVIDUAL DOS SERVIÇOS:", margin, yPos);
+    yPos += 8;
+
+    for (let i = 0; i < reports.length; i++) {
+      const report = reports[i];
+      
+      // Calcula altura necessária para este item
+      let itemHeight = 42;
+      if (includeMaterials && report.materials_used && report.materials_used.length > 0) {
+        itemHeight += 10 + (report.materials_used.length * 4);
+      }
+      
+      // Verifica se precisa nova página
+      if (yPos > pageHeight - itemHeight - 20) {
+        doc.addPage();
+        yPos = margin;
+      }
+
+      // Box do serviço
+      doc.setDrawColor(200);
+      doc.setFillColor(248, 248, 248);
+      doc.roundedRect(margin, yPos - 3, pageWidth - 2 * margin, 42, 2, 2, "FD");
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${i + 1}. OS: ${report.os_number}`, margin + 3, yPos + 3);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      
+      const col1X = margin + 3;
+      const col2X = pageWidth / 2;
+      let lineY = yPos + 10;
+
+      doc.text(`Equipe: ${report.team_name}`, col1X, lineY);
+      doc.text(`Tipo: ${report.service_type}`, col2X, lineY);
+      lineY += 5;
+
+      doc.text(`Cliente: ${report.client_name}`, col1X, lineY);
+      doc.text(`Hidrômetro: ${report.water_meter_number}`, col2X, lineY);
+      lineY += 5;
+
+      const address = report.address + (report.address_complement ? `, ${report.address_complement}` : '');
+      const addressLines = doc.splitTextToSize(`Endereço: ${address}`, pageWidth - 2 * margin - 10);
+      addressLines.slice(0, 2).forEach((line: string) => {
+        doc.text(line, col1X, lineY);
+        lineY += 5;
+      });
+
+      if (includeObservations && report.observations) {
+        const obsText = `Obs: ${report.observations.substring(0, 80)}${report.observations.length > 80 ? '...' : ''}`;
+        doc.text(obsText, col1X, lineY);
+      }
+
+      yPos += 47;
+
+      // Materiais utilizados
+      if (includeMaterials && report.materials_used && report.materials_used.length > 0) {
+        doc.setFontSize(8);
+        doc.text("Materiais:", margin + 5, yPos);
+        yPos += 4;
+        report.materials_used.forEach((mat: string) => {
+          doc.text(`  • ${mat}`, margin + 8, yPos);
+          yPos += 4;
+        });
+        yPos += 3;
+      }
+    }
+  }
+
+  // Fotos (se incluído)
+  if (includePhotos) {
+    const reportsWithPhotos = reports.filter(r => r.photos_urls && r.photos_urls.length > 0);
+    
+    if (reportsWithPhotos.length > 0) {
+      doc.addPage();
+      yPos = margin;
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("REGISTRO FOTOGRÁFICO:", margin, yPos);
+      yPos += 10;
+
+      for (const report of reportsWithPhotos) {
+        if (yPos > pageHeight - 80) {
+          doc.addPage();
+          yPos = margin;
+        }
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text(`OS: ${report.os_number} - ${report.team_name}`, margin, yPos);
+        yPos += 5;
+
+        const photosPerRow = 4;
+        const photoSpacing = 3;
+        const availableWidth = pageWidth - 2 * margin;
+        const imgWidth = (availableWidth - (photosPerRow - 1) * photoSpacing) / photosPerRow;
+        const imgHeight = imgWidth * 0.75;
+        
+        let xPos = margin;
+        let photosInRow = 0;
+
+        for (const photoUrl of report.photos_urls.slice(0, 4)) {
+          try {
+            const img = await loadImage(photoUrl);
+            doc.addImage(img, "JPEG", xPos, yPos, imgWidth, imgHeight);
+            
+            photosInRow++;
+            if (photosInRow === photosPerRow) {
+              yPos += imgHeight + photoSpacing;
+              xPos = margin;
+              photosInRow = 0;
+            } else {
+              xPos += imgWidth + photoSpacing;
+            }
+          } catch (error) {
+            console.error("Error loading image:", error);
+          }
+        }
+
+        if (photosInRow > 0) {
+          yPos += imgHeight + 10;
+        } else {
+          yPos += 5;
+        }
+      }
+    }
   }
 
   // Footer em todas as páginas

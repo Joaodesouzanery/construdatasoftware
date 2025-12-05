@@ -38,15 +38,21 @@ export const PriceManagementTable = () => {
       const material = materials?.find(m => m.id === id);
       if (!material) throw new Error("Material não encontrado");
 
+      // IMPORTANTE: Só atualiza se o preço realmente mudou
+      if (material.current_price === newPrice) {
+        console.log("Preço não mudou, ignorando atualização");
+        return; // Não faz nada se o preço é o mesmo
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Insert price history
+      // Insert price history apenas se o preço mudou
       const { error: historyError } = await supabase
         .from('price_history')
         .insert({
           material_id: id,
-          old_price: material.current_price,
+          old_price: material.current_price || 0,
           new_price: newPrice,
           changed_by_user_id: user.id
         });
