@@ -52,7 +52,7 @@ import Prices from "./pages/Prices";
 import Occurrences from "./pages/Occurrences";
 import PurchaseManagement from "./pages/PurchaseManagement";
 import LaborTracking from "./pages/LaborTracking";
-import OperationalDashboard from "./pages/OperationalDashboard";
+import InteractiveMap from "./pages/InteractiveMap";
 import SystemTest from "./pages/SystemTest";
 import Approvals from "./pages/Approvals";
 import UserMetrics from "./pages/UserMetrics";
@@ -72,7 +72,7 @@ const AppContent = () => {
           <Route path="/approvals" element={<Approvals />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/operational-dashboard" element={<OperationalDashboard />} />
+        <Route path="/interactive-map" element={<InteractiveMap />} />
         <Route path="/dashboard-360" element={<Dashboard360 />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/production" element={<Production />} />

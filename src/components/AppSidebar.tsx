@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3 } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3, Map } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -17,7 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Dashboard Operacional", url: "/operational-dashboard", icon: LayoutDashboard },
+  { title: "Mapa Interativo", url: "/interactive-map", icon: Map },
   { title: "Projetos", url: "/projects", icon: Building2 },
   { title: "Alertas", url: "/alerts", icon: Bell },
 ];
