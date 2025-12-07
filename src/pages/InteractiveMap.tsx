@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useNavigate } from "react-router-dom";
+import JSZip from "jszip";
 import { supabase } from "@/lib/supabase";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -28,6 +30,9 @@ import {
   Hexagon,
   FileCode,
   Map,
+  Loader2,
+  FileArchive,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -51,43 +56,38 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
-interface MapMarker {
+interface MapAnnotation {
   id: string;
-  type: 'point' | 'polygon' | 'area';
-  name: string;
-  description?: string;
-  progress?: number;
-  teamId?: string;
-  serviceFrontId?: string;
-  coordinates?: string;
-  color?: string;
-}
-
-interface MapLayer {
-  id: string;
-  name: string;
-  visible: boolean;
-  type: 'base' | 'overlay';
-  content?: string;
+  project_id: string;
+  latitude: number;
+  longitude: number;
+  tipo: string;
+  descricao?: string;
+  porcentagem: number;
+  team_id?: string;
+  service_front_id?: string;
+  created_at: string;
 }
 
 export default function InteractiveMap() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const [mapContent, setMapContent] = useState<string>("");
-  const [mapFileName, setMapFileName] = useState<string>("");
-  const [markers, setMarkers] = useState<MapMarker[]>([]);
-  const [layers, setLayers] = useState<MapLayer[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showAddMarkerDialog, setShowAddMarkerDialog] = useState(false);
-  const [showAddLayerDialog, setShowAddLayerDialog] = useState(false);
-  const [editingMarker, setEditingMarker] = useState<MapMarker | null>(null);
-  const [newMarker, setNewMarker] = useState<Partial<MapMarker>>({
-    type: 'point',
-    progress: 0,
-    color: '#3b82f6',
+  const [newMarker, setNewMarker] = useState({
+    latitude: 0,
+    longitude: 0,
+    tipo: "ponto",
+    descricao: "",
+    porcentagem: 0,
+    team_id: "",
+    service_front_id: "",
   });
   const [activeTab, setActiveTab] = useState("map");
 
@@ -99,231 +99,253 @@ export default function InteractiveMap() {
     },
   });
 
-  const { data: serviceFronts } = useQuery({
-    queryKey: ["service-fronts-map"],
+  const { data: project, isLoading: loadingProject } = useQuery({
+    queryKey: ["project", projectId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("service_fronts")
-        .select("*, construction_sites(name)");
-      return data || [];
+      if (!projectId) return null;
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", projectId)
+        .single();
+      if (error) throw error;
+      return data;
     },
-    enabled: !!session,
+    enabled: !!projectId && !!session,
   });
 
-  const { data: employees } = useQuery({
-    queryKey: ["employees-map"],
+  const { data: annotations = [] } = useQuery({
+    queryKey: ["map-annotations", projectId],
     queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase
+        .from("map_annotations")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as MapAnnotation[];
+    },
+    enabled: !!projectId && !!session,
+  });
+
+  const { data: serviceFronts = [] } = useQuery({
+    queryKey: ["service-fronts", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data } = await supabase
+        .from("service_fronts")
+        .select("id, name")
+        .eq("project_id", projectId);
+      return data || [];
+    },
+    enabled: !!projectId && !!session,
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees-project", projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
       const { data } = await supabase
         .from("employees")
         .select("id, name")
+        .eq("project_id", projectId)
         .eq("status", "active");
       return data || [];
     },
-    enabled: !!session,
+    enabled: !!projectId && !!session,
   });
 
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadMapMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!session?.user?.id || !projectId) throw new Error("Usuário ou projeto não encontrado");
+
+      setIsUploading(true);
+      setUploadProgress(10);
+
+      // Read and extract ZIP file
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(file);
+      
+      setUploadProgress(30);
+
+      // Find index.html
+      let indexHtmlPath: string | null = null;
+      const filesToUpload: { path: string; content: Blob }[] = [];
+
+      for (const [relativePath, zipEntry] of Object.entries(zipContent.files)) {
+        if (!zipEntry.dir) {
+          const content = await zipEntry.async("blob");
+          filesToUpload.push({ path: relativePath, content });
+          
+          if (relativePath.toLowerCase().endsWith("index.html") || 
+              relativePath.toLowerCase() === "index.html") {
+            indexHtmlPath = relativePath;
+          }
+        }
+      }
+
+      if (!indexHtmlPath) {
+        throw new Error("Arquivo index.html não encontrado no ZIP");
+      }
+
+      setUploadProgress(50);
+
+      // Delete existing files for this project
+      const { data: existingFiles } = await supabase.storage
+        .from("interactive-maps")
+        .list(projectId);
+
+      if (existingFiles && existingFiles.length > 0) {
+        const filesToDelete = existingFiles.map(f => `${projectId}/${f.name}`);
+        await supabase.storage.from("interactive-maps").remove(filesToDelete);
+      }
+
+      setUploadProgress(60);
+
+      // Upload all files
+      let uploadedCount = 0;
+      for (const { path, content } of filesToUpload) {
+        const storagePath = `${projectId}/${path}`;
+        const { error } = await supabase.storage
+          .from("interactive-maps")
+          .upload(storagePath, content, { upsert: true });
+        
+        if (error) {
+          console.error(`Erro ao enviar ${path}:`, error);
+        }
+        
+        uploadedCount++;
+        setUploadProgress(60 + (uploadedCount / filesToUpload.length) * 30);
+      }
+
+      setUploadProgress(95);
+
+      // Get public URL for index.html
+      const { data: publicUrlData } = supabase.storage
+        .from("interactive-maps")
+        .getPublicUrl(`${projectId}/${indexHtmlPath}`);
+
+      const mapUrl = publicUrlData.publicUrl;
+
+      // Update project with map URL
+      const { error: updateError } = await supabase
+        .from("projects")
+        .update({ interactive_map_url: mapUrl })
+        .eq("id", projectId);
+
+      if (updateError) throw updateError;
+
+      setUploadProgress(100);
+      return mapUrl;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      toast({
+        title: "Mapa enviado!",
+        description: "O mapa interativo foi carregado com sucesso.",
+      });
+      setIsUploading(false);
+      setUploadProgress(0);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao enviar mapa",
+        description: error.message || "Não foi possível processar o arquivo ZIP.",
+        variant: "destructive",
+      });
+      setIsUploading(false);
+      setUploadProgress(0);
+    },
+  });
+
+  const addAnnotationMutation = useMutation({
+    mutationFn: async (data: typeof newMarker) => {
+      if (!session?.user?.id || !projectId) throw new Error("Usuário não autenticado");
+
+      const { error } = await supabase
+        .from("map_annotations")
+        .insert({
+          project_id: projectId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          tipo: data.tipo,
+          descricao: data.descricao || null,
+          porcentagem: data.porcentagem,
+          team_id: data.team_id || null,
+          service_front_id: data.service_front_id || null,
+          created_by_user_id: session.user.id,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["map-annotations", projectId] });
+      toast({ title: "Anotação adicionada!" });
+      setShowAddMarkerDialog(false);
+      setNewMarker({
+        latitude: 0,
+        longitude: 0,
+        tipo: "ponto",
+        descricao: "",
+        porcentagem: 0,
+        team_id: "",
+        service_front_id: "",
+      });
+    },
+    onError: () => {
+      toast({ title: "Erro ao adicionar anotação", variant: "destructive" });
+    },
+  });
+
+  const deleteAnnotationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("map_annotations")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["map-annotations", projectId] });
+      toast({ title: "Anotação removida!" });
+    },
+  });
+
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const fileName = file.name.toLowerCase();
-    const validExtensions = ['.html', '.htm', '.geojson', '.json', '.kml', '.kmz'];
-    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
-
-    if (!isValid) {
+    if (!file.name.toLowerCase().endsWith(".zip")) {
       toast({
         title: "Formato inválido",
-        description: "Por favor, envie um arquivo HTML, GeoJSON, KML ou KMZ.",
+        description: "Por favor, envie um arquivo ZIP exportado do QGIS (qgis2web).",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
-        const content = await file.text();
-        setMapContent(content);
-        setMapFileName(file.name);
-        
-        toast({
-          title: "Mapa carregado!",
-          description: `Arquivo ${file.name} importado com sucesso.`,
-        });
-      } else if (fileName.endsWith('.geojson') || fileName.endsWith('.json')) {
-        const content = await file.text();
-        const geoJson = JSON.parse(content);
-        
-        // Converter GeoJSON para HTML com Leaflet
-        const htmlContent = generateLeafletMap(geoJson);
-        setMapContent(htmlContent);
-        setMapFileName(file.name);
-        
-        toast({
-          title: "GeoJSON carregado!",
-          description: `Arquivo ${file.name} convertido e importado.`,
-        });
-      } else if (fileName.endsWith('.kml') || fileName.endsWith('.kmz')) {
-        // Para KML/KMZ, precisaria de um parser mais complexo
-        toast({
-          title: "Em desenvolvimento",
-          description: "Suporte a KML/KMZ será implementado em breve.",
-        });
-      }
-    } catch (error) {
-      console.error("Error loading file:", error);
-      toast({
-        title: "Erro ao carregar arquivo",
-        description: "Não foi possível processar o arquivo enviado.",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
-  const generateLeafletMap = (geoJson: any): string => {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    html, body, #map { height: 100%; margin: 0; padding: 0; }
-    .custom-popup { font-family: system-ui, sans-serif; }
-    .progress-badge { 
-      display: inline-block; 
-      padding: 2px 8px; 
-      border-radius: 4px; 
-      font-size: 12px; 
-      font-weight: bold;
-      color: white;
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script>
-    const geoJsonData = ${JSON.stringify(geoJson)};
-    
-    // Calcular centro do mapa
-    let center = [-23.5505, -46.6333]; // São Paulo default
-    let zoom = 10;
-    
-    if (geoJsonData.features && geoJsonData.features.length > 0) {
-      const bounds = L.geoJSON(geoJsonData).getBounds();
-      if (bounds.isValid()) {
-        center = bounds.getCenter();
-      }
-    }
-    
-    const map = L.map('map').setView(center, zoom);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-    
-    const geoJsonLayer = L.geoJSON(geoJsonData, {
-      style: function(feature) {
-        return {
-          color: feature.properties?.color || '#3388ff',
-          weight: 2,
-          fillOpacity: 0.3
-        };
-      },
-      onEachFeature: function(feature, layer) {
-        if (feature.properties) {
-          let popupContent = '<div class="custom-popup">';
-          if (feature.properties.name) {
-            popupContent += '<strong>' + feature.properties.name + '</strong><br>';
-          }
-          if (feature.properties.description) {
-            popupContent += feature.properties.description + '<br>';
-          }
-          if (feature.properties.progress !== undefined) {
-            const color = feature.properties.progress >= 80 ? '#22c55e' : 
-                         feature.properties.progress >= 50 ? '#eab308' : '#ef4444';
-            popupContent += '<span class="progress-badge" style="background:' + color + '">' + 
-                          feature.properties.progress + '%</span>';
-          }
-          popupContent += '</div>';
-          layer.bindPopup(popupContent);
-        }
-      }
-    }).addTo(map);
-    
-    if (geoJsonLayer.getBounds().isValid()) {
-      map.fitBounds(geoJsonLayer.getBounds());
-    }
-  </script>
-</body>
-</html>`;
-  };
-
-  const handleAddMarker = () => {
-    if (!newMarker.name) {
-      toast({
-        title: "Nome obrigatório",
-        description: "Por favor, insira um nome para o marcador.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const marker: MapMarker = {
-      id: crypto.randomUUID(),
-      type: newMarker.type || 'point',
-      name: newMarker.name,
-      description: newMarker.description,
-      progress: newMarker.progress || 0,
-      teamId: newMarker.teamId,
-      serviceFrontId: newMarker.serviceFrontId,
-      color: newMarker.color || '#3b82f6',
-    };
-
-    setMarkers(prev => [...prev, marker]);
-    setShowAddMarkerDialog(false);
-    setNewMarker({ type: 'point', progress: 0, color: '#3b82f6' });
-
-    toast({
-      title: "Marcador adicionado",
-      description: `Marcador "${marker.name}" criado com sucesso.`,
-    });
-  };
-
-  const handleUpdateMarkerProgress = (markerId: string, progress: number) => {
-    setMarkers(prev => prev.map(m => 
-      m.id === markerId ? { ...m, progress } : m
-    ));
-  };
-
-  const handleDeleteMarker = (markerId: string) => {
-    setMarkers(prev => prev.filter(m => m.id !== markerId));
-    toast({
-      title: "Marcador removido",
-      description: "Marcador excluído com sucesso.",
-    });
-  };
-
-  const toggleLayerVisibility = (layerId: string) => {
-    setLayers(prev => prev.map(l => 
-      l.id === layerId ? { ...l, visible: !l.visible } : l
-    ));
-  };
-
-  const getMarkerIcon = (type: string) => {
-    switch (type) {
-      case 'polygon': return <Square className="h-4 w-4" />;
-      case 'area': return <Hexagon className="h-4 w-4" />;
-      default: return <MapPin className="h-4 w-4" />;
-    }
-  };
+    uploadMapMutation.mutate(file);
+  }, [uploadMapMutation, toast]);
 
   const getProgressColor = (progress: number) => {
-    if (progress >= 80) return "bg-green-500";
-    if (progress >= 50) return "bg-yellow-500";
-    return "bg-red-500";
+    if (progress >= 80) return "text-green-500";
+    if (progress >= 50) return "text-yellow-500";
+    return "text-red-500";
   };
+
+  if (loadingProject) {
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </main>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -331,12 +353,16 @@ export default function InteractiveMap() {
         <AppSidebar />
         <main className="flex-1 p-6">
           <div className="mb-6">
+            <Button variant="ghost" onClick={() => navigate("/projects")} className="mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar aos Projetos
+            </Button>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Map className="h-8 w-8" />
               Mapa Interativo
             </h1>
             <p className="text-muted-foreground">
-              Importe mapas, adicione marcações e acompanhe o avanço das frentes de serviço
+              {project?.name || "Projeto"} - Importe mapas do QGIS e gerencie anotações
             </p>
           </div>
 
@@ -346,225 +372,164 @@ export default function InteractiveMap() {
                 <Map className="h-4 w-4 mr-2" />
                 Mapa
               </TabsTrigger>
-              <TabsTrigger value="markers">
+              <TabsTrigger value="annotations">
                 <MapPin className="h-4 w-4 mr-2" />
-                Marcadores ({markers.length})
-              </TabsTrigger>
-              <TabsTrigger value="layers">
-                <Layers className="h-4 w-4 mr-2" />
-                Camadas ({layers.length})
+                Anotações ({annotations.length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="map" className="space-y-4">
-              {/* Upload Area */}
-              {!mapContent && (
+              {/* Upload Area or Map Display */}
+              {!project?.interactive_map_url ? (
                 <Card className="border-dashed border-2">
                   <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Importar Mapa</h3>
-                    <p className="text-sm text-muted-foreground text-center mb-4">
-                      Envie um arquivo HTML, GeoJSON, KML ou KMZ criado em QGIS, ArcGIS, drones, etc.
+                    <FileArchive className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Enviar Mapa do QGIS</h3>
+                    <p className="text-muted-foreground text-center mb-6 max-w-md">
+                      Exporte seu projeto do QGIS usando o plugin <strong>qgis2web</strong> e 
+                      envie o arquivo ZIP gerado.
                     </p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".html,.htm,.geojson,.json,.kml,.kmz"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Button onClick={() => fileInputRef.current?.click()}>
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Selecionar Arquivo
-                    </Button>
+                    
+                    {isUploading ? (
+                      <div className="w-full max-w-xs space-y-2">
+                        <Progress value={uploadProgress} />
+                        <p className="text-sm text-center text-muted-foreground">
+                          Processando... {uploadProgress}%
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".zip"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        <Button size="lg" onClick={() => fileInputRef.current?.click()}>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Selecionar Arquivo ZIP
+                        </Button>
+                      </>
+                    )}
+
+                    <div className="mt-8 text-left bg-muted/50 p-4 rounded-lg max-w-lg">
+                      <h4 className="font-semibold mb-2">Como exportar do QGIS:</h4>
+                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                        <li>Instale o plugin qgis2web no QGIS</li>
+                        <li>Vá em Web → qgis2web → Create web map</li>
+                        <li>Escolha Leaflet como formato de exportação</li>
+                        <li>Exporte e compacte a pasta em ZIP</li>
+                        <li>Envie o arquivo ZIP aqui</li>
+                      </ol>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
-
-              {/* Map Display */}
-              {mapContent && (
+              ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
-                        <FileCode className="h-3 w-3 mr-1" />
-                        {mapFileName}
-                      </Badge>
-                    </div>
+                    <Badge variant="secondary">
+                      <Map className="h-3 w-3 mr-1" />
+                      Mapa carregado
+                    </Badge>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".zip"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
                         <Upload className="h-4 w-4 mr-2" />
-                        Trocar Mapa
+                        Substituir Mapa
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setShowAddMarkerDialog(true)}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowAddMarkerDialog(true)}
+                      >
                         <Plus className="h-4 w-4 mr-2" />
-                        Adicionar Marcação
+                        Nova Anotação
                       </Button>
                     </div>
                   </div>
 
+                  {isUploading && (
+                    <div className="space-y-2">
+                      <Progress value={uploadProgress} />
+                      <p className="text-sm text-center text-muted-foreground">
+                        Processando... {uploadProgress}%
+                      </p>
+                    </div>
+                  )}
+
                   <Card className="overflow-hidden">
                     <iframe
                       ref={iframeRef}
-                      srcDoc={mapContent}
+                      src={project.interactive_map_url}
                       className="w-full h-[600px] border-0"
                       title="Mapa Interativo"
-                      sandbox="allow-scripts allow-same-origin"
                     />
                   </Card>
                 </div>
               )}
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".html,.htm,.geojson,.json,.kml,.kmz"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
             </TabsContent>
 
-            <TabsContent value="markers" className="space-y-4">
+            <TabsContent value="annotations" className="space-y-4">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Marcações e Avanços</h2>
+                <h2 className="text-xl font-semibold">Anotações do Mapa</h2>
                 <Button onClick={() => setShowAddMarkerDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Nova Marcação
+                  Nova Anotação
                 </Button>
               </div>
 
-              {markers.length === 0 ? (
+              {annotations.length === 0 ? (
                 <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
+                  <CardContent className="py-12 text-center text-muted-foreground">
                     <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhuma marcação adicionada ainda.</p>
-                    <p className="text-sm">Adicione marcações para acompanhar o avanço de setores.</p>
+                    <p>Nenhuma anotação adicionada ainda.</p>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {markers.map(marker => (
-                    <Card key={marker.id}>
+                  {annotations.map((annotation) => (
+                    <Card key={annotation.id}>
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center justify-between text-base">
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="p-1.5 rounded" 
-                              style={{ backgroundColor: marker.color + '20', color: marker.color }}
-                            >
-                              {getMarkerIcon(marker.type)}
-                            </div>
-                            {marker.name}
+                            <MapPin className="h-4 w-4" />
+                            {annotation.tipo}
                           </div>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => {
-                                setEditingMarker(marker);
-                                setNewMarker(marker);
-                                setShowAddMarkerDialog(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleDeleteMarker(marker.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {marker.description && (
-                          <p className="text-sm text-muted-foreground">{marker.description}</p>
-                        )}
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span>Avanço</span>
-                            <span className="font-medium">{marker.progress}%</span>
-                          </div>
-                          <Progress value={marker.progress} className={getProgressColor(marker.progress || 0)} />
-                        </div>
-
-                        <div className="flex gap-2 mt-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={marker.progress}
-                            onChange={(e) => handleUpdateMarkerProgress(marker.id, Number(e.target.value))}
-                            className="w-20"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleUpdateMarkerProgress(marker.id, Math.min(100, (marker.progress || 0) + 10))}
-                          >
-                            +10%
-                          </Button>
-                        </div>
-
-                        {marker.teamId && (
-                          <Badge variant="outline" className="mt-2">
-                            <Users className="h-3 w-3 mr-1" />
-                            {employees?.find(e => e.id === marker.teamId)?.name || 'Equipe'}
-                          </Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="layers" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Camadas do Mapa</h2>
-                <Button onClick={() => setShowAddLayerDialog(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Camada
-                </Button>
-              </div>
-
-              {layers.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhuma camada adicional.</p>
-                    <p className="text-sm">Importe camadas para sobrepor no mapa base.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {layers.map(layer => (
-                    <Card key={layer.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => toggleLayerVisibility(layer.id)}
+                            onClick={() => deleteAnnotationMutation.mutate(annotation.id)}
                           >
-                            {layer.visible ? (
-                              <Eye className="h-4 w-4" />
-                            ) : (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                          <div>
-                            <p className="font-medium">{layer.name}</p>
-                            <p className="text-sm text-muted-foreground">{layer.type}</p>
-                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {annotation.descricao && (
+                          <p className="text-sm text-muted-foreground">{annotation.descricao}</p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">Avanço:</span>
+                          <span className={`font-bold ${getProgressColor(annotation.porcentagem)}`}>
+                            {annotation.porcentagem}%
+                          </span>
                         </div>
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        <div className="text-xs text-muted-foreground">
+                          Lat: {annotation.latitude.toFixed(6)}, Lng: {annotation.longitude.toFixed(6)}
+                        </div>
+                      </CardContent>
                     </Card>
                   ))}
                 </div>
@@ -572,58 +537,52 @@ export default function InteractiveMap() {
             </TabsContent>
           </Tabs>
 
-          {/* Add Marker Dialog */}
+          {/* Add Annotation Dialog */}
           <Dialog open={showAddMarkerDialog} onOpenChange={setShowAddMarkerDialog}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>
-                  {editingMarker ? 'Editar Marcação' : 'Nova Marcação'}
-                </DialogTitle>
+                <DialogTitle>Nova Anotação no Mapa</DialogTitle>
                 <DialogDescription>
-                  Adicione uma marcação para acompanhar o avanço de um setor ou área.
+                  Adicione uma anotação com coordenadas e informações de progresso.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Nome *</Label>
-                  <Input
-                    value={newMarker.name || ''}
-                    onChange={(e) => setNewMarker(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ex: Setor A, Bloco 1, etc."
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Latitude</Label>
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      value={newMarker.latitude}
+                      onChange={(e) => setNewMarker({ ...newMarker, latitude: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Longitude</Label>
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      value={newMarker.longitude}
+                      onChange={(e) => setNewMarker({ ...newMarker, longitude: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tipo de Marcação</Label>
+                  <Label>Tipo</Label>
                   <Select
-                    value={newMarker.type}
-                    onValueChange={(value: 'point' | 'polygon' | 'area') => 
-                      setNewMarker(prev => ({ ...prev, type: value }))
-                    }
+                    value={newMarker.tipo}
+                    onValueChange={(v) => setNewMarker({ ...newMarker, tipo: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="point">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          Ponto
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="polygon">
-                        <div className="flex items-center gap-2">
-                          <Square className="h-4 w-4" />
-                          Polígono
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="area">
-                        <div className="flex items-center gap-2">
-                          <Hexagon className="h-4 w-4" />
-                          Área
-                        </div>
-                      </SelectItem>
+                      <SelectItem value="ponto">Ponto</SelectItem>
+                      <SelectItem value="area">Área</SelectItem>
+                      <SelectItem value="setor">Setor</SelectItem>
+                      <SelectItem value="inspecao">Inspeção</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -631,85 +590,51 @@ export default function InteractiveMap() {
                 <div className="space-y-2">
                   <Label>Descrição</Label>
                   <Textarea
-                    value={newMarker.description || ''}
-                    onChange={(e) => setNewMarker(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Descrição opcional..."
+                    value={newMarker.descricao}
+                    onChange={(e) => setNewMarker({ ...newMarker, descricao: e.target.value })}
+                    placeholder="Descrição da anotação..."
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Avanço (%)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={newMarker.progress || 0}
-                      onChange={(e) => setNewMarker(prev => ({ ...prev, progress: Number(e.target.value) }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Cor</Label>
-                    <Input
-                      type="color"
-                      value={newMarker.color || '#3b82f6'}
-                      onChange={(e) => setNewMarker(prev => ({ ...prev, color: e.target.value }))}
-                      className="h-10 p-1"
-                    />
-                  </div>
-                </div>
-
                 <div className="space-y-2">
-                  <Label>Frente de Serviço</Label>
-                  <Select
-                    value={newMarker.serviceFrontId || ''}
-                    onValueChange={(value) => setNewMarker(prev => ({ ...prev, serviceFrontId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {serviceFronts?.map(sf => (
-                        <SelectItem key={sf.id} value={sf.id}>
-                          {sf.name} - {sf.construction_sites?.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Avanço (%)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newMarker.porcentagem}
+                    onChange={(e) => setNewMarker({ ...newMarker, porcentagem: parseFloat(e.target.value) || 0 })}
+                  />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Equipe Responsável</Label>
-                  <Select
-                    value={newMarker.teamId || ''}
-                    onValueChange={(value) => setNewMarker(prev => ({ ...prev, teamId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees?.map(emp => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {serviceFronts.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Frente de Serviço (Opcional)</Label>
+                    <Select
+                      value={newMarker.service_front_id}
+                      onValueChange={(v) => setNewMarker({ ...newMarker, service_front_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Nenhum</SelectItem>
+                        {serviceFronts.map((sf: any) => (
+                          <SelectItem key={sf.id} value={sf.id}>{sf.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  setShowAddMarkerDialog(false);
-                  setEditingMarker(null);
-                  setNewMarker({ type: 'point', progress: 0, color: '#3b82f6' });
-                }}>
+                <Button variant="outline" onClick={() => setShowAddMarkerDialog(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleAddMarker}>
+                <Button onClick={() => addAnnotationMutation.mutate(newMarker)}>
                   <Save className="h-4 w-4 mr-2" />
-                  {editingMarker ? 'Salvar' : 'Adicionar'}
+                  Salvar
                 </Button>
               </DialogFooter>
             </DialogContent>
