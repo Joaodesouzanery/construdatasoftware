@@ -177,9 +177,9 @@ const Hero = () => {
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Pilar 1 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
               <h3 className="text-xl font-bold mb-4">Controle de Obra</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Dashboard de obras</span>
@@ -201,12 +201,15 @@ const Hero = () => {
                   <span>Histórico e relatórios</span>
                 </li>
               </ul>
+              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/controle-de-obra')}>
+                Saiba Mais
+              </Button>
             </div>
 
             {/* Pilar 2 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
               <h3 className="text-xl font-bold mb-4">Materiais & Almoxarifado</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Estoque atualizado</span>
@@ -224,12 +227,15 @@ const Hero = () => {
                   <span>Consumo por obra, equipe e tarefa</span>
                 </li>
               </ul>
+              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/materiais-almoxarifado')}>
+                Saiba Mais
+              </Button>
             </div>
 
             {/* Pilar 3 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
               <h3 className="text-xl font-bold mb-4">Execução & Equipes</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Gestão de funcionários</span>
@@ -243,12 +249,15 @@ const Hero = () => {
                   <span>Registros diários com evidências</span>
                 </li>
               </ul>
+              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/execucao-equipes')}>
+                Saiba Mais
+              </Button>
             </div>
 
             {/* Pilar 4 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
               <h3 className="text-xl font-bold mb-4">Manutenção Predial</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">✔</span>
                   <span>Catálogo de ativos</span>
@@ -270,6 +279,9 @@ const Hero = () => {
                   <span>Relatórios e alertas</span>
                 </li>
               </ul>
+              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/manutencao-predial')}>
+                Saiba Mais
+              </Button>
             </div>
           </div>
         </div>

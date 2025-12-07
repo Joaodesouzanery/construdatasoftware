@@ -54,6 +54,10 @@ import PurchaseManagement from "./pages/PurchaseManagement";
 import LaborTracking from "./pages/LaborTracking";
 import InteractiveMap from "./pages/InteractiveMap";
 import SystemTest from "./pages/SystemTest";
+import ControleDeObra from "./pages/features/ControleDeObra";
+import MateriaisAlmoxarifado from "./pages/features/MateriaisAlmoxarifado";
+import ExecucaoEquipes from "./pages/features/ExecucaoEquipes";
+import ManutencaoPredial from "./pages/features/ManutencaoPredial";
 import Approvals from "./pages/Approvals";
 import UserMetrics from "./pages/UserMetrics";
 import NotFound from "./pages/NotFound";
@@ -73,6 +77,7 @@ const AppContent = () => {
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/interactive-map" element={<InteractiveMap />} />
+        <Route path="/projects/:projectId/mapa-interativo" element={<InteractiveMap />} />
         <Route path="/dashboard-360" element={<Dashboard360 />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/production" element={<Production />} />
@@ -116,6 +121,10 @@ const AppContent = () => {
         <Route path="/features/multimedia-registry" element={<MultimediaRegistry />} />
         <Route path="/features/qrcode-maintenance" element={<QRCodeMaintenance />} />
         <Route path="/features/connection-reports" element={<ConnectionReportsFeature />} />
+        <Route path="/features/controle-de-obra" element={<ControleDeObra />} />
+        <Route path="/features/materiais-almoxarifado" element={<MateriaisAlmoxarifado />} />
+        <Route path="/features/execucao-equipes" element={<ExecucaoEquipes />} />
+        <Route path="/features/manutencao-predial" element={<ManutencaoPredial />} />
         
         {/* Admin and System routes */}
         <Route path="/admin" element={<Admin />} />

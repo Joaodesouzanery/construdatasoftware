@@ -1403,6 +1403,73 @@ export type Database = {
           },
         ]
       }
+      map_annotations: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string
+          descricao: string | null
+          id: string
+          latitude: number
+          longitude: number
+          porcentagem: number | null
+          project_id: string
+          service_front_id: string | null
+          team_id: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_user_id: string
+          descricao?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          porcentagem?: number | null
+          project_id: string
+          service_front_id?: string | null
+          team_id?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_user_id?: string
+          descricao?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          porcentagem?: number | null
+          project_id?: string
+          service_front_id?: string | null
+          team_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_annotations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "map_annotations_service_front_id_fkey"
+            columns: ["service_front_id"]
+            isOneToOne: false
+            referencedRelation: "service_fronts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "map_annotations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_control: {
         Row: {
           created_at: string | null
@@ -1907,6 +1974,7 @@ export type Database = {
           created_by_user_id: string
           end_date: string | null
           id: string
+          interactive_map_url: string | null
           latitude: number | null
           longitude: number | null
           name: string
@@ -1923,6 +1991,7 @@ export type Database = {
           created_by_user_id: string
           end_date?: string | null
           id?: string
+          interactive_map_url?: string | null
           latitude?: number | null
           longitude?: number | null
           name: string
@@ -1939,6 +2008,7 @@ export type Database = {
           created_by_user_id?: string
           end_date?: string | null
           id?: string
+          interactive_map_url?: string | null
           latitude?: number | null
           longitude?: number | null
           name?: string
