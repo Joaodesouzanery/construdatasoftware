@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -18,9 +18,10 @@ import { X } from "lucide-react";
 interface AddMaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialName?: string;
 }
 
-export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps) => {
+export const AddMaterialDialog = ({ open, onOpenChange, initialName }: AddMaterialDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [keywords, setKeywords] = useState<string[]>([]);
@@ -40,6 +41,13 @@ export const AddMaterialDialog = ({ open, onOpenChange }: AddMaterialDialogProps
     category: "",
     notes: ""
   });
+
+  // Preenche o nome inicial quando o dialog abre
+  useEffect(() => {
+    if (open && initialName) {
+      setFormData(prev => ({ ...prev, name: initialName }));
+    }
+  }, [open, initialName]);
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {

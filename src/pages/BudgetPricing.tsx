@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Search, Download, Save } from "lucide-react";
+import { ArrowLeft, Upload, Search, Download, Save, PlusCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SimilarMaterialApprovalDialog } from "@/components/materials/SimilarMaterialApprovalDialog";
+import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
 
 interface ProcessedItem {
   description: string;
@@ -74,6 +75,8 @@ const BudgetPricing = () => {
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
   const [currentApprovalIndex, setCurrentApprovalIndex] = useState(0);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [showAddMaterialDialog, setShowAddMaterialDialog] = useState(false);
+  const [notFoundItemToAdd, setNotFoundItemToAdd] = useState<{ index: number; description: string } | null>(null);
 
   const { data: budgets } = useQuery({
     queryKey: ['budgets'],
@@ -687,6 +690,57 @@ const BudgetPricing = () => {
     }
   };
 
+  // Handler para quando um novo material é criado no dialog de aprovação
+  const handleNewMaterialCreated = (material: any) => {
+    const pending = pendingApprovals[currentApprovalIndex];
+    if (!pending) return;
+
+    const materialPrice = Number(material.material_price || 0);
+    const laborPrice = Number(material.labor_price || 0);
+    const totalUnitPrice = materialPrice + laborPrice;
+
+    setProcessedItems(prev => {
+      const updated = [...prev];
+      const itemIndex = pending.index;
+      
+      updated[itemIndex] = {
+        ...updated[itemIndex],
+        unit_price: totalUnitPrice,
+        unit_price_material: materialPrice,
+        unit_price_labor: laborPrice,
+        total: updated[itemIndex].quantity * totalUnitPrice,
+        material_id: material.id,
+        material_name: material.name,
+        matched: true,
+        match_type: 'Cadastrado manualmente',
+        needsApproval: false,
+        approved: true,
+      };
+      return updated;
+    });
+
+    moveToNextApproval();
+  };
+
+  // Handler para cadastrar material de item "Não encontrado"
+  const handleAddNotFoundMaterial = (index: number, description: string) => {
+    setNotFoundItemToAdd({ index, description });
+    setShowAddMaterialDialog(true);
+  };
+
+  // Callback quando material é criado para item "Não encontrado"
+  const handleNotFoundMaterialCreated = () => {
+    // O material foi criado, agora vamos buscar os preços novamente apenas para esse item
+    if (notFoundItemToAdd !== null) {
+      toast({
+        title: "Material cadastrado!",
+        description: "Clique em 'Buscar Preços Novamente' para atualizar os valores.",
+      });
+    }
+    setNotFoundItemToAdd(null);
+    setShowAddMaterialDialog(false);
+  };
+
   const searchPrices = async () => {
     await searchPricesAutomatically(processedItems);
   };
@@ -941,6 +995,54 @@ const BudgetPricing = () => {
               </Table>
             </div>
 
+            {/* Seção de itens Não Encontrados */}
+            {processedItems.filter(i => i.match_type === 'Não encontrado' || i.match_type?.startsWith('Rejeitado')).length > 0 && (
+              <div className="p-4 border rounded-lg bg-destructive/5 border-destructive/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-destructive">
+                      Itens Não Encontrados ({processedItems.filter(i => i.match_type === 'Não encontrado' || i.match_type?.startsWith('Rejeitado')).length})
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Cadastre esses materiais na Gestão de Preços para precificá-los
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/prices')}
+                    className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Abrir Gestão de Preços
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {processedItems.map((item, index) => (
+                    (item.match_type === 'Não encontrado' || item.match_type?.startsWith('Rejeitado')) && (
+                      <div key={index} className="flex items-center justify-between p-3 bg-background rounded border">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate" title={item.description}>
+                            {index + 1}. {item.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.quantity} {item.unit}
+                          </p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="secondary"
+                          onClick={() => handleAddNotFoundMaterial(index, item.description)}
+                        >
+                          <PlusCircle className="h-3 w-3 mr-1" />
+                          Cadastrar
+                        </Button>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Salvar em qual orçamento? (opcional)</Label>
@@ -1002,8 +1104,21 @@ const BudgetPricing = () => {
         onApprove={() => handleApproval(true)}
         onReject={() => handleApproval(false)}
         onSkip={handleSkipApproval}
+        onNewMaterialCreated={handleNewMaterialCreated}
         totalPending={pendingApprovals.length}
         currentIndex={currentApprovalIndex}
+      />
+
+      {/* Dialog para cadastrar material de item Não Encontrado */}
+      <AddMaterialDialog
+        open={showAddMaterialDialog}
+        onOpenChange={(open) => {
+          setShowAddMaterialDialog(open);
+          if (!open) {
+            handleNotFoundMaterialCreated();
+          }
+        }}
+        initialName={notFoundItemToAdd?.description}
       />
     </div>
   );
