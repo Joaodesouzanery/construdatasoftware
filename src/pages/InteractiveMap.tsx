@@ -33,6 +33,9 @@ import {
   Loader2,
   FileArchive,
   ArrowLeft,
+  Code,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
@@ -376,6 +379,10 @@ export default function InteractiveMap() {
                 <MapPin className="h-4 w-4 mr-2" />
                 Anotações ({annotations.length})
               </TabsTrigger>
+              <TabsTrigger value="embed">
+                <Code className="h-4 w-4 mr-2" />
+                Embed / Plugin
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="map" className="space-y-4">
@@ -534,6 +541,173 @@ export default function InteractiveMap() {
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            {/* Embed Tab */}
+            <TabsContent value="embed" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code className="h-5 w-5" />
+                    Embed / Plugin para Sites Externos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <p className="text-muted-foreground">
+                    Use os códigos abaixo para incorporar o mapa interativo em sites externos 
+                    (ex: portais de transparência, sites da prefeitura, etc.)
+                  </p>
+
+                  {!project?.interactive_map_url ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Map className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Envie um mapa primeiro para obter o código de embed.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Direct URL */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">URL Direta do Mapa</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Use esta URL para acessar o mapa diretamente ou compartilhar.
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            readOnly
+                            value={`${window.location.origin}/embed/map/${projectId}`}
+                            className="font-mono text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/embed/map/${projectId}`);
+                              toast({ title: "URL copiada!" });
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            asChild
+                          >
+                            <a href={`/embed/map/${projectId}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* iframe Embed Code */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Código iframe (Recomendado)</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Cole este código no HTML do site onde deseja exibir o mapa.
+                        </p>
+                        <div className="relative">
+                          <Textarea
+                            readOnly
+                            rows={4}
+                            className="font-mono text-sm resize-none"
+                            value={`<iframe 
+  src="${window.location.origin}/embed/map/${projectId}"
+  width="100%"
+  height="600"
+  style="border:none;"
+  title="Mapa Interativo - ${project?.name || 'Projeto'}"
+  allow="geolocation"
+></iframe>`}
+                          />
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`<iframe 
+  src="${window.location.origin}/embed/map/${projectId}"
+  width="100%"
+  height="600"
+  style="border:none;"
+  title="Mapa Interativo - ${project?.name || 'Projeto'}"
+  allow="geolocation"
+></iframe>`);
+                              toast({ title: "Código copiado!" });
+                            }}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copiar
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* JavaScript Widget */}
+                      <div className="space-y-2">
+                        <Label className="font-semibold">Widget JavaScript</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Para mais controle, use este script que cria o iframe dinamicamente.
+                        </p>
+                        <div className="relative">
+                          <Textarea
+                            readOnly
+                            rows={8}
+                            className="font-mono text-sm resize-none"
+                            value={`<div id="construdata-map-${projectId}"></div>
+<script>
+(function() {
+  var container = document.getElementById('construdata-map-${projectId}');
+  var iframe = document.createElement('iframe');
+  iframe.src = '${window.location.origin}/embed/map/${projectId}';
+  iframe.style.width = '100%';
+  iframe.style.height = '600px';
+  iframe.style.border = 'none';
+  iframe.allow = 'geolocation';
+  iframe.title = 'Mapa Interativo - ConstruData';
+  container.appendChild(iframe);
+})();
+</script>`}
+                          />
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`<div id="construdata-map-${projectId}"></div>
+<script>
+(function() {
+  var container = document.getElementById('construdata-map-${projectId}');
+  var iframe = document.createElement('iframe');
+  iframe.src = '${window.location.origin}/embed/map/${projectId}';
+  iframe.style.width = '100%';
+  iframe.style.height = '600px';
+  iframe.style.border = 'none';
+  iframe.allow = 'geolocation';
+  iframe.title = 'Mapa Interativo - ConstruData';
+  container.appendChild(iframe);
+})();
+</script>`);
+                              toast({ title: "Widget copiado!" });
+                            }}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copiar
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">Dicas de Uso:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>O mapa será exibido com todas as camadas e interatividade</li>
+                          <li>Funciona em qualquer site que aceite HTML/JavaScript</li>
+                          <li>Responsivo - se adapta ao tamanho do container</li>
+                          <li>Atualizações no mapa refletem automaticamente no embed</li>
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
 
