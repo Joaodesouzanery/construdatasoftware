@@ -53,6 +53,7 @@ import Occurrences from "./pages/Occurrences";
 import PurchaseManagement from "./pages/PurchaseManagement";
 import LaborTracking from "./pages/LaborTracking";
 import InteractiveMap from "./pages/InteractiveMap";
+import MapEmbed from "./pages/MapEmbed";
 import SystemTest from "./pages/SystemTest";
 import ControleDeObra from "./pages/features/ControleDeObra";
 import MateriaisAlmoxarifado from "./pages/features/MateriaisAlmoxarifado";
@@ -78,6 +79,7 @@ const AppContent = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/interactive-map" element={<InteractiveMap />} />
         <Route path="/projects/:projectId/mapa-interativo" element={<InteractiveMap />} />
+        <Route path="/embed/map/:projectId" element={<MapEmbed />} />
         <Route path="/dashboard-360" element={<Dashboard360 />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/production" element={<Production />} />

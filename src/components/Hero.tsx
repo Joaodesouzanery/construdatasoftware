@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Shield } from "lucide-react";
 import { ContactDialog } from "@/components/ContactDialog";
+import { FAQ } from "@/components/FAQ";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -534,6 +535,9 @@ const Hero = () => {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQ />
 
       {/* Contact Dialog */}
       <ContactDialog open={showContactDialog} onOpenChange={setShowContactDialog} />
