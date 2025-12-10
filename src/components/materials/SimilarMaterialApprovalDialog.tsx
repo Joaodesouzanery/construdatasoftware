@@ -19,6 +19,9 @@ interface SimilarMaterial {
     labor_price?: number;
     unit?: string;
     measurement?: string;
+    description?: string;
+    color?: string;
+    supplier?: string;
   };
   similarity: number;
   matchType: string;
@@ -27,6 +30,8 @@ interface SimilarMaterial {
 interface PendingApproval {
   index: number;
   description: string;
+  unit?: string;
+  quantity?: number;
   match: SimilarMaterial;
 }
 
@@ -151,6 +156,12 @@ export function SimilarMaterialApprovalDialog({
               <div className="p-4 border rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground mb-1">Descrição na planilha:</p>
                 <p className="font-medium">{description}</p>
+                {(pending.unit || pending.quantity) && (
+                  <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                    {pending.quantity && <span>Quantidade: <strong>{pending.quantity}</strong></span>}
+                    {pending.unit && <span>Unidade: <strong>{pending.unit}</strong></span>}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-center">
@@ -172,6 +183,10 @@ export function SimilarMaterialApprovalDialog({
                 <p className="font-semibold text-lg">{material.name}</p>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Unidade</p>
+                    <p className="font-medium">{material.unit || 'UN'}</p>
+                  </div>
                   {material.brand && (
                     <div>
                       <p className="text-muted-foreground">Marca</p>
@@ -190,11 +205,26 @@ export function SimilarMaterialApprovalDialog({
                       <p className="font-medium">{material.measurement}</p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-muted-foreground">Unidade</p>
-                    <p className="font-medium">{material.unit || 'UN'}</p>
-                  </div>
+                  {material.color && (
+                    <div>
+                      <p className="text-muted-foreground">Cor</p>
+                      <p className="font-medium">{material.color}</p>
+                    </div>
+                  )}
+                  {material.supplier && (
+                    <div>
+                      <p className="text-muted-foreground">Fornecedor</p>
+                      <p className="font-medium">{material.supplier}</p>
+                    </div>
+                  )}
                 </div>
+
+                {material.description && (
+                  <div className="mt-3 text-sm">
+                    <p className="text-muted-foreground">Descrição</p>
+                    <p className="font-medium">{material.description}</p>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-4 mt-4 pt-3 border-t">
                   <div>
