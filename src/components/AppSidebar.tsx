@@ -54,9 +54,9 @@ const facilityItems = [
 
 const budgetItems = [
   { title: "Orçamentos", url: "/budgets", icon: DollarSign },
-  { title: "Precificação", url: "/budget-pricing", icon: FileSpreadsheet },
+  { title: "Precificação Privada", url: "/budget-pricing", icon: FileSpreadsheet },
+  { title: "Precificação Pública", url: "/budget-pricing-public", icon: Calculator },
   { title: "Preços", url: "/prices", icon: Calculator },
-  { title: "Controle de Compras", url: "/purchase-management", icon: ShoppingCart },
 ];
 
 const settingsItems = [

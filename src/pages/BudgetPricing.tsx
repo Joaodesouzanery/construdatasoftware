@@ -883,8 +883,8 @@ const BudgetPricing = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Precificação de Planilhas</h1>
-            <p className="text-muted-foreground">Importe uma planilha (Excel ou PDF) e busque preços automaticamente</p>
+            <h1 className="text-3xl font-bold text-foreground">Precificação Privada</h1>
+            <p className="text-muted-foreground">Importe uma planilha (Excel ou PDF) e busque preços na sua base privada</p>
           </div>
         </div>
 
