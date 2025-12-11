@@ -16,19 +16,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Upload,
   MapPin,
-  Layers,
-  Users,
   Plus,
-  X,
   Save,
-  Eye,
-  EyeOff,
   Trash2,
-  Edit,
-  Square,
-  Circle,
-  Hexagon,
-  FileCode,
   Map,
   Loader2,
   FileArchive,
@@ -36,6 +26,7 @@ import {
   Code,
   Copy,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -78,6 +69,7 @@ export default function InteractiveMap() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const [isUploading, setIsUploading] = useState(false);
@@ -93,8 +85,6 @@ export default function InteractiveMap() {
     service_front_id: "",
   });
   const [activeTab, setActiveTab] = useState("map");
-  const [showHtmlDialog, setShowHtmlDialog] = useState(false);
-  const [htmlCode, setHtmlCode] = useState("");
 
   const { data: session } = useQuery({
     queryKey: ["session"],
@@ -147,20 +137,6 @@ export default function InteractiveMap() {
     enabled: !!projectId && !!session,
   });
 
-  const { data: employees = [] } = useQuery({
-    queryKey: ["employees-project", projectId],
-    queryFn: async () => {
-      if (!projectId) return [];
-      const { data } = await supabase
-        .from("employees")
-        .select("id, name")
-        .eq("project_id", projectId)
-        .eq("status", "active");
-      return data || [];
-    },
-    enabled: !!projectId && !!session,
-  });
-
   const uploadMapMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!session?.user?.id || !projectId) throw new Error("Usuário ou projeto não encontrado");
@@ -168,13 +144,11 @@ export default function InteractiveMap() {
       setIsUploading(true);
       setUploadProgress(10);
 
-      // Read and extract ZIP file
       const zip = new JSZip();
       const zipContent = await zip.loadAsync(file);
       
       setUploadProgress(30);
 
-      // Find index.html
       let indexHtmlPath: string | null = null;
       const filesToUpload: { path: string; content: Blob }[] = [];
 
@@ -196,7 +170,6 @@ export default function InteractiveMap() {
 
       setUploadProgress(50);
 
-      // Delete existing files for this project
       const { data: existingFiles } = await supabase.storage
         .from("interactive-maps")
         .list(projectId);
@@ -208,7 +181,6 @@ export default function InteractiveMap() {
 
       setUploadProgress(60);
 
-      // Upload all files
       let uploadedCount = 0;
       for (const { path, content } of filesToUpload) {
         const storagePath = `${projectId}/${path}`;
@@ -226,14 +198,12 @@ export default function InteractiveMap() {
 
       setUploadProgress(95);
 
-      // Get public URL for index.html
       const { data: publicUrlData } = supabase.storage
         .from("interactive-maps")
         .getPublicUrl(`${projectId}/${indexHtmlPath}`);
 
       const mapUrl = publicUrlData.publicUrl;
 
-      // Update project with map URL
       const { error: updateError } = await supabase
         .from("projects")
         .update({ interactive_map_url: mapUrl })
@@ -331,106 +301,8 @@ export default function InteractiveMap() {
     }
 
     uploadMapMutation.mutate(file);
+    e.target.value = "";
   }, [uploadMapMutation, toast]);
-
-  const handleSaveHtmlCode = useCallback(async () => {
-    if (!session?.user?.id || !projectId || !htmlCode.trim()) {
-      toast({
-        title: "Erro",
-        description: "Por favor, insira o código HTML.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadProgress(30);
-
-    try {
-      // Create a complete HTML file with the pasted content
-      let htmlContent = htmlCode.trim();
-      
-      // If it's just a partial HTML, wrap it
-      if (!htmlContent.toLowerCase().includes('<!doctype html>') && !htmlContent.toLowerCase().includes('<html')) {
-        htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mapa Interativo</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    body { margin: 0; padding: 0; }
-    #map { width: 100%; height: 100vh; }
-  </style>
-</head>
-<body>
-${htmlContent}
-</body>
-</html>`;
-      }
-
-      setUploadProgress(60);
-
-      // Upload HTML file to storage
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const fileName = `${projectId}/index.html`;
-
-      // Delete existing files first
-      const { data: existingFiles } = await supabase.storage
-        .from("interactive-maps")
-        .list(projectId);
-
-      if (existingFiles && existingFiles.length > 0) {
-        const filesToDelete = existingFiles.map(f => `${projectId}/${f.name}`);
-        await supabase.storage.from("interactive-maps").remove(filesToDelete);
-      }
-
-      const { error: uploadError } = await supabase.storage
-        .from("interactive-maps")
-        .upload(fileName, blob, { upsert: true, contentType: 'text/html' });
-
-      if (uploadError) throw uploadError;
-
-      setUploadProgress(80);
-
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from("interactive-maps")
-        .getPublicUrl(fileName);
-
-      const mapUrl = publicUrlData.publicUrl;
-
-      // Update project with map URL
-      const { error: updateError } = await supabase
-        .from("projects")
-        .update({ interactive_map_url: mapUrl })
-        .eq("id", projectId);
-
-      if (updateError) throw updateError;
-
-      setUploadProgress(100);
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      
-      toast({
-        title: "Mapa salvo!",
-        description: "O código HTML foi processado e o mapa está disponível.",
-      });
-      
-      setShowHtmlDialog(false);
-      setHtmlCode("");
-    } catch (error: any) {
-      toast({
-        title: "Erro ao processar HTML",
-        description: error.message || "Não foi possível processar o código.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  }, [session, projectId, htmlCode, queryClient, toast]);
 
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return "text-green-500";
@@ -487,14 +359,13 @@ ${htmlContent}
             </TabsList>
 
             <TabsContent value="map" className="space-y-4">
-              {/* Upload Area or Map Display */}
               {!project?.interactive_map_url ? (
                 <Card className="border-dashed border-2">
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <FileArchive className="h-16 w-16 text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Adicionar Mapa Interativo</h3>
                     <p className="text-muted-foreground text-center mb-6 max-w-md">
-                      Escolha uma das opções abaixo para adicionar seu mapa.
+                      Envie o arquivo ZIP gerado pelo QGIS (qgis2web) contendo o mapa interativo.
                     </p>
                     
                     {isUploading ? (
@@ -505,7 +376,7 @@ ${htmlContent}
                         </p>
                       </div>
                     ) : (
-                      <div className="flex flex-col sm:flex-row gap-4">
+                      <>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -517,45 +388,34 @@ ${htmlContent}
                           <Upload className="h-4 w-4 mr-2" />
                           Enviar ZIP do QGIS
                         </Button>
-                        <Button size="lg" variant="secondary" onClick={() => setShowHtmlDialog(true)}>
-                          <FileCode className="h-4 w-4 mr-2" />
-                          Colar Código HTML
-                        </Button>
-                      </div>
+                      </>
                     )}
 
-                    <div className="mt-8 grid md:grid-cols-2 gap-4 max-w-2xl">
+                    <div className="mt-8 max-w-md">
                       <div className="text-left bg-muted/50 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">Opção 1: Enviar ZIP</h4>
+                        <h4 className="font-semibold mb-2">Como exportar do QGIS:</h4>
                         <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                          <li>Instale o plugin qgis2web no QGIS</li>
-                          <li>Vá em Web → qgis2web → Create web map</li>
-                          <li>Escolha Leaflet como formato</li>
-                          <li>Compacte a pasta em ZIP</li>
+                          <li>Instale o plugin <strong>qgis2web</strong> no QGIS</li>
+                          <li>Vá em <strong>Web → qgis2web → Create web map</strong></li>
+                          <li>Escolha <strong>Leaflet</strong> como formato de saída</li>
+                          <li>Exporte para uma pasta local</li>
+                          <li>Compacte a pasta inteira em um arquivo <strong>.zip</strong></li>
                           <li>Envie o arquivo ZIP aqui</li>
                         </ol>
-                      </div>
-                      <div className="text-left bg-muted/50 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">Opção 2: Colar Código HTML</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Se você já tem o código HTML do mapa gerado pelo QGIS2Web ou outro 
-                          gerador de mapas web, você pode colar diretamente o conteúdo 
-                          do arquivo index.html.
-                        </p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <Badge variant="secondary">
                       <Map className="h-3 w-3 mr-1" />
                       Mapa carregado
                     </Badge>
                     <div className="flex flex-wrap gap-2">
                       <input
-                        ref={fileInputRef}
+                        ref={replaceInputRef}
                         type="file"
                         accept=".zip"
                         onChange={handleFileUpload}
@@ -564,20 +424,11 @@ ${htmlContent}
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => replaceInputRef.current?.click()}
                         disabled={isUploading}
                       >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Substituir (ZIP)
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setShowHtmlDialog(true)}
-                        disabled={isUploading}
-                      >
-                        <FileCode className="h-4 w-4 mr-2" />
-                        Substituir (HTML)
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Atualizar Mapa (ZIP)
                       </Button>
                       <Button 
                         variant="outline" 
@@ -666,7 +517,6 @@ ${htmlContent}
               )}
             </TabsContent>
 
-            {/* Embed Tab */}
             <TabsContent value="embed" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -688,7 +538,6 @@ ${htmlContent}
                     </div>
                   ) : (
                     <>
-                      {/* Direct URL */}
                       <div className="space-y-2">
                         <Label className="font-semibold">URL Direta do Mapa</Label>
                         <p className="text-sm text-muted-foreground">
@@ -722,7 +571,6 @@ ${htmlContent}
                         </div>
                       </div>
 
-                      {/* iframe Embed Code */}
                       <div className="space-y-2">
                         <Label className="font-semibold">Código iframe (Recomendado)</Label>
                         <p className="text-sm text-muted-foreground">
@@ -764,60 +612,6 @@ ${htmlContent}
                         </div>
                       </div>
 
-                      {/* JavaScript Widget */}
-                      <div className="space-y-2">
-                        <Label className="font-semibold">Widget JavaScript</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Para mais controle, use este script que cria o iframe dinamicamente.
-                        </p>
-                        <div className="relative">
-                          <Textarea
-                            readOnly
-                            rows={8}
-                            className="font-mono text-sm resize-none"
-                            value={`<div id="construdata-map-${projectId}"></div>
-<script>
-(function() {
-  var container = document.getElementById('construdata-map-${projectId}');
-  var iframe = document.createElement('iframe');
-  iframe.src = '${window.location.origin}/embed/map/${projectId}';
-  iframe.style.width = '100%';
-  iframe.style.height = '600px';
-  iframe.style.border = 'none';
-  iframe.allow = 'geolocation';
-  iframe.title = 'Mapa Interativo - ConstruData';
-  container.appendChild(iframe);
-})();
-</script>`}
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`<div id="construdata-map-${projectId}"></div>
-<script>
-(function() {
-  var container = document.getElementById('construdata-map-${projectId}');
-  var iframe = document.createElement('iframe');
-  iframe.src = '${window.location.origin}/embed/map/${projectId}';
-  iframe.style.width = '100%';
-  iframe.style.height = '600px';
-  iframe.style.border = 'none';
-  iframe.allow = 'geolocation';
-  iframe.title = 'Mapa Interativo - ConstruData';
-  container.appendChild(iframe);
-})();
-</script>`);
-                              toast({ title: "Widget copiado!" });
-                            }}
-                          >
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copiar
-                          </Button>
-                        </div>
-                      </div>
-
                       <div className="bg-muted/50 p-4 rounded-lg">
                         <h4 className="font-semibold mb-2">Dicas de Uso:</h4>
                         <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
@@ -834,7 +628,6 @@ ${htmlContent}
             </TabsContent>
           </Tabs>
 
-          {/* Add Annotation Dialog */}
           <Dialog open={showAddMarkerDialog} onOpenChange={setShowAddMarkerDialog}>
             <DialogContent>
               <DialogHeader>
@@ -932,75 +725,6 @@ ${htmlContent}
                 <Button onClick={() => addAnnotationMutation.mutate(newMarker)}>
                   <Save className="h-4 w-4 mr-2" />
                   Salvar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* HTML Code Dialog */}
-          <Dialog open={showHtmlDialog} onOpenChange={setShowHtmlDialog}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <FileCode className="h-5 w-5" />
-                  Colar Código HTML do Mapa
-                </DialogTitle>
-                <DialogDescription>
-                  Cole o conteúdo do arquivo index.html gerado pelo QGIS2Web ou outro gerador de mapas.
-                  O sistema irá processar e disponibilizar o mapa interativo.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Código HTML</Label>
-                  <Textarea
-                    value={htmlCode}
-                    onChange={(e) => setHtmlCode(e.target.value)}
-                    placeholder={`<!DOCTYPE html>
-<html>
-<head>
-  <title>Mapa QGIS</title>
-  ...
-</head>
-<body>
-  ...
-</body>
-</html>`}
-                    className="min-h-[400px] font-mono text-sm"
-                  />
-                </div>
-
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-2">Como obter o código HTML:</h4>
-                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                    <li>Abra a pasta gerada pelo QGIS2Web</li>
-                    <li>Localize o arquivo <code className="bg-muted px-1 rounded">index.html</code></li>
-                    <li>Abra o arquivo com um editor de texto (VS Code, Notepad++, etc.)</li>
-                    <li>Selecione todo o conteúdo (Ctrl+A) e copie (Ctrl+C)</li>
-                    <li>Cole aqui (Ctrl+V)</li>
-                  </ol>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    <strong>Nota:</strong> Se o mapa usar recursos externos (CSS, JS, imagens), eles 
-                    devem estar hospedados online. Mapas com recursos locais podem não funcionar corretamente.
-                  </p>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowHtmlDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleSaveHtmlCode} 
-                  disabled={isUploading || !htmlCode.trim()}
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Processar e Salvar
                 </Button>
               </DialogFooter>
             </DialogContent>
