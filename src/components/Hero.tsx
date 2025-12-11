@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Shield } from "lucide-react";
 import { ContactDialog } from "@/components/ContactDialog";
 import { FAQ } from "@/components/FAQ";
+import construDataLogo from "@/assets/construdata-logo.png";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -23,7 +24,10 @@ const Hero = () => {
       {/* Top Navigation Bar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="text-xl font-bold">ConstruData</div>
+          <div className="flex items-center gap-2">
+            <img src={construDataLogo} alt="ConstruData Logo" className="h-10 w-auto" />
+            <span className="text-xl font-bold">ConstruData</span>
+          </div>
           <div className="flex gap-3">
             <Button 
               variant="ghost" 

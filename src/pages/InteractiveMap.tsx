@@ -93,6 +93,8 @@ export default function InteractiveMap() {
     service_front_id: "",
   });
   const [activeTab, setActiveTab] = useState("map");
+  const [showHtmlDialog, setShowHtmlDialog] = useState(false);
+  const [htmlCode, setHtmlCode] = useState("");
 
   const { data: session } = useQuery({
     queryKey: ["session"],
@@ -331,6 +333,105 @@ export default function InteractiveMap() {
     uploadMapMutation.mutate(file);
   }, [uploadMapMutation, toast]);
 
+  const handleSaveHtmlCode = useCallback(async () => {
+    if (!session?.user?.id || !projectId || !htmlCode.trim()) {
+      toast({
+        title: "Erro",
+        description: "Por favor, insira o código HTML.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(30);
+
+    try {
+      // Create a complete HTML file with the pasted content
+      let htmlContent = htmlCode.trim();
+      
+      // If it's just a partial HTML, wrap it
+      if (!htmlContent.toLowerCase().includes('<!doctype html>') && !htmlContent.toLowerCase().includes('<html')) {
+        htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mapa Interativo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+      }
+
+      setUploadProgress(60);
+
+      // Upload HTML file to storage
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const fileName = `${projectId}/index.html`;
+
+      // Delete existing files first
+      const { data: existingFiles } = await supabase.storage
+        .from("interactive-maps")
+        .list(projectId);
+
+      if (existingFiles && existingFiles.length > 0) {
+        const filesToDelete = existingFiles.map(f => `${projectId}/${f.name}`);
+        await supabase.storage.from("interactive-maps").remove(filesToDelete);
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from("interactive-maps")
+        .upload(fileName, blob, { upsert: true, contentType: 'text/html' });
+
+      if (uploadError) throw uploadError;
+
+      setUploadProgress(80);
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("interactive-maps")
+        .getPublicUrl(fileName);
+
+      const mapUrl = publicUrlData.publicUrl;
+
+      // Update project with map URL
+      const { error: updateError } = await supabase
+        .from("projects")
+        .update({ interactive_map_url: mapUrl })
+        .eq("id", projectId);
+
+      if (updateError) throw updateError;
+
+      setUploadProgress(100);
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      
+      toast({
+        title: "Mapa salvo!",
+        description: "O código HTML foi processado e o mapa está disponível.",
+      });
+      
+      setShowHtmlDialog(false);
+      setHtmlCode("");
+    } catch (error: any) {
+      toast({
+        title: "Erro ao processar HTML",
+        description: error.message || "Não foi possível processar o código.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  }, [session, projectId, htmlCode, queryClient, toast]);
+
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return "text-green-500";
     if (progress >= 50) return "text-yellow-500";
@@ -391,10 +492,9 @@ export default function InteractiveMap() {
                 <Card className="border-dashed border-2">
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <FileArchive className="h-16 w-16 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Enviar Mapa do QGIS</h3>
+                    <h3 className="text-xl font-semibold mb-2">Adicionar Mapa Interativo</h3>
                     <p className="text-muted-foreground text-center mb-6 max-w-md">
-                      Exporte seu projeto do QGIS usando o plugin <strong>qgis2web</strong> e 
-                      envie o arquivo ZIP gerado.
+                      Escolha uma das opções abaixo para adicionar seu mapa.
                     </p>
                     
                     {isUploading ? (
@@ -405,7 +505,7 @@ export default function InteractiveMap() {
                         </p>
                       </div>
                     ) : (
-                      <>
+                      <div className="flex flex-col sm:flex-row gap-4">
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -415,20 +515,34 @@ export default function InteractiveMap() {
                         />
                         <Button size="lg" onClick={() => fileInputRef.current?.click()}>
                           <Upload className="h-4 w-4 mr-2" />
-                          Selecionar Arquivo ZIP
+                          Enviar ZIP do QGIS
                         </Button>
-                      </>
+                        <Button size="lg" variant="secondary" onClick={() => setShowHtmlDialog(true)}>
+                          <FileCode className="h-4 w-4 mr-2" />
+                          Colar Código HTML
+                        </Button>
+                      </div>
                     )}
 
-                    <div className="mt-8 text-left bg-muted/50 p-4 rounded-lg max-w-lg">
-                      <h4 className="font-semibold mb-2">Como exportar do QGIS:</h4>
-                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                        <li>Instale o plugin qgis2web no QGIS</li>
-                        <li>Vá em Web → qgis2web → Create web map</li>
-                        <li>Escolha Leaflet como formato de exportação</li>
-                        <li>Exporte e compacte a pasta em ZIP</li>
-                        <li>Envie o arquivo ZIP aqui</li>
-                      </ol>
+                    <div className="mt-8 grid md:grid-cols-2 gap-4 max-w-2xl">
+                      <div className="text-left bg-muted/50 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">Opção 1: Enviar ZIP</h4>
+                        <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                          <li>Instale o plugin qgis2web no QGIS</li>
+                          <li>Vá em Web → qgis2web → Create web map</li>
+                          <li>Escolha Leaflet como formato</li>
+                          <li>Compacte a pasta em ZIP</li>
+                          <li>Envie o arquivo ZIP aqui</li>
+                        </ol>
+                      </div>
+                      <div className="text-left bg-muted/50 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">Opção 2: Colar Código HTML</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Se você já tem o código HTML do mapa gerado pelo QGIS2Web ou outro 
+                          gerador de mapas web, você pode colar diretamente o conteúdo 
+                          do arquivo index.html.
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -439,7 +553,7 @@ export default function InteractiveMap() {
                       <Map className="h-3 w-3 mr-1" />
                       Mapa carregado
                     </Badge>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -454,7 +568,16 @@ export default function InteractiveMap() {
                         disabled={isUploading}
                       >
                         <Upload className="h-4 w-4 mr-2" />
-                        Substituir Mapa
+                        Substituir (ZIP)
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowHtmlDialog(true)}
+                        disabled={isUploading}
+                      >
+                        <FileCode className="h-4 w-4 mr-2" />
+                        Substituir (HTML)
                       </Button>
                       <Button 
                         variant="outline" 
@@ -809,6 +932,75 @@ export default function InteractiveMap() {
                 <Button onClick={() => addAnnotationMutation.mutate(newMarker)}>
                   <Save className="h-4 w-4 mr-2" />
                   Salvar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* HTML Code Dialog */}
+          <Dialog open={showHtmlDialog} onOpenChange={setShowHtmlDialog}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileCode className="h-5 w-5" />
+                  Colar Código HTML do Mapa
+                </DialogTitle>
+                <DialogDescription>
+                  Cole o conteúdo do arquivo index.html gerado pelo QGIS2Web ou outro gerador de mapas.
+                  O sistema irá processar e disponibilizar o mapa interativo.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Código HTML</Label>
+                  <Textarea
+                    value={htmlCode}
+                    onChange={(e) => setHtmlCode(e.target.value)}
+                    placeholder={`<!DOCTYPE html>
+<html>
+<head>
+  <title>Mapa QGIS</title>
+  ...
+</head>
+<body>
+  ...
+</body>
+</html>`}
+                    className="min-h-[400px] font-mono text-sm"
+                  />
+                </div>
+
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">Como obter o código HTML:</h4>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Abra a pasta gerada pelo QGIS2Web</li>
+                    <li>Localize o arquivo <code className="bg-muted px-1 rounded">index.html</code></li>
+                    <li>Abra o arquivo com um editor de texto (VS Code, Notepad++, etc.)</li>
+                    <li>Selecione todo o conteúdo (Ctrl+A) e copie (Ctrl+C)</li>
+                    <li>Cole aqui (Ctrl+V)</li>
+                  </ol>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <strong>Nota:</strong> Se o mapa usar recursos externos (CSS, JS, imagens), eles 
+                    devem estar hospedados online. Mapas com recursos locais podem não funcionar corretamente.
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowHtmlDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleSaveHtmlCode} 
+                  disabled={isUploading || !htmlCode.trim()}
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Processar e Salvar
                 </Button>
               </DialogFooter>
             </DialogContent>
