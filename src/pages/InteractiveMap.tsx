@@ -147,20 +147,22 @@ export default function InteractiveMap() {
       const zip = new JSZip();
       const zipContent = await zip.loadAsync(file);
       
-      setUploadProgress(30);
+      setUploadProgress(20);
 
       let indexHtmlPath: string | null = null;
-      const filesToUpload: { path: string; content: Blob }[] = [];
+      let baseFolder = "";
+      const filesToUpload: { path: string; content: Blob; contentType: string }[] = [];
 
-      for (const [relativePath, zipEntry] of Object.entries(zipContent.files)) {
-        if (!zipEntry.dir) {
-          const content = await zipEntry.async("blob");
-          filesToUpload.push({ path: relativePath, content });
-          
-          if (relativePath.toLowerCase().endsWith("index.html") || 
-              relativePath.toLowerCase() === "index.html") {
-            indexHtmlPath = relativePath;
+      // Find index.html and determine base folder
+      for (const [relativePath] of Object.entries(zipContent.files)) {
+        if (relativePath.toLowerCase().endsWith("index.html")) {
+          indexHtmlPath = relativePath;
+          // Get the base folder (e.g., "qgis2web_folder/")
+          const parts = relativePath.split("/");
+          if (parts.length > 1) {
+            baseFolder = parts.slice(0, -1).join("/") + "/";
           }
+          break;
         }
       }
 
@@ -168,39 +170,107 @@ export default function InteractiveMap() {
         throw new Error("Arquivo index.html não encontrado no ZIP");
       }
 
-      setUploadProgress(50);
+      setUploadProgress(30);
 
-      const { data: existingFiles } = await supabase.storage
-        .from("interactive-maps")
-        .list(projectId);
-
-      if (existingFiles && existingFiles.length > 0) {
-        const filesToDelete = existingFiles.map(f => `${projectId}/${f.name}`);
-        await supabase.storage.from("interactive-maps").remove(filesToDelete);
+      // Extract all files with proper content types
+      for (const [relativePath, zipEntry] of Object.entries(zipContent.files)) {
+        if (!zipEntry.dir) {
+          const content = await zipEntry.async("blob");
+          
+          // Remove base folder from path to flatten structure
+          let cleanPath = relativePath;
+          if (baseFolder && relativePath.startsWith(baseFolder)) {
+            cleanPath = relativePath.substring(baseFolder.length);
+          }
+          
+          // Determine content type
+          let contentType = "application/octet-stream";
+          const ext = cleanPath.toLowerCase().split(".").pop();
+          const mimeTypes: Record<string, string> = {
+            html: "text/html",
+            css: "text/css",
+            js: "application/javascript",
+            json: "application/json",
+            png: "image/png",
+            jpg: "image/jpeg",
+            jpeg: "image/jpeg",
+            gif: "image/gif",
+            svg: "image/svg+xml",
+            ico: "image/x-icon",
+            woff: "font/woff",
+            woff2: "font/woff2",
+            ttf: "font/ttf",
+            eot: "application/vnd.ms-fontobject",
+          };
+          if (ext && mimeTypes[ext]) {
+            contentType = mimeTypes[ext];
+          }
+          
+          filesToUpload.push({ path: cleanPath, content, contentType });
+        }
       }
 
-      setUploadProgress(60);
+      setUploadProgress(40);
 
-      let uploadedCount = 0;
-      for (const { path, content } of filesToUpload) {
-        const storagePath = `${projectId}/${path}`;
-        const { error } = await supabase.storage
+      // Delete all existing files for this project recursively
+      const deleteRecursively = async (prefix: string) => {
+        const { data: files } = await supabase.storage
           .from("interactive-maps")
-          .upload(storagePath, content, { upsert: true });
+          .list(prefix);
         
-        if (error) {
-          console.error(`Erro ao enviar ${path}:`, error);
+        if (files && files.length > 0) {
+          const toDelete: string[] = [];
+          for (const file of files) {
+            const fullPath = prefix ? `${prefix}/${file.name}` : file.name;
+            if (file.id === null) {
+              // It's a folder, recurse
+              await deleteRecursively(fullPath);
+            } else {
+              toDelete.push(fullPath);
+            }
+          }
+          if (toDelete.length > 0) {
+            await supabase.storage.from("interactive-maps").remove(toDelete);
+          }
         }
+      };
+
+      await deleteRecursively(projectId);
+      
+      setUploadProgress(50);
+
+      // Upload all files in batches
+      const batchSize = 5;
+      let uploadedCount = 0;
+      
+      for (let i = 0; i < filesToUpload.length; i += batchSize) {
+        const batch = filesToUpload.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(async ({ path, content, contentType }) => {
+            const storagePath = `${projectId}/${path}`;
+            const { error } = await supabase.storage
+              .from("interactive-maps")
+              .upload(storagePath, content, { 
+                upsert: true,
+                contentType,
+              });
+            
+            if (error) {
+              console.error(`Erro ao enviar ${path}:`, error);
+            }
+          })
+        );
         
-        uploadedCount++;
-        setUploadProgress(60 + (uploadedCount / filesToUpload.length) * 30);
+        uploadedCount += batch.length;
+        setUploadProgress(50 + (uploadedCount / filesToUpload.length) * 40);
       }
 
       setUploadProgress(95);
 
+      // Get the public URL for index.html
       const { data: publicUrlData } = supabase.storage
         .from("interactive-maps")
-        .getPublicUrl(`${projectId}/${indexHtmlPath}`);
+        .getPublicUrl(`${projectId}/index.html`);
 
       const mapUrl = publicUrlData.publicUrl;
 
