@@ -150,13 +150,13 @@ export default function InteractiveMap() {
         
         setUploadProgress(15);
 
-        // Find index.html - search in root and subdirectories
+        // Find main HTML file (prefer index.html, but accept any .html)
         let indexHtmlPath: string | null = null;
         let baseFolder = "";
         
         const allPaths = Object.keys(zipContent.files);
         
-        // First try to find index.html
+        // First try to find a file literally named index.html
         for (const path of allPaths) {
           const fileName = path.split("/").pop()?.toLowerCase();
           if (fileName === "index.html") {
@@ -169,8 +169,23 @@ export default function InteractiveMap() {
           }
         }
 
+        // If not found, fall back to the first .html file
         if (!indexHtmlPath) {
-          throw new Error("Arquivo index.html não encontrado no ZIP. Certifique-se de que o ZIP contém a exportação completa do qgis2web.");
+          for (const path of allPaths) {
+            const fileName = path.split("/").pop()?.toLowerCase();
+            if (fileName && fileName.endsWith(".html")) {
+              indexHtmlPath = path;
+              const parts = path.split("/");
+              if (parts.length > 1) {
+                baseFolder = parts.slice(0, -1).join("/") + "/";
+              }
+              break;
+            }
+          }
+        }
+
+        if (!indexHtmlPath) {
+          throw new Error("Nenhum arquivo .html encontrado no ZIP. Certifique-se de exportar o mapa completo pelo qgis2web.");
         }
 
         setUploadProgress(25);
@@ -284,10 +299,16 @@ export default function InteractiveMap() {
 
         setUploadProgress(92);
 
-        // Get the public URL for index.html
+        // Descobrir o caminho "limpo" do HTML principal (após remover pasta-base)
+        let indexCleanPath = indexHtmlPath;
+        if (baseFolder && indexHtmlPath.startsWith(baseFolder)) {
+          indexCleanPath = indexHtmlPath.substring(baseFolder.length);
+        }
+
+        // Get the public URL for the main HTML file
         const { data: publicUrlData } = supabase.storage
           .from("interactive-maps")
-          .getPublicUrl(`${projectId}/index.html`);
+          .getPublicUrl(`${projectId}/${indexCleanPath}`);
 
         const mapUrl = publicUrlData.publicUrl;
 
