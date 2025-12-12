@@ -11,9 +11,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Logo } from "@/components/shared/Logo";
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -105,6 +107,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
+        <Logo size="md" />
+      </SidebarHeader>
       <SidebarContent>
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
