@@ -27,6 +27,8 @@ import {
   Copy,
   ExternalLink,
   RefreshCw,
+  Link,
+  Globe,
 } from "lucide-react";
 import {
   Dialog,
@@ -49,6 +51,10 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from "@/components/ui/radio-group";
 
 interface MapAnnotation {
   id: string;
@@ -63,6 +69,8 @@ interface MapAnnotation {
   created_at: string;
 }
 
+type MapSourceType = "zip" | "url";
+
 export default function InteractiveMap() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -75,6 +83,9 @@ export default function InteractiveMap() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showAddMarkerDialog, setShowAddMarkerDialog] = useState(false);
+  const [showMapSourceDialog, setShowMapSourceDialog] = useState(false);
+  const [mapSourceType, setMapSourceType] = useState<MapSourceType>("zip");
+  const [externalMapUrl, setExternalMapUrl] = useState("");
   const [newMarker, setNewMarker] = useState({
     latitude: 0,
     longitude: 0,
@@ -402,6 +413,36 @@ export default function InteractiveMap() {
     },
   });
 
+  const saveExternalUrlMutation = useMutation({
+    mutationFn: async (url: string) => {
+      if (!projectId) throw new Error("Projeto não encontrado");
+
+      const { error } = await supabase
+        .from("projects")
+        .update({ interactive_map_url: url })
+        .eq("id", projectId);
+
+      if (error) throw error;
+      return url;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      toast({
+        title: "URL do mapa salva!",
+        description: "O mapa externo foi configurado com sucesso.",
+      });
+      setShowMapSourceDialog(false);
+      setExternalMapUrl("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao salvar URL",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -417,7 +458,43 @@ export default function InteractiveMap() {
 
     uploadMapMutation.mutate(file);
     e.target.value = "";
+    setShowMapSourceDialog(false);
   }, [uploadMapMutation, toast]);
+
+  const handleSaveExternalUrl = () => {
+    if (!externalMapUrl.trim()) {
+      toast({
+        title: "URL inválida",
+        description: "Por favor, insira uma URL válida.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar URL
+    try {
+      new URL(externalMapUrl);
+    } catch {
+      toast({
+        title: "URL inválida",
+        description: "Por favor, insira uma URL válida (ex: https://exemplo.com/mapa).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveExternalUrlMutation.mutate(externalMapUrl.trim());
+  };
+
+  const isExternalUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    return url.startsWith("http://") || url.startsWith("https://");
+  };
+
+  const isStorageUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    return url.includes("supabase") && url.includes("interactive-maps");
+  };
 
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return "text-green-500";
@@ -477,10 +554,10 @@ export default function InteractiveMap() {
               {!project?.interactive_map_url ? (
                 <Card className="border-dashed border-2">
                   <CardContent className="flex flex-col items-center justify-center py-12">
-                    <FileArchive className="h-16 w-16 text-muted-foreground mb-4" />
+                    <Map className="h-16 w-16 text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Adicionar Mapa Interativo</h3>
                     <p className="text-muted-foreground text-center mb-6 max-w-md">
-                      Envie o arquivo ZIP gerado pelo QGIS (qgis2web) contendo o mapa interativo.
+                      Escolha uma das opções abaixo para adicionar seu mapa interativo.
                     </p>
                     
                     {isUploading ? (
@@ -491,7 +568,7 @@ export default function InteractiveMap() {
                         </p>
                       </div>
                     ) : (
-                      <>
+                      <div className="flex flex-col sm:flex-row gap-4">
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -499,24 +576,61 @@ export default function InteractiveMap() {
                           onChange={handleFileUpload}
                           className="hidden"
                         />
-                        <Button size="lg" onClick={() => fileInputRef.current?.click()}>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Enviar ZIP do QGIS
-                        </Button>
-                      </>
+                        <Card 
+                          className="cursor-pointer hover:border-primary transition-colors p-4 w-64"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <FileArchive className="h-10 w-10 text-primary mb-3" />
+                            <h4 className="font-semibold mb-1">Upload ZIP (QGIS)</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Envie o arquivo ZIP exportado pelo qgis2web
+                            </p>
+                          </div>
+                        </Card>
+
+                        <Card 
+                          className="cursor-pointer hover:border-primary transition-colors p-4 w-64"
+                          onClick={() => {
+                            setMapSourceType("url");
+                            setShowMapSourceDialog(true);
+                          }}
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <Globe className="h-10 w-10 text-primary mb-3" />
+                            <h4 className="font-semibold mb-1">URL Externa (iframe)</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Cole a URL de um mapa hospedado externamente
+                            </p>
+                          </div>
+                        </Card>
+                      </div>
                     )}
 
-                    <div className="mt-8 max-w-md">
+                    <div className="mt-8 grid md:grid-cols-2 gap-4 max-w-2xl">
                       <div className="text-left bg-muted/50 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">Como exportar do QGIS:</h4>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <FileArchive className="h-4 w-4" />
+                          Como exportar do QGIS:
+                        </h4>
                         <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                          <li>Instale o plugin <strong>qgis2web</strong> no QGIS</li>
+                          <li>Instale o plugin <strong>qgis2web</strong></li>
                           <li>Vá em <strong>Web → qgis2web → Create web map</strong></li>
-                          <li>Escolha <strong>Leaflet</strong> como formato de saída</li>
-                          <li>Exporte para uma pasta local</li>
-                          <li>Compacte a pasta inteira em um arquivo <strong>.zip</strong></li>
-                          <li>Envie o arquivo ZIP aqui</li>
+                          <li>Escolha <strong>Leaflet</strong> como saída</li>
+                          <li>Exporte e compacte em <strong>.zip</strong></li>
                         </ol>
+                      </div>
+
+                      <div className="text-left bg-muted/50 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          URL Externa:
+                        </h4>
+                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Suporta qualquer mapa web (ArcGIS, Mapbox, etc.)</li>
+                          <li>O mapa deve permitir embed via iframe</li>
+                          <li>Ideal para mapas já hospedados</li>
+                        </ul>
                       </div>
                     </div>
                   </CardContent>
@@ -524,10 +638,19 @@ export default function InteractiveMap() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <Badge variant="secondary">
-                      <Map className="h-3 w-3 mr-1" />
-                      Mapa carregado
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {isStorageUrl(project.interactive_map_url) ? (
+                        <Badge variant="secondary">
+                          <FileArchive className="h-3 w-3 mr-1" />
+                          Mapa ZIP (QGIS)
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">
+                          <Globe className="h-3 w-3 mr-1" />
+                          URL Externa
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <input
                         ref={replaceInputRef}
@@ -543,7 +666,19 @@ export default function InteractiveMap() {
                         disabled={isUploading}
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Atualizar Mapa (ZIP)
+                        Atualizar (ZIP)
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setMapSourceType("url");
+                          setExternalMapUrl(isExternalUrl(project.interactive_map_url) && !isStorageUrl(project.interactive_map_url) ? project.interactive_map_url || "" : "");
+                          setShowMapSourceDialog(true);
+                        }}
+                      >
+                        <Link className="h-4 w-4 mr-2" />
+                        Alterar URL
                       </Button>
                       <Button 
                         variant="outline" 
@@ -571,8 +706,28 @@ export default function InteractiveMap() {
                       src={project.interactive_map_url}
                       className="w-full h-[600px] border-0"
                       title="Mapa Interativo"
+                      allow="geolocation; fullscreen"
                     />
                   </Card>
+
+                  {isExternalUrl(project.interactive_map_url) && !isStorageUrl(project.interactive_map_url) && (
+                    <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+                      <span>URL:</span>
+                      <code className="bg-muted px-2 py-1 rounded text-xs max-w-md truncate">
+                        {project.interactive_map_url}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        asChild
+                      >
+                        <a href={project.interactive_map_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
@@ -743,6 +898,62 @@ export default function InteractiveMap() {
             </TabsContent>
           </Tabs>
 
+          {/* Dialog para URL Externa */}
+          <Dialog open={showMapSourceDialog} onOpenChange={setShowMapSourceDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Adicionar Mapa por URL Externa
+                </DialogTitle>
+                <DialogDescription>
+                  Cole a URL do mapa que deseja exibir. O mapa deve permitir embed via iframe.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>URL do Mapa</Label>
+                  <Input
+                    placeholder="https://exemplo.com/mapa ou https://arcgis.com/..."
+                    value={externalMapUrl}
+                    onChange={(e) => setExternalMapUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Exemplos: ArcGIS Online, Mapbox, Google MyMaps (embed), QGIS Cloud, etc.
+                  </p>
+                </div>
+
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <h4 className="text-sm font-semibold mb-2">Dicas:</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Use URLs de embed quando disponíveis</li>
+                    <li>O mapa deve ser público ou permitir acesso anônimo</li>
+                    <li>Evite URLs com autenticação obrigatória</li>
+                  </ul>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowMapSourceDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleSaveExternalUrl}
+                  disabled={saveExternalUrlMutation.isPending}
+                >
+                  {saveExternalUrlMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Salvar URL
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog para Anotações */}
           <Dialog open={showAddMarkerDialog} onOpenChange={setShowAddMarkerDialog}>
             <DialogContent>
               <DialogHeader>
