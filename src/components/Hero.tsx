@@ -1,7 +1,34 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { 
+  Shield, 
+  FileText, 
+  BarChart3, 
+  Users, 
+  Package, 
+  ClipboardList, 
+  QrCode, 
+  AlertTriangle, 
+  Camera, 
+  Settings, 
+  TrendingUp, 
+  MapPin,
+  Wrench,
+  Building2,
+  Calendar,
+  Bell,
+  FolderOpen,
+  Database,
+  FileBarChart,
+  CheckSquare,
+  Truck,
+  DollarSign,
+  Clock,
+  Zap,
+  Map,
+  Archive
+} from "lucide-react";
 import { ContactDialog } from "@/components/ContactDialog";
 import { FAQ } from "@/components/FAQ";
 import { Logo } from "@/components/shared/Logo";
@@ -11,13 +38,39 @@ const Hero = () => {
   const [showContactDialog, setShowContactDialog] = useState(false);
 
   useEffect(() => {
-    // Mostrar o pop-up após 3 segundos
     const timer = setTimeout(() => {
       setShowContactDialog(true);
     }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
+
+  const allFeatures = [
+    { icon: FolderOpen, title: "Projetos", description: "Gerencie múltiplos projetos com cronogramas e orçamentos", color: "bg-blue-500" },
+    { icon: FileText, title: "RDO Digital", description: "Relatório Diário de Obra com fotos, GPS e clima", color: "bg-green-500" },
+    { icon: TrendingUp, title: "Controle de Produção", description: "Metas, acompanhamento e comparativos por frente", color: "bg-purple-500" },
+    { icon: Users, title: "Gestão de Equipes", description: "Funcionários, empresas e alocação por obra", color: "bg-indigo-500" },
+    { icon: Package, title: "Materiais", description: "Catálogo completo com preços e histórico", color: "bg-orange-500" },
+    { icon: Archive, title: "Estoque", description: "Controle de entrada, saída e saldo por obra", color: "bg-amber-500" },
+    { icon: ClipboardList, title: "Pedidos de Material", description: "Solicitações, aprovações e rastreamento", color: "bg-teal-500" },
+    { icon: DollarSign, title: "Orçamentos", description: "Criação de orçamentos com BDI e mão de obra", color: "bg-emerald-500" },
+    { icon: BarChart3, title: "Dashboard 360", description: "Visão completa de todas as operações", color: "bg-cyan-500" },
+    { icon: Bell, title: "Alertas Inteligentes", description: "Notificações automáticas de desvios e metas", color: "bg-red-500" },
+    { icon: QrCode, title: "QR Codes", description: "Rastreie ativos e locais com códigos únicos", color: "bg-violet-500" },
+    { icon: Wrench, title: "Manutenção", description: "Solicitações, tarefas e histórico completo", color: "bg-rose-500" },
+    { icon: Building2, title: "Catálogo de Ativos", description: "Inventário de equipamentos e instalações", color: "bg-sky-500" },
+    { icon: Camera, title: "Registro Multimídia", description: "Fotos e vídeos organizados por data e local", color: "bg-pink-500" },
+    { icon: CheckSquare, title: "Checklists", description: "Listas de verificação personalizáveis", color: "bg-lime-500" },
+    { icon: MapPin, title: "Ocorrências", description: "Registro e acompanhamento de problemas", color: "bg-yellow-500" },
+    { icon: FileBarChart, title: "Relatórios de Ligação", description: "Documentação de serviços de campo", color: "bg-fuchsia-500" },
+    { icon: Clock, title: "Apontamento de Horas", description: "Controle de jornada por funcionário", color: "bg-slate-500" },
+    { icon: Zap, title: "Consumo", description: "Monitoramento de água, energia e recursos", color: "bg-amber-600" },
+    { icon: Map, title: "Mapa Interativo", description: "Visualize obras e equipes no mapa QGIS", color: "bg-green-600" },
+    { icon: Database, title: "Backup", description: "Exportação e recuperação de dados", color: "bg-gray-500" },
+    { icon: Settings, title: "Configurações", description: "Personalize o sistema para sua empresa", color: "bg-neutral-500" },
+    { icon: Truck, title: "Controle de Material", description: "Uso de materiais por frente de serviço", color: "bg-orange-600" },
+    { icon: Calendar, title: "Histórico RDO", description: "Consulta e exportação de relatórios anteriores", color: "bg-blue-600" },
+  ];
 
   return (
     <div className="min-h-screen">
@@ -105,8 +158,28 @@ const Hero = () => {
         </div>
       </section>
 
-      {/* Problem Section - DOR - BLOCO 3 */}
+      {/* ALL FEATURES Section - BLOCO 2 */}
       <section className="py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              Todas as Funcionalidades do Sistema
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              24 módulos completos para gestão de obras e manutenção predial
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {allFeatures.map((feature, index) => (
+              <FeatureCard key={index} {...feature} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Problem Section - DOR - BLOCO 3 */}
+      <section className="py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <h2 className="text-4xl md:text-5xl font-bold">
@@ -175,7 +248,7 @@ const Hero = () => {
       <section className="py-24">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-            Funcionalidades Completas
+            4 Pilares Principais
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Pilar 1 */}
@@ -514,7 +587,7 @@ const Hero = () => {
         </div>
       </section>
 
-      {/* Final CTA - BLOCO 9 */}
+      {/* Final CTA - BLOCO 11 */}
       <section className="py-24 bg-gradient-to-br from-primary via-primary/90 to-primary text-primary-foreground">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
@@ -545,6 +618,22 @@ const Hero = () => {
     </div>
   );
 };
+
+// Feature Card Component
+const FeatureCard = ({ icon: Icon, title, description, color }: { 
+  icon: React.ElementType; 
+  title: string; 
+  description: string; 
+  color: string 
+}) => (
+  <div className="p-4 rounded-xl border bg-card hover:shadow-lg transition-all hover:-translate-y-1 group cursor-default">
+    <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+      <Icon className="w-5 h-5 text-white" />
+    </div>
+    <h3 className="font-semibold text-sm mb-1">{title}</h3>
+    <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
+  </div>
+);
 
 const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
   <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
