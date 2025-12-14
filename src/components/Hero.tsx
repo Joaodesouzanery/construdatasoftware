@@ -95,19 +95,20 @@ const Hero = () => {
       </nav>
 
       {/* Hero Section - BLOCO 1 */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-20">
-        {/* Video Background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute w-full h-full object-cover opacity-[0.08]"
-          >
-            <source src="/videos/hero-background.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/60 to-background/80" />
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        {/* Multi-color gradient background inspired by logo colors */}
+        <div className="absolute inset-0">
+          {/* Base gradient with logo colors: orange, green, blue */}
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/8 via-background to-emerald-500/8" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/6 via-transparent to-amber-500/6" />
+          <div className="absolute inset-0 bg-gradient-to-bl from-teal-500/5 via-transparent to-orange-400/5" />
+          
+          {/* Subtle colored orbs */}
+          <div className="absolute top-20 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-10 w-64 h-64 bg-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+          <div className="absolute bottom-1/3 right-10 w-72 h-72 bg-teal-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-amber-500/6 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1.5s' }} />
         </div>
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container mx-auto px-4 z-10">
