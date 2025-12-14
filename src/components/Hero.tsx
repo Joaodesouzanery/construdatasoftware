@@ -95,29 +95,15 @@ const Hero = () => {
       </nav>
 
       {/* Hero Section - BLOCO 1 */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        {/* Multi-color gradient background inspired by logo colors */}
-        <div className="absolute inset-0">
-          {/* Base gradient with logo colors: orange, green, blue */}
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/8 via-background to-emerald-500/8" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/6 via-transparent to-amber-500/6" />
-          <div className="absolute inset-0 bg-gradient-to-bl from-teal-500/5 via-transparent to-orange-400/5" />
-          
-          {/* Subtle colored orbs */}
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-10 w-64 h-64 bg-blue-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-          <div className="absolute bottom-1/3 right-10 w-72 h-72 bg-teal-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
-          <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-amber-500/6 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1.5s' }} />
-        </div>
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-20">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container mx-auto px-4 z-10">
           <div className="max-w-5xl mx-auto text-center space-y-8">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-              O Sistema Operacional da Sua Obra e da Sua Manutenção Predial
+              O <span className="text-blue-600">Sistema Operacional</span> da Sua Obra e da Sua <span className="text-blue-500">Manutenção Predial</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-              Centralize obras, equipes, materiais e manutenção em um único lugar — com RDO completo, QR Codes, alertas automáticos, dashboard e registros em tempo real.
+              Centralize obras, equipes, materiais e manutenção em <span className="text-blue-600 font-medium">um único lugar</span> — com RDO completo, QR Codes, alertas automáticos, dashboard e registros em tempo real.
             </p>
             
             {/* Bullets */}
@@ -177,10 +163,10 @@ const Hero = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Todas as Funcionalidades do Sistema
+              Todas as <span className="text-blue-600">Funcionalidades</span> do Sistema
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              24 módulos completos para gestão de obras e manutenção predial
+              <span className="text-blue-500">24 módulos completos</span> para gestão de obras e manutenção predial
             </p>
           </div>
           
@@ -198,10 +184,10 @@ const Hero = () => {
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <h2 className="text-4xl md:text-5xl font-bold">
               Sua obra não atrasa por falta de esforço.<br />
-              Ela atrasa por falta de VISIBILIDADE.
+              Ela atrasa por falta de <span className="text-blue-600">VISIBILIDADE</span>.
             </h2>
             <p className="text-xl text-muted-foreground">
-              E você sabe disso. Sem controle real, tudo vira improviso e adivinhação.
+              E você sabe disso. Sem <span className="text-blue-500">controle real</span>, tudo vira improviso e adivinhação.
             </p>
             
             <div className="grid md:grid-cols-2 gap-4 text-left pt-8">
@@ -248,10 +234,10 @@ const Hero = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-6">
             <h2 className="text-4xl md:text-5xl font-bold">
-              O Construdata centraliza tudo e coloca ordem na operação.
+              O <span className="text-blue-600">Construdata</span> centraliza tudo e coloca <span className="text-blue-500">ordem na operação</span>.
             </h2>
             <p className="text-xl text-muted-foreground">
-              Cada obra, funcionário, material, ativo e tarefa aparece em um painel único — com dados reais, evidência, fotos, alertas e rastreabilidade.
+              Cada obra, funcionário, material, ativo e tarefa aparece em um <span className="text-blue-600 font-medium">painel único</span> — com dados reais, evidência, fotos, alertas e rastreabilidade.
               É operação profissional, do jeito que deveria ser.
             </p>
           </div>
