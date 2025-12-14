@@ -577,7 +577,7 @@ export default function InteractiveMap() {
                           className="hidden"
                         />
                         <Card 
-                          className="cursor-pointer hover:border-primary transition-colors p-4 w-64"
+                          className="cursor-pointer hover:border-primary hover:shadow-lg hover:-translate-y-1 active:scale-[0.98] transition-all duration-200 p-4 w-64"
                           onClick={() => fileInputRef.current?.click()}
                         >
                           <div className="flex flex-col items-center text-center">
@@ -590,7 +590,7 @@ export default function InteractiveMap() {
                         </Card>
 
                         <Card 
-                          className="cursor-pointer hover:border-primary transition-colors p-4 w-64"
+                          className="cursor-pointer hover:border-primary hover:shadow-lg hover:-translate-y-1 active:scale-[0.98] transition-all duration-200 p-4 w-64"
                           onClick={() => {
                             setMapSourceType("url");
                             setShowMapSourceDialog(true);
@@ -700,14 +700,19 @@ export default function InteractiveMap() {
                     </div>
                   )}
 
-                  <Card className="overflow-hidden">
-                    <iframe
-                      ref={iframeRef}
-                      src={project.interactive_map_url}
-                      className="w-full h-[600px] border-0"
-                      title="Mapa Interativo"
-                      allow="geolocation; fullscreen"
-                    />
+                  <Card className="overflow-hidden animate-fade-in">
+                    <div className="relative">
+                      <iframe
+                        ref={iframeRef}
+                        src={project.interactive_map_url}
+                        className="w-full h-[600px] border-0"
+                        title="Mapa Interativo"
+                        allow="geolocation; fullscreen"
+                        onLoad={() => {
+                          // Iframe loaded successfully
+                        }}
+                      />
+                    </div>
                   </Card>
 
                   {isExternalUrl(project.interactive_map_url) && !isStorageUrl(project.interactive_map_url) && (
