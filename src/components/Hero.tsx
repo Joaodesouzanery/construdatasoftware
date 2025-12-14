@@ -96,6 +96,19 @@ const Hero = () => {
 
       {/* Hero Section - BLOCO 1 */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-20">
+        {/* Video Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute w-full h-full object-cover opacity-[0.08]"
+          >
+            <source src="/videos/hero-background.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/60 to-background/80" />
+        </div>
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="container mx-auto px-4 z-10">
           <div className="max-w-5xl mx-auto text-center space-y-8">
