@@ -61,6 +61,7 @@ import ExecucaoEquipes from "./pages/features/ExecucaoEquipes";
 import ManutencaoPredial from "./pages/features/ManutencaoPredial";
 import Approvals from "./pages/Approvals";
 import UserMetrics from "./pages/UserMetrics";
+import CustomDashboard from "./pages/CustomDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ const AppContent = () => {
         <Route path="/projects/:projectId/mapa-interativo" element={<InteractiveMap />} />
         <Route path="/embed/map/:projectId" element={<MapEmbed />} />
         <Route path="/dashboard-360" element={<Dashboard360 />} />
+        <Route path="/custom-dashboard" element={<CustomDashboard />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/production" element={<Production />} />
         <Route path="/production-control" element={<ProductionControl />} />

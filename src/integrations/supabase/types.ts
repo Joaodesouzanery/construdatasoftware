@@ -766,6 +766,98 @@ export type Database = {
           },
         ]
       }
+      dashboard_configs: {
+        Row: {
+          created_at: string
+          description: string | null
+          global_filters: Json | null
+          id: string
+          is_default: boolean | null
+          layout: Json | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          global_filters?: Json | null
+          id?: string
+          is_default?: boolean | null
+          layout?: Json | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          global_filters?: Json | null
+          id?: string
+          is_default?: boolean | null
+          layout?: Json | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dashboard_widgets: {
+        Row: {
+          config: Json | null
+          created_at: string
+          dashboard_id: string
+          data_source: string | null
+          filters: Json | null
+          height: number | null
+          id: string
+          position_x: number | null
+          position_y: number | null
+          title: string
+          updated_at: string
+          widget_type: string
+          width: number | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          dashboard_id: string
+          data_source?: string | null
+          filters?: Json | null
+          height?: number | null
+          id?: string
+          position_x?: number | null
+          position_y?: number | null
+          title: string
+          updated_at?: string
+          widget_type: string
+          width?: number | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          dashboard_id?: string
+          data_source?: string | null
+          filters?: Json | null
+          height?: number | null
+          id?: string
+          position_x?: number | null
+          position_y?: number | null
+          title?: string
+          updated_at?: string
+          widget_type?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widgets_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           company_name: string | null
