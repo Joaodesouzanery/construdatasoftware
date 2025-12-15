@@ -1,10 +1,14 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Maximum PDF size in bytes (5MB base64 encoded = ~6.67MB string)
+const MAX_PDF_SIZE = 7 * 1024 * 1024;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,14 +16,72 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Authentication failed:', authError?.message || 'No user found');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Authenticated user: ${user.id}`);
+
     const { pdfBase64 } = await req.json();
+
+    // Input validation
+    if (!pdfBase64 || typeof pdfBase64 !== 'string') {
+      console.error('Invalid input: pdfBase64 is missing or not a string');
+      return new Response(
+        JSON.stringify({ error: 'Invalid input: pdfBase64 is required and must be a string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Size validation
+    if (pdfBase64.length > MAX_PDF_SIZE) {
+      console.error(`PDF too large: ${pdfBase64.length} bytes (max: ${MAX_PDF_SIZE})`);
+      return new Response(
+        JSON.stringify({ error: 'PDF file is too large. Maximum size is 5MB.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Basic base64 format validation
+    const base64Regex = /^[A-Za-z0-9+/=]+$/;
+    if (!base64Regex.test(pdfBase64)) {
+      console.error('Invalid base64 format');
+      return new Response(
+        JSON.stringify({ error: 'Invalid PDF format: not valid base64 encoding' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Extracting data from PDF using AI...');
+    console.log(`Extracting data from PDF using AI for user: ${user.id}...`);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -74,13 +136,27 @@ IMPORTANTE:
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI API error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI service unavailable. Please try again later.' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
     const extractedText = data.choices[0].message.content;
 
-    console.log('AI response:', extractedText);
+    console.log('AI response received for user:', user.id);
 
     // Parse the JSON response
     let items;
@@ -97,7 +173,7 @@ IMPORTANTE:
       throw new Error('No valid items extracted from PDF');
     }
 
-    console.log(`Successfully extracted ${items.length} items`);
+    console.log(`Successfully extracted ${items.length} items for user: ${user.id}`);
 
     return new Response(
       JSON.stringify({ items }),
