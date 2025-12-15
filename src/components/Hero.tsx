@@ -27,7 +27,8 @@ import {
   Clock,
   Zap,
   Map,
-  Archive
+  Archive,
+  Mail
 } from "lucide-react";
 import { ContactDialog } from "@/components/ContactDialog";
 import { FAQ } from "@/components/FAQ";
@@ -36,6 +37,7 @@ import { Logo } from "@/components/shared/Logo";
 const Hero = () => {
   const navigate = useNavigate();
   const [showContactDialog, setShowContactDialog] = useState(false);
+  const [dialogDismissed, setDialogDismissed] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -44,6 +46,13 @@ const Hero = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  const handleDialogClose = (open: boolean) => {
+    setShowContactDialog(open);
+    if (!open) {
+      setDialogDismissed(true);
+    }
+  };
 
   const allFeatures = [
     { icon: FolderOpen, title: "Projetos", description: "Gerencie múltiplos projetos com cronogramas e orçamentos", color: "bg-blue-500" },
@@ -100,7 +109,7 @@ const Hero = () => {
         <div className="container mx-auto px-4 z-10">
           <div className="max-w-5xl mx-auto text-center space-y-8">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-              O <span className="text-blue-600">Sistema Operacional</span> da Sua Obra e da Sua <span className="text-blue-500">Manutenção Predial</span>
+              O <span className="text-blue-600">Sistema Operacional</span> da Sua Obra e <span className="text-blue-500">Gestão Predial</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
               Centralize obras, equipes, materiais e manutenção em <span className="text-blue-600 font-medium">um único lugar</span> — com RDO completo, QR Codes, alertas automáticos, dashboard e registros em tempo real.
@@ -613,8 +622,19 @@ const Hero = () => {
       {/* FAQ Section */}
       <FAQ />
 
+      {/* Floating Button to reopen Contact Dialog */}
+      {dialogDismissed && !showContactDialog && (
+        <Button
+          onClick={() => setShowContactDialog(true)}
+          className="fixed bottom-6 right-6 z-50 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all"
+          size="icon"
+        >
+          <Mail className="h-6 w-6" />
+        </Button>
+      )}
+
       {/* Contact Dialog */}
-      <ContactDialog open={showContactDialog} onOpenChange={setShowContactDialog} />
+      <ContactDialog open={showContactDialog} onOpenChange={handleDialogClose} />
     </div>
   );
 };

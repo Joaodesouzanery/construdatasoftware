@@ -192,64 +192,114 @@ const Auth = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignIn} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
-              <Input
-                id="login-email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="login-password">Senha</Label>
-              <Input
-                id="login-password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Entrando..." : "Entrar"}
-            </Button>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
+            </TabsList>
             
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">ou</span>
-              </div>
-            </div>
+            <TabsContent value="login">
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Entrando..." : "Entrar"}
+                </Button>
+              </form>
+            </TabsContent>
             
-            <Button 
-              type="button"
-              variant="outline" 
-              className="w-full gap-2"
-              asChild
+            <TabsContent value="signup">
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Nome completo</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="Seu nome"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Senha</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                  <PasswordStrengthIndicator password={password} />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Criando conta..." : "Criar conta"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">ou</span>
+            </div>
+          </div>
+          
+          <Button 
+            type="button"
+            variant="outline" 
+            className="w-full gap-2"
+            asChild
+          >
+            <a 
+              href="https://calendly.com/joaodsouzanery/apresentacao-personalrh" 
+              target="_blank" 
+              rel="noopener noreferrer"
             >
-              <a 
-                href="https://calendly.com/joaodsouzanery/apresentacao-personalrh" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Calendar className="h-4 w-4" />
-                Agendar uma Reunião
-              </a>
-            </Button>
-            
-            <div className="text-center text-sm text-muted-foreground mt-4">
-              Não tem uma conta? Agende uma reunião para conhecer o sistema.
-            </div>
-          </form>
+              <Calendar className="h-4 w-4" />
+              Agendar uma Reunião
+            </a>
+          </Button>
         </CardContent>
       </Card>
     </div>
