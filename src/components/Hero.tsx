@@ -197,45 +197,45 @@ const Hero = () => {
       </section>
 
       {/* Showcase Images Section - BLOCO 2.5 */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={obraOrganizadaImg} alt="Sua obra organizada em um só sistema" className="w-full h-auto object-cover" />
+              <img src={obraOrganizadaImg} alt="Sua obra organizada em um só sistema" className="w-full h-48 object-cover" />
             </div>
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={progressoDadosImg} alt="Acompanhe o progresso da obra com dados" className="w-full h-auto object-cover" />
+              <img src={progressoDadosImg} alt="Acompanhe o progresso da obra com dados" className="w-full h-48 object-cover" />
             </div>
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={rastreieMaterialImg} alt="Rastreie cada material da obra" className="w-full h-auto object-cover" />
+              <img src={rastreieMaterialImg} alt="Rastreie cada material da obra" className="w-full h-48 object-cover" />
             </div>
           </div>
         </div>
       </section>
 
       {/* More Showcase Images - BLOCO 2.6 */}
-      <section className="py-16 bg-background">
+      <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={almoxarifadoImg} alt="Controle total do almoxarifado" className="w-full h-auto object-cover" />
+              <img src={almoxarifadoImg} alt="Controle total do almoxarifado" className="w-full h-56 object-cover" />
             </div>
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={gestaoPredialImg} alt="Gestão predial inteligente" className="w-full h-auto object-cover" />
+              <img src={gestaoPredialImg} alt="Gestão predial inteligente" className="w-full h-56 object-cover" />
             </div>
           </div>
         </div>
       </section>
 
       {/* Final Showcase Images - BLOCO 2.7 */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={manutencaoImg} alt="Manutenção rápida, rastreável e organizada" className="w-full h-auto object-cover" />
+              <img src={manutencaoImg} alt="Manutenção rápida, rastreável e organizada" className="w-full h-56 object-cover" />
             </div>
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={projetosMapaImg} alt="Gerencie projetos direto no mapa" className="w-full h-auto object-cover" />
+              <img src={projetosMapaImg} alt="Gerencie projetos direto no mapa" className="w-full h-56 object-cover" />
             </div>
           </div>
         </div>

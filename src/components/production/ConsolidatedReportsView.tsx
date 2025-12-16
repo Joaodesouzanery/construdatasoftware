@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Calendar, TrendingUp, Package, Users } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Label } from "@/components/ui/label";
 
 interface ConsolidatedReportsViewProps {
   projectId: string;
@@ -20,10 +21,18 @@ interface ReportData {
   constructionSite: string;
 }
 
+interface ServiceCatalog {
+  id: string;
+  name: string;
+  unit: string;
+}
+
 export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: ConsolidatedReportsViewProps) => {
   const [reportType, setReportType] = useState<"daily" | "weekly" | "monthly">("weekly");
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [reportData, setReportData] = useState<ReportData[]>([]);
+  const [services, setServices] = useState<ServiceCatalog[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>(["all"]);
   const [summary, setSummary] = useState({
     totalServices: 0,
     totalQuantity: 0,
@@ -33,10 +42,23 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    loadServices();
+  }, []);
+
+  useEffect(() => {
     if (projectId) {
       loadReportData();
     }
-  }, [projectId, reportType, selectedDate]);
+  }, [projectId, reportType, selectedDate, selectedServices]);
+
+  const loadServices = async () => {
+    const { data } = await supabase
+      .from('services_catalog')
+      .select('id, name, unit')
+      .order('name', { ascending: true });
+    
+    if (data) setServices(data);
+  };
 
   const loadReportData = async () => {
     if (isDemoMode) {
@@ -55,7 +77,7 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
           construction_sites (name),
           executed_services (
             *,
-            services_catalog (name, unit)
+            services_catalog (id, name, unit)
           )
         `)
         .eq('project_id', projectId)
@@ -65,7 +87,7 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
 
       if (error) throw error;
 
-      // Process data
+      // Process data with service filter
       const processed = processReportData(rdoData || []);
       setReportData(processed);
       calculateSummary(processed);
@@ -116,6 +138,11 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
       };
 
       rdo.executed_services?.forEach((es: any) => {
+        // Filter by selected services
+        if (!selectedServices.includes('all') && !selectedServices.includes(es.services_catalog?.id)) {
+          return;
+        }
+
         existing.services.push({
           name: es.services_catalog?.name || 'Desconhecido',
           quantity: Number(es.quantity),
@@ -124,7 +151,10 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
         existing.totalQuantity += Number(es.quantity);
       });
 
-      dataMap.set(date, existing);
+      // Only add to map if there are services after filtering
+      if (existing.services.length > 0) {
+        dataMap.set(date, existing);
+      }
     });
 
     return Array.from(dataMap.values());
@@ -206,9 +236,10 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Row 1: Tipo de Relatório, Data de Referência, Exportar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Relatório</label>
+              <Label className="text-sm font-medium">Tipo de Relatório</Label>
               <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -222,12 +253,12 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Data de Referência</label>
+              <Label className="text-sm font-medium">Data de Referência</Label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md bg-background"
               />
             </div>
 
@@ -236,6 +267,49 @@ export const ConsolidatedReportsView = ({ projectId, isDemoMode = false }: Conso
                 <Download className="w-4 h-4 mr-2" />
                 Exportar Relatório
               </Button>
+            </div>
+          </div>
+
+          {/* Row 2: Serviços */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Serviços</Label>
+            <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2 bg-background">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedServices.includes('all')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedServices(['all']);
+                    } else {
+                      setSelectedServices([]);
+                    }
+                  }}
+                  className="rounded"
+                />
+                <span className="text-sm">Todos os serviços</span>
+              </label>
+              {services.map(service => (
+                <label key={service.id} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedServices.includes(service.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedServices(prev => {
+                          const filtered = prev.filter(id => id !== 'all');
+                          return [...filtered, service.id];
+                        });
+                      } else {
+                        const newSelected = selectedServices.filter(id => id !== service.id);
+                        setSelectedServices(newSelected.length === 0 ? ['all'] : newSelected);
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  <span className="text-sm">{service.name} ({service.unit})</span>
+                </label>
+              ))}
             </div>
           </div>
         </CardContent>
