@@ -13,6 +13,8 @@ import { AddConstructionSiteDialog } from "@/components/rdo/AddConstructionSiteD
 import { ReportConfigDialog } from "@/components/production/ReportConfigDialog";
 import { ConsolidatedReportsView } from "@/components/production/ConsolidatedReportsView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface ProductionData {
   service_name: string;
@@ -35,6 +37,10 @@ const ProductionControl = () => {
   const [constructionSites, setConstructionSites] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [selectedSites, setSelectedSites] = useState<string[]>(["all"]);
+  const [reportType, setReportType] = useState<string>("weekly");
+  const [referenceDate, setReferenceDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [services, setServices] = useState<any[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>(["all"]);
   const [dateRange, setDateRange] = useState<"daily" | "day" | "week" | "month" | "quarter">("week");
   
   // Data
@@ -59,9 +65,19 @@ const ProductionControl = () => {
   useEffect(() => {
     if (selectedProject) {
       loadConstructionSites();
+      loadServices();
       loadProductionData();
     }
-  }, [selectedProject, selectedSites, dateRange]);
+  }, [selectedProject, selectedSites, dateRange, reportType, referenceDate, selectedServices]);
+
+  const loadServices = async () => {
+    const { data } = await supabase
+      .from('services_catalog')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (data) setServices(data);
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -297,83 +313,170 @@ const ProductionControl = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Filters */}
+        {/* Filters - New Layout */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Projeto</label>
-                  <Select value={selectedProject} onValueChange={setSelectedProject}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o projeto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map(project => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* Row 1: Tipo de Relatório, Data de Referência, Exportar */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Tipo de Relatório</Label>
+                <Select value={reportType} onValueChange={setReportType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Relatório Diário</SelectItem>
+                    <SelectItem value="weekly">Relatório Semanal</SelectItem>
+                    <SelectItem value="monthly">Relatório Mensal</SelectItem>
+                    <SelectItem value="quarterly">Relatório Trimestral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Locais da Obra</label>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setShowSiteDialog(true)}
-                      disabled={!selectedProject}
-                      className="h-auto p-0 text-xs"
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Novo
-                    </Button>
-                  </div>
-                  <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
-                    <label className="flex items-center space-x-2 cursor-pointer">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Data de Referência</Label>
+                <Input 
+                  type="date" 
+                  value={referenceDate}
+                  onChange={(e) => setReferenceDate(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-end">
+                <Button onClick={handleExportReport} className="w-full bg-primary hover:bg-primary/90">
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar Relatório
+                </Button>
+              </div>
+            </div>
+
+            {/* Row 2: Serviços */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-sm font-medium">Serviços</Label>
+                <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedServices.includes('all')}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedServices(['all']);
+                        } else {
+                          setSelectedServices([]);
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Todos os serviços</span>
+                  </label>
+                  {services.map(service => (
+                    <label key={service.id} className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={selectedSites.includes('all')}
+                        checked={selectedServices.includes(service.id)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedSites(['all']);
+                            setSelectedServices(prev => {
+                              const filtered = prev.filter(id => id !== 'all');
+                              return [...filtered, service.id];
+                            });
                           } else {
-                            setSelectedSites([]);
+                            const newSelected = selectedServices.filter(id => id !== service.id);
+                            setSelectedServices(newSelected.length === 0 ? ['all'] : newSelected);
                           }
                         }}
                         className="rounded"
                       />
-                      <span className="text-sm">Todos os locais</span>
+                      <span className="text-sm">{service.name} ({service.unit})</span>
                     </label>
-                    {constructionSites.map(site => (
-                      <label key={site.id} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedSites.includes(site.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedSites(prev => {
-                                const filtered = prev.filter(id => id !== 'all');
-                                return [...filtered, site.id];
-                              });
-                            } else {
-                              const newSelected = selectedSites.filter(id => id !== site.id);
-                              setSelectedSites(newSelected.length === 0 ? ['all'] : newSelected);
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        <span className="text-sm">{site.name}</span>
-                      </label>
-                    ))}
-                  </div>
+                  ))}
                 </div>
+              </div>
+
+              <div className="flex items-end">
+                <Button onClick={() => setShowTargetDialog(true)} className="w-full" variant="outline">
+                  <Target className="w-4 h-4 mr-2" />
+                  Adicionar Planejado
+                </Button>
+              </div>
+            </div>
+
+            {/* Row 3: Projeto, Locais, Período */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Projeto</Label>
+                <Select value={selectedProject} onValueChange={setSelectedProject}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Período</label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Locais da Obra</Label>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowSiteDialog(true)}
+                    disabled={!selectedProject}
+                    className="h-auto p-0 text-xs"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Novo
+                  </Button>
+                </div>
+                <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-2">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedSites.includes('all')}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedSites(['all']);
+                        } else {
+                          setSelectedSites([]);
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Todos os locais</span>
+                  </label>
+                  {constructionSites.map(site => (
+                    <label key={site.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedSites.includes(site.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSites(prev => {
+                              const filtered = prev.filter(id => id !== 'all');
+                              return [...filtered, site.id];
+                            });
+                          } else {
+                            const newSelected = selectedSites.filter(id => id !== site.id);
+                            setSelectedSites(newSelected.length === 0 ? ['all'] : newSelected);
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm">{site.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Período</Label>
                 <Select value={dateRange} onValueChange={(value) => setDateRange(value as "daily" | "day" | "week" | "month" | "quarter")}>
                   <SelectTrigger>
                     <SelectValue />
@@ -386,13 +489,6 @@ const ProductionControl = () => {
                     <SelectItem value="quarter">Último Trimestre</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="flex items-end">
-                <Button onClick={() => setShowTargetDialog(true)} className="w-full">
-                  <Target className="w-4 h-4 mr-2" />
-                  Adicionar Planejado
-                </Button>
               </div>
             </div>
           </CardContent>
