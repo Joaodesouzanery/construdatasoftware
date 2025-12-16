@@ -34,6 +34,15 @@ import { ContactDialog } from "@/components/ContactDialog";
 import { FAQ } from "@/components/FAQ";
 import { Logo } from "@/components/shared/Logo";
 
+// Import landing page images
+import gestaoPredialImg from "@/assets/landing/gestao-predial.png";
+import obraOrganizadaImg from "@/assets/landing/obra-organizada.png";
+import progressoDadosImg from "@/assets/landing/progresso-dados.png";
+import rastreieMaterialImg from "@/assets/landing/rastreie-material.png";
+import almoxarifadoImg from "@/assets/landing/almoxarifado.png";
+import manutencaoImg from "@/assets/landing/manutencao.png";
+import projetosMapaImg from "@/assets/landing/projetos-mapa.png";
+
 const Hero = () => {
   const navigate = useNavigate();
   const [showContactDialog, setShowContactDialog] = useState(false);
@@ -183,6 +192,51 @@ const Hero = () => {
             {allFeatures.map((feature, index) => (
               <FeatureCard key={index} {...feature} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Showcase Images Section - BLOCO 2.5 */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <img src={obraOrganizadaImg} alt="Sua obra organizada em um só sistema" className="w-full h-auto object-cover" />
+            </div>
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <img src={progressoDadosImg} alt="Acompanhe o progresso da obra com dados" className="w-full h-auto object-cover" />
+            </div>
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <img src={rastreieMaterialImg} alt="Rastreie cada material da obra" className="w-full h-auto object-cover" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* More Showcase Images - BLOCO 2.6 */}
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <img src={almoxarifadoImg} alt="Controle total do almoxarifado" className="w-full h-auto object-cover" />
+            </div>
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <img src={gestaoPredialImg} alt="Gestão predial inteligente" className="w-full h-auto object-cover" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final Showcase Images - BLOCO 2.7 */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <img src={manutencaoImg} alt="Manutenção rápida, rastreável e organizada" className="w-full h-auto object-cover" />
+            </div>
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <img src={projetosMapaImg} alt="Gerencie projetos direto no mapa" className="w-full h-auto object-cover" />
+            </div>
           </div>
         </div>
       </section>

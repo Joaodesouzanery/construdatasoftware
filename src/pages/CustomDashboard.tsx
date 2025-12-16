@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutDashboard, Settings, Star, Trash2 } from 'lucide-react';
+import { Plus, LayoutDashboard, Star, Trash2, Download } from 'lucide-react';
 import { useCustomDashboard } from '@/hooks/useCustomDashboard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { DashboardFilters } from '@/components/custom-dashboard/DashboardFilters';
@@ -17,11 +17,16 @@ import { KPIWidget } from '@/components/custom-dashboard/widgets/KPIWidget';
 import { ProductionChartWidget } from '@/components/custom-dashboard/widgets/ProductionChartWidget';
 import { ProductionTableWidget } from '@/components/custom-dashboard/widgets/ProductionTableWidget';
 import { TeamPerformanceWidget } from '@/components/custom-dashboard/widgets/TeamPerformanceWidget';
+import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function CustomDashboard() {
   const navigate = useNavigate();
   const [newDashboardName, setNewDashboardName] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const dashboardContentRef = useRef<HTMLDivElement>(null);
 
   const {
     dashboards,
@@ -49,6 +54,42 @@ export default function CustomDashboard() {
     await createDashboard(newDashboardName);
     setNewDashboardName('');
     setIsCreateDialogOpen(false);
+  };
+
+  const handleExportPDF = async () => {
+    if (!dashboardContentRef.current) return;
+    
+    setIsExporting(true);
+    toast.info("Gerando PDF...");
+    
+    try {
+      const canvas = await html2canvas(dashboardContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 297; // A4 landscape width
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`dashboard_${currentDashboard?.name || 'personalizado'}_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast.error("Erro ao exportar PDF");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const loading = dashboardLoading || dataLoading;
@@ -128,6 +169,15 @@ export default function CustomDashboard() {
                 <>
                   <Button
                     variant="outline"
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
+                    title="Exportar PDF"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {isExporting ? "Exportando..." : "Exportar PDF"}
+                  </Button>
+                  <Button
+                    variant="outline"
                     size="icon"
                     onClick={() => setAsDefault(currentDashboard.id)}
                     title="Definir como padrão"
@@ -156,6 +206,7 @@ export default function CustomDashboard() {
           />
 
           {/* Dashboard Content */}
+          <div ref={dashboardContentRef}>
           {!currentDashboard && dashboards.length === 0 ? (
             <Card className="p-12 text-center">
               <LayoutDashboard className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -261,6 +312,7 @@ export default function CustomDashboard() {
               </TabsContent>
             </Tabs>
           )}
+          </div>
         </main>
       </div>
     </SidebarProvider>
