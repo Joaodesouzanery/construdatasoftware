@@ -20,20 +20,6 @@ interface ProductionChartWidgetProps {
   showControls?: boolean;
 }
 
-// Generate distinct colors for services
-const SERVICE_COLORS = [
-  'hsl(142, 76%, 36%)', // green
-  'hsl(217, 91%, 60%)', // blue  
-  'hsl(262, 83%, 58%)', // purple
-  'hsl(25, 95%, 53%)',  // orange
-  'hsl(340, 82%, 52%)', // pink
-  'hsl(174, 84%, 32%)', // teal
-  'hsl(43, 96%, 56%)',  // yellow
-  'hsl(0, 72%, 51%)',   // red
-  'hsl(199, 89%, 48%)', // cyan
-  'hsl(292, 84%, 61%)', // magenta
-];
-
 export function ProductionChartWidget({
   title,
   data,
@@ -41,21 +27,8 @@ export function ProductionChartWidget({
   showControls = true
 }: ProductionChartWidgetProps) {
   const [chartType, setChartType] = useState(initialChartType);
-  const [showByService, setShowByService] = useState(true);
 
-  // Get unique services and assign colors
-  const serviceColorMap = useMemo(() => {
-    const services = [...new Set(data.map(d => d.service_name))];
-    const colorMap: Record<string, string> = {};
-    services.forEach((service, idx) => {
-      colorMap[service] = SERVICE_COLORS[idx % SERVICE_COLORS.length];
-    });
-    return colorMap;
-  }, [data]);
-
-  const services = useMemo(() => Object.keys(serviceColorMap), [serviceColorMap]);
-
-  // Aggregate data by date with service breakdown
+  // Aggregate data by date
   const aggregatedData = useMemo(() => {
     const dateMap = new Map<string, any>();
     
@@ -74,10 +47,6 @@ export function ProductionChartWidget({
       const entry = dateMap.get(item.date);
       entry.planned += item.planned;
       entry.actual += item.actual;
-      
-      // Add service-specific actual values
-      const serviceKey = `actual_${item.service_name}`;
-      entry[serviceKey] = (entry[serviceKey] || 0) + item.actual;
     });
     
     const result = Array.from(dateMap.values());
@@ -103,29 +72,8 @@ export function ProductionChartWidget({
       <div className="bg-popover border rounded-lg p-3 shadow-lg max-w-xs">
         <p className="font-medium mb-2">{dataPoint.dayName}, {dataPoint.dateFormatted}</p>
         <div className="space-y-1 text-sm">
-          <p className="text-blue-500">Planejado Total: {dataPoint.planned.toLocaleString('pt-BR')}</p>
-          <p className="text-green-500 font-medium">Realizado Total: {dataPoint.actual.toLocaleString('pt-BR')}</p>
-          
-          {showByService && services.length > 0 && (
-            <div className="mt-2 pt-2 border-t space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Realizado por Serviço:</p>
-              {services.map(service => {
-                const value = dataPoint[`actual_${service}`] || 0;
-                if (value === 0) return null;
-                return (
-                  <div key={service} className="flex items-center gap-2">
-                    <div 
-                      className="w-2 h-2 rounded-full" 
-                      style={{ backgroundColor: serviceColorMap[service] }}
-                    />
-                    <span className="text-xs truncate flex-1">{service}:</span>
-                    <span className="text-xs font-medium">{value.toLocaleString('pt-BR')}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
+          <p className="text-blue-500">Planejado: {dataPoint.planned.toLocaleString('pt-BR')}</p>
+          <p className="text-green-500 font-medium">Realizado: {dataPoint.actual.toLocaleString('pt-BR')}</p>
           <p className={`font-medium mt-2 ${
             Number(completionRate) >= 100 ? 'text-green-500' : 
             Number(completionRate) >= 80 ? 'text-yellow-500' : 'text-red-500'
@@ -144,86 +92,6 @@ export function ProductionChartWidget({
     const chartProps = {
       data: aggregatedData,
       margin: { top: 10, right: 10, left: 0, bottom: 0 }
-    };
-
-    // Generate service bars/lines for "Realizado" breakdown
-    const renderServiceBars = () => {
-      if (!showByService) {
-        return (
-          <Bar 
-            dataKey="actual" 
-            fill="hsl(var(--success))" 
-            name="Realizado" 
-            radius={[4, 4, 0, 0]}
-            stackId="actual"
-          />
-        );
-      }
-      
-      return services.map((service, idx) => (
-        <Bar 
-          key={service}
-          dataKey={`actual_${service}`}
-          fill={serviceColorMap[service]}
-          name={service}
-          radius={idx === services.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-          stackId="actual"
-        />
-      ));
-    };
-
-    const renderServiceLines = () => {
-      if (!showByService) {
-        return (
-          <Line 
-            type="monotone" 
-            dataKey="actual" 
-            stroke="hsl(var(--success))" 
-            strokeWidth={2}
-            name="Realizado"
-            dot={{ fill: 'hsl(var(--success))' }}
-          />
-        );
-      }
-      
-      return services.map(service => (
-        <Line 
-          key={service}
-          type="monotone" 
-          dataKey={`actual_${service}`}
-          stroke={serviceColorMap[service]}
-          strokeWidth={2}
-          name={service}
-          dot={{ fill: serviceColorMap[service] }}
-        />
-      ));
-    };
-
-    const renderServiceAreas = () => {
-      if (!showByService) {
-        return (
-          <Area 
-            type="monotone" 
-            dataKey="actual" 
-            stroke="hsl(var(--success))" 
-            fill="hsl(var(--success) / 0.2)"
-            name="Realizado"
-            stackId="actual"
-          />
-        );
-      }
-      
-      return services.map(service => (
-        <Area 
-          key={service}
-          type="monotone" 
-          dataKey={`actual_${service}`}
-          stroke={serviceColorMap[service]}
-          fill={`${serviceColorMap[service]}33`}
-          name={service}
-          stackId="actual"
-        />
-      ));
     };
 
     switch (chartType) {
@@ -246,7 +114,14 @@ export function ProductionChartWidget({
               name="Planejado"
               dot={{ fill: 'hsl(var(--primary))' }}
             />
-            {renderServiceLines()}
+            <Line 
+              type="monotone" 
+              dataKey="actual" 
+              stroke="hsl(var(--success))" 
+              strokeWidth={2}
+              name="Realizado"
+              dot={{ fill: 'hsl(var(--success))' }}
+            />
           </LineChart>
         );
 
@@ -268,7 +143,13 @@ export function ProductionChartWidget({
               fill="hsl(var(--primary) / 0.2)"
               name="Planejado"
             />
-            {renderServiceAreas()}
+            <Area 
+              type="monotone" 
+              dataKey="actual" 
+              stroke="hsl(var(--success))" 
+              fill="hsl(var(--success) / 0.2)"
+              name="Realizado"
+            />
           </AreaChart>
         );
 
@@ -289,7 +170,12 @@ export function ProductionChartWidget({
               name="Planejado" 
               radius={[4, 4, 0, 0]}
             />
-            {renderServiceBars()}
+            <Bar 
+              dataKey="actual" 
+              fill="hsl(var(--success))" 
+              name="Realizado" 
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         );
     }
@@ -300,30 +186,16 @@ export function ProductionChartWidget({
       <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {showControls && (
-          <div className="flex gap-2">
-            <Select 
-              value={showByService ? 'service' : 'total'} 
-              onValueChange={(v) => setShowByService(v === 'service')}
-            >
-              <SelectTrigger className="w-[100px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="service">Por Serviço</SelectItem>
-                <SelectItem value="total">Total</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={chartType} onValueChange={(v) => setChartType(v as any)}>
-              <SelectTrigger className="w-[100px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bar">Barras</SelectItem>
-                <SelectItem value="line">Linha</SelectItem>
-                <SelectItem value="area">Área</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={chartType} onValueChange={(v) => setChartType(v as any)}>
+            <SelectTrigger className="w-[100px] h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bar">Barras</SelectItem>
+              <SelectItem value="line">Linha</SelectItem>
+              <SelectItem value="area">Área</SelectItem>
+            </SelectContent>
+          </Select>
         )}
       </CardHeader>
       <CardContent className="h-[calc(100%-60px)]">
