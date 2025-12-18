@@ -35,14 +35,10 @@ import { FAQ } from "@/components/FAQ";
 import { Logo } from "@/components/shared/Logo";
 
 // Import landing page images
-import gestaoPredialImg from "@/assets/landing/gestao-predial.png";
 import obraOrganizadaImg from "@/assets/landing/obra-organizada.png";
 import progressoDadosImg from "@/assets/landing/progresso-dados.png";
-import rastreieMaterialImg from "@/assets/landing/rastreie-material.png";
 import almoxarifadoImg from "@/assets/landing/almoxarifado.png";
 import manutencaoImg from "@/assets/landing/manutencao.png";
-import projetosMapaImg from "@/assets/landing/projetos-mapa.png";
-import sistemaUnicoImg from "@/assets/landing/sistema-unico.png";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -65,30 +61,30 @@ const Hero = () => {
   };
 
   const allFeatures = [
-    { icon: FolderOpen, title: "Projetos", description: "Gerencie múltiplos projetos com cronogramas e orçamentos", color: "bg-blue-500" },
-    { icon: FileText, title: "RDO Digital", description: "Relatório Diário de Obra com fotos, GPS e clima", color: "bg-green-500" },
-    { icon: TrendingUp, title: "Controle de Produção", description: "Metas, acompanhamento e comparativos por frente", color: "bg-purple-500" },
-    { icon: Users, title: "Gestão de Equipes", description: "Funcionários, empresas e alocação por obra", color: "bg-indigo-500" },
-    { icon: Package, title: "Materiais", description: "Catálogo completo com preços e histórico", color: "bg-orange-500" },
-    { icon: Archive, title: "Estoque", description: "Controle de entrada, saída e saldo por obra", color: "bg-amber-500" },
-    { icon: ClipboardList, title: "Pedidos de Material", description: "Solicitações, aprovações e rastreamento", color: "bg-teal-500" },
-    { icon: DollarSign, title: "Orçamentos", description: "Criação de orçamentos com BDI e mão de obra", color: "bg-emerald-500" },
-    { icon: BarChart3, title: "Dashboard 360", description: "Visão completa de todas as operações", color: "bg-cyan-500" },
-    { icon: Bell, title: "Alertas Inteligentes", description: "Notificações automáticas de desvios e metas", color: "bg-red-500" },
-    { icon: QrCode, title: "QR Codes", description: "Rastreie ativos e locais com códigos únicos", color: "bg-violet-500" },
-    { icon: Wrench, title: "Manutenção", description: "Solicitações, tarefas e histórico completo", color: "bg-rose-500" },
-    { icon: Building2, title: "Catálogo de Ativos", description: "Inventário de equipamentos e instalações", color: "bg-sky-500" },
-    { icon: Camera, title: "Registro Multimídia", description: "Fotos e vídeos organizados por data e local", color: "bg-pink-500" },
-    { icon: CheckSquare, title: "Checklists", description: "Listas de verificação personalizáveis", color: "bg-lime-500" },
-    { icon: MapPin, title: "Ocorrências", description: "Registro e acompanhamento de problemas", color: "bg-yellow-500" },
-    { icon: FileBarChart, title: "Relatórios de Ligação", description: "Documentação de serviços de campo", color: "bg-fuchsia-500" },
-    { icon: Clock, title: "Apontamento de Horas", description: "Controle de jornada por funcionário", color: "bg-slate-500" },
-    { icon: Zap, title: "Consumo", description: "Monitoramento de água, energia e recursos", color: "bg-amber-600" },
-    { icon: Map, title: "Mapa Interativo", description: "Visualize obras e equipes no mapa QGIS", color: "bg-green-600" },
-    { icon: Database, title: "Backup", description: "Exportação e recuperação de dados", color: "bg-gray-500" },
-    { icon: Settings, title: "Configurações", description: "Personalize o sistema para sua empresa", color: "bg-neutral-500" },
-    { icon: Truck, title: "Controle de Material", description: "Uso de materiais por frente de serviço", color: "bg-orange-600" },
-    { icon: Calendar, title: "Histórico RDO", description: "Consulta e exportação de relatórios anteriores", color: "bg-blue-600" },
+    { icon: FolderOpen, title: "Projetos", description: "Gerencie múltiplos projetos com cronogramas e orçamentos", color: "bg-blue-500", route: "/features/project-management" },
+    { icon: FileText, title: "RDO Digital", description: "Relatório Diário de Obra com fotos, GPS e clima", color: "bg-green-500", route: "/features/rdo-digital" },
+    { icon: TrendingUp, title: "Controle de Produção", description: "Metas, acompanhamento e comparativos por frente", color: "bg-purple-500", route: "/features/production-control" },
+    { icon: Users, title: "Gestão de Equipes", description: "Funcionários, empresas e alocação por obra", color: "bg-indigo-500", route: "/features/team-management" },
+    { icon: Package, title: "Materiais", description: "Catálogo completo com preços e histórico", color: "bg-orange-500", route: "/features/materiais-almoxarifado" },
+    { icon: Archive, title: "Estoque", description: "Controle de entrada, saída e saldo por obra", color: "bg-amber-500", route: "/features/materiais-almoxarifado" },
+    { icon: ClipboardList, title: "Pedidos de Material", description: "Solicitações, aprovações e rastreamento", color: "bg-teal-500", route: "/features/material-requests" },
+    { icon: DollarSign, title: "Orçamentos", description: "Criação de orçamentos com BDI e mão de obra", color: "bg-emerald-500", route: "/features/controle-de-obra" },
+    { icon: BarChart3, title: "Dashboard 360", description: "Visão completa de todas as operações", color: "bg-cyan-500", route: "/features/controle-de-obra" },
+    { icon: Bell, title: "Alertas Inteligentes", description: "Notificações automáticas de desvios e metas", color: "bg-red-500", route: "/features/intelligent-alerts" },
+    { icon: QrCode, title: "QR Codes", description: "Rastreie ativos e locais com códigos únicos", color: "bg-violet-500", route: "/features/qrcode-maintenance" },
+    { icon: Wrench, title: "Manutenção", description: "Solicitações, tarefas e histórico completo", color: "bg-rose-500", route: "/features/manutencao-predial" },
+    { icon: Building2, title: "Catálogo de Ativos", description: "Inventário de equipamentos e instalações", color: "bg-sky-500", route: "/features/manutencao-predial" },
+    { icon: Camera, title: "Registro Multimídia", description: "Fotos e vídeos organizados por data e local", color: "bg-pink-500", route: "/features/multimedia-registry" },
+    { icon: CheckSquare, title: "Checklists", description: "Listas de verificação personalizáveis", color: "bg-lime-500", route: "/features/execucao-equipes" },
+    { icon: MapPin, title: "Ocorrências", description: "Registro e acompanhamento de problemas", color: "bg-yellow-500", route: "/features/controle-de-obra" },
+    { icon: FileBarChart, title: "Relatórios de Ligação", description: "Documentação de serviços de campo", color: "bg-fuchsia-500", route: "/features/connection-reports" },
+    { icon: Clock, title: "Apontamento de Horas", description: "Controle de jornada por funcionário", color: "bg-slate-500", route: "/features/execucao-equipes" },
+    { icon: Zap, title: "Consumo", description: "Monitoramento de água, energia e recursos", color: "bg-amber-600", route: "/features/manutencao-predial" },
+    { icon: Map, title: "Mapa Interativo", description: "Visualize obras e equipes no mapa QGIS", color: "bg-green-600", route: "/features/controle-de-obra" },
+    { icon: Database, title: "Backup", description: "Exportação e recuperação de dados", color: "bg-gray-500", route: "/features/controle-de-obra" },
+    { icon: Settings, title: "Configurações", description: "Personalize o sistema para sua empresa", color: "bg-neutral-500", route: "/features/controle-de-obra" },
+    { icon: Truck, title: "Controle de Material", description: "Uso de materiais por frente de serviço", color: "bg-orange-600", route: "/features/material-control" },
+    { icon: Calendar, title: "Histórico RDO", description: "Consulta e exportação de relatórios anteriores", color: "bg-blue-600", route: "/features/rdo-digital" },
   ];
 
   return (
@@ -191,67 +187,25 @@ const Hero = () => {
           
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {allFeatures.map((feature, index) => (
-              <FeatureCard key={index} {...feature} />
+              <FeatureCard key={index} {...feature} onClick={() => navigate(feature.route)} />
             ))}
           </div>
         </div>
       </section>
 
       {/* Showcase Images Section - BLOCO 2.5 */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-12 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold mb-2">Veja o Sistema em Ação</h2>
             <p className="text-muted-foreground">Interfaces intuitivas para toda sua operação</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={obraOrganizadaImg} alt="Sua obra organizada em um só sistema" className="w-full h-auto object-contain" />
+              <img src={obraOrganizadaImg} alt="Sua obra organizada em um só sistema" className="w-full h-auto max-h-64 object-contain" />
             </div>
             <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={progressoDadosImg} alt="Acompanhe o progresso da obra com dados" className="w-full h-auto object-contain" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* More Showcase Images - BLOCO 2.6 */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={rastreieMaterialImg} alt="Rastreie cada material da obra" className="w-full h-auto object-contain" />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={almoxarifadoImg} alt="Controle total do almoxarifado" className="w-full h-auto object-contain" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* More Showcase Images - BLOCO 2.7 */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={gestaoPredialImg} alt="Gestão predial inteligente" className="w-full h-auto object-contain" />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={manutencaoImg} alt="Manutenção rápida, rastreável e organizada" className="w-full h-auto object-contain" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final Showcase Images - BLOCO 2.8 */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={projetosMapaImg} alt="Gerencie projetos direto no mapa" className="w-full h-auto object-contain" />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={sistemaUnicoImg} alt="Um único sistema - Toda a obra" className="w-full h-auto object-contain" />
+              <img src={progressoDadosImg} alt="Acompanhe o progresso da obra com dados" className="w-full h-auto max-h-64 object-contain" />
             </div>
           </div>
         </div>
@@ -436,6 +390,20 @@ const Hero = () => {
               <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/manutencao-predial')}>
                 Saiba Mais
               </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* More Showcase Images - BLOCO 5.5 */}
+      <section className="py-12 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
+              <img src={almoxarifadoImg} alt="Controle total do almoxarifado" className="w-full h-auto max-h-64 object-contain" />
+            </div>
+            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
+              <img src={manutencaoImg} alt="Manutenção rápida, rastreável e organizada" className="w-full h-auto max-h-64 object-contain" />
             </div>
           </div>
         </div>
@@ -710,13 +678,17 @@ const Hero = () => {
 };
 
 // Feature Card Component
-const FeatureCard = ({ icon: Icon, title, description, color }: { 
+const FeatureCard = ({ icon: Icon, title, description, color, onClick }: { 
   icon: React.ElementType; 
   title: string; 
   description: string; 
-  color: string 
+  color: string;
+  onClick?: () => void;
 }) => (
-  <div className="p-4 rounded-xl border bg-card hover:shadow-lg transition-all hover:-translate-y-1 group cursor-default">
+  <div 
+    className="p-4 rounded-xl border bg-card hover:shadow-lg transition-all hover:-translate-y-1 group cursor-pointer"
+    onClick={onClick}
+  >
     <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
       <Icon className="w-5 h-5 text-white" />
     </div>
