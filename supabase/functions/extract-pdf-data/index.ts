@@ -94,23 +94,23 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Você é um extrator de dados de planilhas. Extraia TODOS os itens da planilha/tabela no formato JSON.
+            content: `Você é um extrator de dados de tabelas de materiais em PDF. Extraia TODOS os itens da tabela no formato JSON.
             
 Retorne um array JSON com objetos contendo:
-- description: descrição do item/material/serviço
-- quantity: quantidade (número)
-- unit: unidade de medida (texto)
+- description: descrição do item/material/serviço (texto)
+- quantity: quantidade (número). Se não houver, use 1
+- unit: unidade de medida (texto). Se não houver, use "UN"
+- price: preço unitário (número, sem moeda). Ex.: "R$ 12,90" → 12.9. Se não houver, use 0
 
 Exemplo de saída esperada:
 [
-  {"description": "Cimento", "quantity": 100, "unit": "kg"},
-  {"description": "Areia", "quantity": 50, "unit": "m³"}
+  {"description": "Cimento CP II", "quantity": 100, "unit": "kg", "price": 32.5},
+  {"description": "Areia média", "quantity": 1, "unit": "m³", "price": 180}
 ]
 
 IMPORTANTE:
-- Extraia TODOS os itens que encontrar
-- Se não houver quantidade, use 1
-- Se não houver unidade, use "UN"
+- Extraia TODOS os itens que encontrar (ignore títulos/cabeçalhos)
+- Normalize números com vírgula/ponto
 - Retorne APENAS o array JSON, sem explicações`
           },
           {

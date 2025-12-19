@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Search, Download, Save, PlusCircle } from "lucide-react";
+import { ArrowLeft, Upload, Search, Download, Save, PlusCircle, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { SimilarMaterialApprovalDialog } from "@/components/materials/SimilarMaterialApprovalDialog";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
+import { TutorialDialog } from "@/components/shared/TutorialDialog";
 
 interface ProcessedItem {
   description: string;
@@ -70,6 +71,7 @@ const BudgetPricing = () => {
   const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
   const [selectedBudgetId, setSelectedBudgetId] = useState<string>("");
   const [showReview, setShowReview] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   
   // Approval flow states
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
@@ -875,17 +877,43 @@ const BudgetPricing = () => {
   ).length;
   const totalValue = processedItems.reduce((sum, item) => sum + item.total, 0);
 
+  const tutorialSteps = [
+    {
+      title: "Importe sua planilha",
+      description: "Envie um Excel ou PDF com descrição, quantidade e unidade para buscar preços na sua base privada."
+    },
+    {
+      title: "Revise os matches",
+      description: "Verifique itens que foram precificados automaticamente e ajuste os que ficaram pendentes."
+    },
+    {
+      title: "Aprove similaridades",
+      description: "Quando houver dúvida de correspondência, confirme o material correto ou cadastre um novo."
+    },
+    {
+      title: "Exporte a planilha precificada",
+      description: "Baixe a planilha final com preços aplicados e totais calculados."
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/budgets')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Precificação Privada</h1>
-            <p className="text-muted-foreground">Importe uma planilha (Excel ou PDF) e busque preços na sua base privada</p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/budgets')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Precificação Privada</h1>
+              <p className="text-muted-foreground">Importe uma planilha (Excel ou PDF) e busque preços na sua base privada</p>
+            </div>
           </div>
+
+          <Button variant="outline" onClick={() => setShowTutorial(true)}>
+            <BookOpen className="h-4 w-4 mr-2" />
+            Tutorial
+          </Button>
         </div>
 
         {!showReview ? (
@@ -917,6 +945,13 @@ const BudgetPricing = () => {
                 {isProcessing ? "Processando..." : "Importar Planilha"}
               </Button>
             </div>
+
+            <TutorialDialog
+              open={showTutorial}
+              onOpenChange={setShowTutorial}
+              title="Tutorial: Precificação"
+              steps={tutorialSteps}
+            />
           </div>
         ) : (
           <div className="space-y-6">
