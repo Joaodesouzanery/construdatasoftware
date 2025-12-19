@@ -29,6 +29,8 @@ interface ExtractedMaterial {
   unit: string;
   quantity?: number;
   current_price?: number;
+  material_price?: number;
+  labor_price?: number;
   category?: string;
   supplier?: string;
   existingMaterial?: any;
@@ -192,6 +194,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     setIsProcessing(true);
     try {
       let jsonData: any[] = [];
+      let useAIProcessing = false;
 
       if (file.type === 'application/pdf') {
         const arrayBuffer = await file.arrayBuffer();
@@ -202,6 +205,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           )
         );
 
+        toast({
+          title: "Extraindo dados do PDF...",
+          description: "Aguarde enquanto processamos o arquivo"
+        });
+
         const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
           'extract-pdf-data',
           { body: { pdfBase64: base64 } }
@@ -210,18 +218,74 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         if (pdfError) throw new Error(`Erro ao processar PDF: ${pdfError.message}`);
         if (!pdfData?.items || pdfData.items.length === 0) throw new Error('Nenhum dado encontrado no PDF');
 
-        jsonData = pdfData.items;
+        // Convert PDF items to spreadsheet format for AI processing
+        jsonData = pdfData.items.map((item: any) => ({
+          Descrição: item.description || item.name || '',
+          Quantidade: item.quantity || 1,
+          Unidade: item.unit || 'UN',
+        }));
+        useAIProcessing = true;
       } else {
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data);
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         jsonData = XLSX.utils.sheet_to_json(worksheet);
+        useAIProcessing = true;
       }
 
       if (!jsonData || jsonData.length === 0) {
         throw new Error("A planilha está vazia ou não pôde ser lida");
       }
 
+      // If we have cataloged materials, use AI processing to find prices
+      if (useAIProcessing && existingMaterials && existingMaterials.length > 0) {
+        toast({
+          title: "Processando com IA...",
+          description: "Identificando materiais e buscando preços no catálogo"
+        });
+
+        const { data: aiProcessedData, error: aiError } = await supabase.functions.invoke('process-spreadsheet', {
+          body: {
+            spreadsheetData: jsonData,
+            customKeywords: [],
+            catalogedMaterials: existingMaterials || []
+          }
+        });
+
+        if (!aiError && aiProcessedData?.materials && aiProcessedData.materials.length > 0) {
+          // Use AI-processed materials with prices
+          const aiMaterials: ExtractedMaterial[] = aiProcessedData.materials.map((m: any) => {
+            const hasPrice = (m.material_price && m.material_price > 0) || (m.labor_price && m.labor_price > 0) || (m.price && m.price > 0);
+            return {
+              name: m.name,
+              description: m.name,
+              unit: m.unit || 'UN',
+              quantity: m.quantity || 1,
+              current_price: m.price || m.material_price || 0,
+              material_price: m.material_price || 0,
+              labor_price: m.labor_price || 0,
+              category: m.brand ? `Marca: ${m.brand}` : undefined,
+              supplier: undefined,
+              isNew: true,
+              matchType: hasPrice ? `Preço encontrado (${Math.round(m.confidence || 0)}%)` : 'Novo material',
+              similarity: m.confidence || 0,
+            };
+          });
+
+          const withPrices = aiMaterials.filter(m => (m.current_price || 0) > 0).length;
+          
+          setExtractedMaterials(aiMaterials);
+          setShowReview(true);
+          
+          toast({
+            title: "Processamento concluído!",
+            description: `${aiMaterials.length} materiais identificados, ${withPrices} com preços encontrados`,
+          });
+          return;
+        }
+      }
+
+      // Fallback to standard processing if AI fails
       const findColumnValue = (row: any, variations: string[]): string => {
         for (const key of Object.keys(row)) {
           const normalizedKey = normalizeText(key);
@@ -280,7 +344,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
               description: name,
               unit,
               quantity,
-              current_price: price,
+              current_price: price || similar.material.current_price || 0,
               category,
               supplier,
               existingMaterial: similar.material,
@@ -295,7 +359,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
               description: name,
               unit,
               quantity,
-              current_price: price,
+              current_price: price || similar.material.current_price || 0,
               category,
               supplier,
               existingMaterial: similar.material,
