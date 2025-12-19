@@ -218,13 +218,16 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         if (pdfError) throw new Error(`Erro ao processar PDF: ${pdfError.message}`);
         if (!pdfData?.items || pdfData.items.length === 0) throw new Error('Nenhum dado encontrado no PDF');
 
-        // Convert PDF items to spreadsheet format for AI processing
+        // Converte itens do PDF para um formato tipo planilha (mantendo o PREÇO quando existir)
         jsonData = pdfData.items.map((item: any) => ({
           Descrição: item.description || item.name || '',
           Quantidade: item.quantity || 1,
           Unidade: item.unit || 'UN',
+          Preço: item.price ?? item.unit_price ?? item.valor ?? item.preco ?? 0,
         }));
-        useAIProcessing = true;
+
+        // Para PDF, usamos os dados extraídos (incluindo preço) e seguimos o fluxo padrão
+        useAIProcessing = false;
       } else {
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data);
@@ -475,7 +478,9 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
   const currentPending = pendingApprovalIndex !== null ? extractedMaterials[pendingApprovalIndex] : null;
   const newMaterialsCount = extractedMaterials.filter(m => m.isNew && !m.needsApproval).length;
-
+  const missingPriceCount = extractedMaterials.filter(
+    (m) => m.isNew && !m.needsApproval && (!m.current_price || m.current_price <= 0)
+  ).length;
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -585,7 +590,9 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                 <br />
                 <strong>• Unidade</strong> (obrigatório)
                 <br />
-                <strong>• Quantidade, Preço, Categoria, Fornecedor</strong> (opcionais)
+                <strong>• Preço</strong> (obrigatório)
+                <br />
+                <strong>• Quantidade, Categoria, Fornecedor</strong> (opcionais)
                 <br />
                 <br />
                 O sistema irá buscar materiais similares na sua base e pedir confirmação.
@@ -605,16 +612,21 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">
-                  {newMaterialsCount} novos materiais para adicionar
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {extractedMaterials.filter(m => !m.isNew).length} já existem na base
-                </p>
-              </div>
-            </div>
+             <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+               <div className="space-y-1">
+                 <p className="text-sm font-medium">
+                   {newMaterialsCount} novos materiais para adicionar
+                 </p>
+                 <p className="text-xs text-muted-foreground">
+                   {extractedMaterials.filter(m => !m.isNew).length} já existem na base
+                 </p>
+                 {missingPriceCount > 0 && (
+                   <p className="text-xs text-destructive">
+                     {missingPriceCount} {missingPriceCount === 1 ? 'item está sem preço' : 'itens estão sem preço'} (obrigatório)
+                   </p>
+                 )}
+               </div>
+             </div>
 
             <div className="border rounded-lg overflow-hidden max-h-[400px] overflow-y-auto">
               <Table>
@@ -634,13 +646,36 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                         {material.name}
                       </TableCell>
                       <TableCell>{material.unit}</TableCell>
-                      <TableCell>
-                        {material.current_price ? (
-                          `R$ ${material.current_price.toFixed(2)}`
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
+                       <TableCell>
+                         {material.isNew ? (
+                           <div className="space-y-1">
+                             <Input
+                               type="number"
+                               inputMode="decimal"
+                               step="0.01"
+                               min={0}
+                               value={material.current_price ?? ""}
+                               onChange={(e) => {
+                                 const next = e.target.value === "" ? undefined : Number(e.target.value);
+                                 setExtractedMaterials((prev) => {
+                                   const updated = [...prev];
+                                   updated[index] = { ...updated[index], current_price: Number.isFinite(next as number) ? next : undefined };
+                                   return updated;
+                                 });
+                               }}
+                               placeholder="0,00"
+                               className="h-9"
+                             />
+                             {(!material.current_price || material.current_price <= 0) && (
+                               <p className="text-xs text-destructive">Preço obrigatório</p>
+                             )}
+                           </div>
+                         ) : material.current_price ? (
+                           `R$ ${material.current_price.toFixed(2)}`
+                         ) : (
+                           <span className="text-muted-foreground">-</span>
+                         )}
+                       </TableCell>
                       <TableCell>
                         <Badge variant={
                           material.isNew === false ? 'secondary' :
@@ -677,14 +712,17 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
               >
                 Cancelar
               </Button>
-              <Button 
-                onClick={handleImport}
-                disabled={newMaterialsCount === 0 || importMutation.isPending}
-                className="flex-1"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {importMutation.isPending ? "Adicionando..." : `Adicionar ${newMaterialsCount} Materiais`}
-              </Button>
+               <Button 
+                 onClick={handleImport}
+                 disabled={newMaterialsCount === 0 || missingPriceCount > 0 || importMutation.isPending}
+                 className="flex-1"
+               >
+                 <Save className="h-4 w-4 mr-2" />
+                 {importMutation.isPending ? "Adicionando..." : 
+                   missingPriceCount > 0 ? "Preencha os preços para continuar" :
+                   `Adicionar ${newMaterialsCount} Materiais`
+                 }
+               </Button>
             </div>
           </div>
         )}
