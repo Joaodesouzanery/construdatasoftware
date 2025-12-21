@@ -6,9 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Check, X, Search, Plus } from "lucide-react";
+import { Pencil, Check, X, Search, Plus, Trash2 } from "lucide-react";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
 import { EditMaterialDialog } from "@/components/materials/EditMaterialDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const PriceManagementTable = () => {
   const { toast } = useToast();
@@ -19,6 +30,8 @@ export const PriceManagementTable = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const { data: materials, isLoading } = useQuery({
     queryKey: ['materials-prices'],
@@ -41,13 +54,12 @@ export const PriceManagementTable = () => {
       // IMPORTANTE: Só atualiza se o preço realmente mudou
       if (material.current_price === newPrice) {
         console.log("Preço não mudou, ignorando atualização");
-        return; // Não faz nada se o preço é o mesmo
+        return;
       }
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Insert price history apenas se o preço mudou
       const { error: historyError } = await supabase
         .from('price_history')
         .insert({
@@ -59,7 +71,6 @@ export const PriceManagementTable = () => {
 
       if (historyError) throw historyError;
 
-      // Update material price
       const { error: updateError } = await supabase
         .from('materials')
         .update({ current_price: newPrice })
@@ -85,6 +96,35 @@ export const PriceManagementTable = () => {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('materials')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['materials-prices'] });
+      queryClient.invalidateQueries({ queryKey: ['materials'] });
+      toast({
+        title: "Materiais excluídos",
+        description: `${count} material(is) excluído(s) com sucesso.`
+      });
+      setSelectedItems(new Set());
+      setShowDeleteDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao excluir materiais",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   // Função para normalizar texto para busca
   const normalizeText = (text: string): string => {
     return text
@@ -100,19 +140,16 @@ export const PriceManagementTable = () => {
     
     const search = normalizeText(searchTerm);
     
-    // Busca em múltiplos campos
     const matchName = normalizeText(material.name).includes(search);
     const matchBrand = material.brand ? normalizeText(material.brand).includes(search) : false;
     const matchCategory = material.category ? normalizeText(material.category).includes(search) : false;
     const matchSupplier = material.supplier ? normalizeText(material.supplier).includes(search) : false;
     const matchDescription = material.description ? normalizeText(material.description).includes(search) : false;
     
-    // Busca em palavras-chave
     const matchKeywords = material.keywords && Array.isArray(material.keywords) 
       ? material.keywords.some((kw: string) => normalizeText(kw).includes(search))
       : false;
     
-    // Busca em tokens (palavras individuais)
     const searchTokens = search.split(' ').filter(t => t.length >= 2);
     const materialText = normalizeText(
       `${material.name} ${material.brand || ''} ${material.category || ''} ${material.description || ''}`
@@ -124,6 +161,36 @@ export const PriceManagementTable = () => {
     return matchName || matchBrand || matchCategory || matchSupplier || 
            matchDescription || matchKeywords || matchTokens;
   }) || [];
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedItems.size === filteredMaterials.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(filteredMaterials.map(m => m.id)));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedItems.size > 0) {
+      setShowDeleteDialog(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    deleteMutation.mutate(Array.from(selectedItems));
+  };
 
   const startEdit = (id: string, currentPrice: number) => {
     setEditingId(id);
@@ -162,10 +229,18 @@ export const PriceManagementTable = () => {
               Atualize os preços dos materiais. Novos orçamentos usarão automaticamente os preços mais recentes.
             </p>
           </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Preço
-          </Button>
+          <div className="flex gap-2">
+            {selectedItems.size > 0 && (
+              <Button variant="destructive" onClick={handleDeleteSelected}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir ({selectedItems.size})
+              </Button>
+            )}
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Preço
+            </Button>
+          </div>
         </div>
 
         <div className="relative">
@@ -182,6 +257,12 @@ export const PriceManagementTable = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                  <Checkbox 
+                    checked={filteredMaterials.length > 0 && selectedItems.size === filteredMaterials.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Material</TableHead>
                 <TableHead>Marca</TableHead>
                 <TableHead>Categoria</TableHead>
@@ -205,7 +286,13 @@ export const PriceManagementTable = () => {
               </TableRow>
               ) : (
                 filteredMaterials.map((material) => (
-                  <TableRow key={material.id}>
+                  <TableRow key={material.id} className={selectedItems.has(material.id) ? 'bg-muted/50' : ''}>
+                    <TableCell>
+                      <Checkbox 
+                        checked={selectedItems.has(material.id)}
+                        onCheckedChange={() => toggleSelectItem(material.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{material.name}</TableCell>
                     <TableCell>{material.brand || "-"}</TableCell>
                     <TableCell>{material.category || "-"}</TableCell>
@@ -317,6 +404,24 @@ export const PriceManagementTable = () => {
           }}
         />
       )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedItems.size} material(is)? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

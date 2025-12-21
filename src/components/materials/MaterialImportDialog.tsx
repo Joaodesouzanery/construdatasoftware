@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Save, X, CheckCircle, AlertCircle, Check, SkipForward, Plus } from "lucide-react";
+import { Upload, Save, X, CheckCircle, AlertCircle, Check, SkipForward, Plus, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ interface ExtractedMaterial {
   labor_price?: number;
   category?: string;
   supplier?: string;
+  keywords?: string[];
   existingMaterial?: any;
   similarity?: number;
   matchType?: string;
@@ -47,6 +49,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   const [extractedMaterials, setExtractedMaterials] = useState<ExtractedMaterial[]>([]);
   const [showReview, setShowReview] = useState(false);
   const [pendingApprovalIndex, setPendingApprovalIndex] = useState<number | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -148,9 +151,12 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           description: material.description || null,
           unit: material.unit,
           current_price: material.current_price || 0,
+          material_price: material.material_price || 0,
+          labor_price: material.labor_price || 0,
           current_stock: material.quantity || null,
           category: material.category || null,
           supplier: material.supplier || null,
+          keywords: material.keywords || [],
           created_by_user_id: user.id,
         }));
 
@@ -218,16 +224,37 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         if (pdfError) throw new Error(`Erro ao processar PDF: ${pdfError.message}`);
         if (!pdfData?.items || pdfData.items.length === 0) throw new Error('Nenhum dado encontrado no PDF');
 
-        // Converte itens do PDF para um formato tipo planilha (mantendo o PREÇO quando existir)
-        jsonData = pdfData.items.map((item: any) => ({
-          Descrição: item.description || item.name || '',
-          Quantidade: item.quantity || 1,
-          Unidade: item.unit || 'UN',
-          Preço: item.price ?? item.unit_price ?? item.valor ?? item.preco ?? 0,
-        }));
+        // Processa diretamente os itens do PDF com o novo formato padronizado
+        const pdfMaterials: ExtractedMaterial[] = pdfData.items.map((item: any) => {
+          const materialPrice = item.material_price || 0;
+          const laborPrice = item.labor_price || 0;
+          const totalPrice = item.price || (materialPrice + laborPrice);
+          
+          return {
+            name: item.description || item.name || '',
+            description: item.description || item.name || '',
+            unit: item.unit || 'UN',
+            quantity: 1,
+            current_price: totalPrice,
+            material_price: materialPrice,
+            labor_price: laborPrice,
+            supplier: item.supplier || undefined,
+            keywords: Array.isArray(item.keywords) ? item.keywords : [],
+            isNew: true,
+            matchType: totalPrice > 0 ? 'Com preço' : 'Novo material',
+          };
+        }).filter((m: ExtractedMaterial) => m.name && m.name.length > 1);
 
-        // Para PDF, usamos os dados extraídos (incluindo preço) e seguimos o fluxo padrão
-        useAIProcessing = false;
+        setExtractedMaterials(pdfMaterials);
+        setShowReview(true);
+        
+        const withPrices = pdfMaterials.filter(m => (m.current_price || 0) > 0).length;
+        toast({
+          title: "PDF processado!",
+          description: `${pdfMaterials.length} materiais identificados, ${withPrices} com preços`,
+        });
+        setIsProcessing(false);
+        return;
       } else {
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data);
@@ -288,7 +315,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         }
       }
 
-      // Fallback to standard processing if AI fails
+      // Parse Excel with STANDARDIZED columns
       const findColumnValue = (row: any, variations: string[]): string => {
         for (const key of Object.keys(row)) {
           const normalizedKey = normalizeText(key);
@@ -301,38 +328,33 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         return '';
       };
 
+      const parsePrice = (value: string): number => {
+        if (!value || value === '-' || value === 'R$ -') return 0;
+        const cleaned = value.replace(/[R$\s]/g, '').replace(',', '.');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
       const materials: ExtractedMaterial[] = [];
       const pendingApprovals: number[] = [];
 
       for (let i = 0; i < jsonData.length; i++) {
         const rowData: any = jsonData[i];
         
-        const name = findColumnValue(rowData, [
-          'nome', 'name', 'descricao', 'description', 'desc', 
-          'material', 'servico', 'service', 'item', 'produto'
-        ]);
+        // Colunas padronizadas
+        const name = findColumnValue(rowData, ['descricao', 'description', 'nome', 'name', 'item', 'material']);
+        const unit = findColumnValue(rowData, ['unidade', 'unit', 'un', 'und']) || 'UN';
+        const supplier = findColumnValue(rowData, ['fornecedor', 'supplier']) || undefined;
         
-        const unit = findColumnValue(rowData, [
-          'unidade', 'unit', 'un', 'und', 'medida'
-        ]) || 'UN';
-
-        const quantityStr = findColumnValue(rowData, [
-          'quantidade', 'qtd', 'qty', 'quantity', 'quant', 'amount'
-        ]);
-        const quantity = quantityStr ? parseFloat(quantityStr.replace(',', '.')) : undefined;
-
-        const priceStr = findColumnValue(rowData, [
-          'preco', 'price', 'valor', 'value', 'custo', 'cost'
-        ]);
-        const price = priceStr ? parseFloat(priceStr.replace(',', '.')) : undefined;
-
-        const category = findColumnValue(rowData, [
-          'categoria', 'category', 'tipo', 'type'
-        ]) || undefined;
-
-        const supplier = findColumnValue(rowData, [
-          'fornecedor', 'supplier', 'fabricante', 'manufacturer'
-        ]) || undefined;
+        const materialPriceStr = findColumnValue(rowData, ['preco material', 'preço material', 'material_price']);
+        const laborPriceStr = findColumnValue(rowData, ['preco m.o.', 'preço m.o.', 'preco mo', 'labor_price', 'mao de obra']);
+        const totalPriceStr = findColumnValue(rowData, ['preco total', 'preço total', 'total', 'price']);
+        const keywordsStr = findColumnValue(rowData, ['palavras-chave', 'palavras chave', 'keywords', 'tags']);
+        
+        const materialPrice = parsePrice(materialPriceStr);
+        const laborPrice = parsePrice(laborPriceStr);
+        const totalPrice = parsePrice(totalPriceStr) || (materialPrice + laborPrice);
+        const keywords = keywordsStr ? keywordsStr.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
 
         if (!name || name.length < 2) continue;
 
@@ -346,10 +368,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
               name,
               description: name,
               unit,
-              quantity,
-              current_price: price || similar.material.current_price || 0,
-              category,
+              current_price: totalPrice || similar.material.current_price || 0,
+              material_price: materialPrice || similar.material.material_price || 0,
+              labor_price: laborPrice || similar.material.labor_price || 0,
               supplier,
+              keywords,
               existingMaterial: similar.material,
               similarity: 100,
               matchType: 'Já existe',
@@ -361,10 +384,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
               name,
               description: name,
               unit,
-              quantity,
-              current_price: price || similar.material.current_price || 0,
-              category,
+              current_price: totalPrice || similar.material.current_price || 0,
+              material_price: materialPrice || similar.material.material_price || 0,
+              labor_price: laborPrice || similar.material.labor_price || 0,
               supplier,
+              keywords,
               existingMaterial: similar.material,
               similarity: similar.similarity,
               matchType: similar.matchType,
@@ -379,11 +403,13 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
             name,
             description: name,
             unit,
-            quantity,
-            current_price: price,
-            category,
+            current_price: totalPrice,
+            material_price: materialPrice,
+            labor_price: laborPrice,
             supplier,
+            keywords,
             isNew: true,
+            matchType: totalPrice > 0 ? 'Com preço' : 'Novo material',
           });
         }
       }
@@ -474,6 +500,37 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
   const removeItem = (index: number) => {
     setExtractedMaterials(prev => prev.filter((_, i) => i !== index));
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
+  };
+
+  const toggleSelectItem = (index: number) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const newItems = extractedMaterials.filter(m => m.isNew).map((_, i) => i);
+    if (selectedItems.size === newItems.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(newItems));
+    }
+  };
+
+  const deleteSelectedItems = () => {
+    setExtractedMaterials(prev => prev.filter((_, i) => !selectedItems.has(i)));
+    setSelectedItems(new Set());
   };
 
   const currentPending = pendingApprovalIndex !== null ? extractedMaterials[pendingApprovalIndex] : null;
@@ -584,15 +641,21 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                 className="mt-2"
               />
               <p className="text-sm text-muted-foreground mt-2">
-                A planilha deve conter as seguintes colunas:
+                A planilha deve conter as seguintes colunas padronizadas:
                 <br />
-                <strong>• Nome/Descrição</strong> (obrigatório)
+                <strong>• Descrição</strong> (obrigatório)
                 <br />
                 <strong>• Unidade</strong> (obrigatório)
                 <br />
-                <strong>• Preço</strong> (obrigatório)
+                <strong>• Fornecedor</strong> (opcional)
                 <br />
-                <strong>• Quantidade, Categoria, Fornecedor</strong> (opcionais)
+                <strong>• Preço Material</strong> (obrigatório)
+                <br />
+                <strong>• Preço M.O.</strong> (opcional)
+                <br />
+                <strong>• Preço Total</strong> (opcional - calculado automaticamente)
+                <br />
+                <strong>• Palavras-Chave</strong> (opcional - separadas por vírgula)
                 <br />
                 <br />
                 O sistema irá buscar materiais similares na sua base e pedir confirmação.
@@ -626,48 +689,118 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                    </p>
                  )}
                </div>
+              {selectedItems.size > 0 && (
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={deleteSelectedItems}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir {selectedItems.size} selecionados
+                </Button>
+              )}
              </div>
 
             <div className="border rounded-lg overflow-hidden max-h-[400px] overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox 
+                        checked={selectedItems.size > 0 && selectedItems.size === extractedMaterials.filter(m => m.isNew).length}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Nome/Descrição</TableHead>
                     <TableHead>Unidade</TableHead>
-                    <TableHead>Preço</TableHead>
+                    <TableHead>Preço Material</TableHead>
+                    <TableHead>Preço M.O.</TableHead>
+                    <TableHead>Preço Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {extractedMaterials.map((material, index) => (
-                    <TableRow key={index} className={!material.isNew ? 'opacity-50' : ''}>
+                    <TableRow key={index} className={!material.isNew ? 'opacity-50' : selectedItems.has(index) ? 'bg-muted/50' : ''}>
+                      <TableCell className="w-[40px]">
+                        {material.isNew && (
+                          <Checkbox 
+                            checked={selectedItems.has(index)}
+                            onCheckedChange={() => toggleSelectItem(index)}
+                          />
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {material.name}
                       </TableCell>
                       <TableCell>{material.unit}</TableCell>
+                      <TableCell>
+                        {material.isNew ? (
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            min={0}
+                            value={material.material_price ?? ""}
+                            onChange={(e) => {
+                              const next = e.target.value === "" ? undefined : Number(e.target.value);
+                              setExtractedMaterials((prev) => {
+                                const updated = [...prev];
+                                const matPrice = Number.isFinite(next as number) ? next || 0 : 0;
+                                const labPrice = updated[index].labor_price || 0;
+                                updated[index] = { 
+                                  ...updated[index], 
+                                  material_price: matPrice,
+                                  current_price: matPrice + labPrice
+                                };
+                                return updated;
+                              });
+                            }}
+                            placeholder="0,00"
+                            className="h-8 w-24"
+                          />
+                        ) : (
+                          `R$ ${(material.material_price || 0).toFixed(2)}`
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {material.isNew ? (
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            min={0}
+                            value={material.labor_price ?? ""}
+                            onChange={(e) => {
+                              const next = e.target.value === "" ? undefined : Number(e.target.value);
+                              setExtractedMaterials((prev) => {
+                                const updated = [...prev];
+                                const matPrice = updated[index].material_price || 0;
+                                const labPrice = Number.isFinite(next as number) ? next || 0 : 0;
+                                updated[index] = { 
+                                  ...updated[index], 
+                                  labor_price: labPrice,
+                                  current_price: matPrice + labPrice
+                                };
+                                return updated;
+                              });
+                            }}
+                            placeholder="0,00"
+                            className="h-8 w-24"
+                          />
+                        ) : (
+                          `R$ ${(material.labor_price || 0).toFixed(2)}`
+                        )}
+                      </TableCell>
                        <TableCell>
                          {material.isNew ? (
                            <div className="space-y-1">
-                             <Input
-                               type="number"
-                               inputMode="decimal"
-                               step="0.01"
-                               min={0}
-                               value={material.current_price ?? ""}
-                               onChange={(e) => {
-                                 const next = e.target.value === "" ? undefined : Number(e.target.value);
-                                 setExtractedMaterials((prev) => {
-                                   const updated = [...prev];
-                                   updated[index] = { ...updated[index], current_price: Number.isFinite(next as number) ? next : undefined };
-                                   return updated;
-                                 });
-                               }}
-                               placeholder="0,00"
-                               className="h-9"
-                             />
+                             <span className="font-medium text-primary">
+                               R$ {(material.current_price || 0).toFixed(2)}
+                             </span>
                              {(!material.current_price || material.current_price <= 0) && (
-                               <p className="text-xs text-destructive">Preço obrigatório</p>
+                               <p className="text-xs text-destructive">Obrigatório</p>
                              )}
                            </div>
                          ) : material.current_price ? (

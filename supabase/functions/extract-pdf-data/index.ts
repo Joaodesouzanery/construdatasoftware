@@ -95,22 +95,35 @@ serve(async (req) => {
           {
             role: 'system',
             content: `Você é um extrator de dados de tabelas de materiais em PDF. Extraia TODOS os itens da tabela no formato JSON.
+
+A planilha segue um formato PADRONIZADO com as colunas:
+- Descrição: descrição do item/material/serviço
+- Unidade: unidade de medida (ex: UN, M, M², KG, etc.)
+- Fornecedor: nome do fornecedor
+- Preço Material: preço do material (número)
+- Preço M.O.: preço da mão de obra (número)
+- Preço Total: preço total (número)
+- Palavras-Chave: palavras-chave separadas por vírgula
             
 Retorne um array JSON com objetos contendo:
 - description: descrição do item/material/serviço (texto)
-- quantity: quantidade (número). Se não houver, use 1
 - unit: unidade de medida (texto). Se não houver, use "UN"
-- price: preço unitário (número, sem moeda). Ex.: "R$ 12,90" → 12.9. Se não houver, use 0
+- supplier: nome do fornecedor (texto ou null)
+- material_price: preço do material (número). Se não houver, use 0
+- labor_price: preço da mão de obra (número). Se não houver, use 0
+- price: preço total (número). Se não houver, calcule material_price + labor_price
+- keywords: array de palavras-chave (array de strings ou [])
 
 Exemplo de saída esperada:
 [
-  {"description": "Cimento CP II", "quantity": 100, "unit": "kg", "price": 32.5},
-  {"description": "Areia média", "quantity": 1, "unit": "m³", "price": 180}
+  {"description": "Cimento CP II", "unit": "KG", "supplier": "Votorantim", "material_price": 25.5, "labor_price": 7.0, "price": 32.5, "keywords": ["cimento", "construção"]},
+  {"description": "Areia média", "unit": "M³", "supplier": null, "material_price": 150, "labor_price": 30, "price": 180, "keywords": ["areia"]}
 ]
 
 IMPORTANTE:
-- Extraia TODOS os itens que encontrar (ignore títulos/cabeçalhos)
-- Normalize números com vírgula/ponto
+- Extraia TODOS os itens que encontrar (ignore títulos/cabeçalhos e linhas vazias)
+- Normalize números com vírgula/ponto (R$ 12,90 → 12.9)
+- Se o preço estiver como "R$ -" ou vazio, use 0
 - Retorne APENAS o array JSON, sem explicações`
           },
           {
