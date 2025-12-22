@@ -73,40 +73,35 @@ export default function Admin() {
   };
 
   const loadUserRoles = async () => {
-    // Get all auth users first
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) {
-      toast.error("Erro ao carregar usuários");
-      return;
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast.error("Sessão não encontrada");
+        return;
+      }
+
+      // Call secure edge function instead of client-side admin API
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-list-users`,
+        {
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao carregar usuários");
+      }
+
+      const { users } = await response.json();
+      setUserRoles(users as any);
+    } catch (error: any) {
+      console.error("Error loading users:", error);
+      toast.error(error.message || "Erro ao carregar usuários");
     }
-
-    // Get user roles
-    const { data: rolesData, error: rolesError } = await supabase
-      .from("user_roles")
-      .select("*, projects(name)")
-      .order("created_at", { ascending: false });
-
-    if (rolesError) {
-      toast.error("Erro ao carregar funções de usuários");
-      return;
-    }
-
-    // Merge auth users with roles data
-    const usersWithRoles = authUsers.users.map(user => {
-      const userRole = rolesData?.find(role => role.user_id === user.id);
-      return {
-        id: userRole?.id || user.id,
-        user_id: user.id,
-        email: user.email,
-        role: userRole?.role || 'user',
-        project_id: userRole?.project_id || null,
-        created_at: userRole?.created_at || user.created_at,
-        projects: userRole?.projects
-      };
-    });
-
-    setUserRoles(usersWithRoles as any);
   };
 
   const loadUserQuotas = async () => {
