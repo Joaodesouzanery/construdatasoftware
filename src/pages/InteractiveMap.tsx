@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import JSZip from "jszip";
@@ -86,6 +86,7 @@ export default function InteractiveMap() {
   const [showMapSourceDialog, setShowMapSourceDialog] = useState(false);
   const [mapSourceType, setMapSourceType] = useState<MapSourceType>("zip");
   const [externalMapUrl, setExternalMapUrl] = useState("");
+  const [signedMapUrl, setSignedMapUrl] = useState<string | null>(null);
   const [newMarker, setNewMarker] = useState({
     latitude: 0,
     longitude: 0,
@@ -316,17 +317,13 @@ export default function InteractiveMap() {
           indexCleanPath = indexHtmlPath.substring(baseFolder.length);
         }
 
-        // Get the public URL for the main HTML file
-        const { data: publicUrlData } = supabase.storage
-          .from("interactive-maps")
-          .getPublicUrl(`${projectId}/${indexCleanPath}`);
+        // Store the file path (not URL) in the project - we'll generate signed URLs on demand
+        const storagePath = `${projectId}/${indexCleanPath}`;
 
-        const mapUrl = publicUrlData.publicUrl;
-
-        // Update project with map URL
+        // Update project with the storage path (not public URL)
         const { error: updateError } = await supabase
           .from("projects")
-          .update({ interactive_map_url: mapUrl })
+          .update({ interactive_map_url: storagePath })
           .eq("id", projectId);
 
         if (updateError) {
@@ -334,7 +331,7 @@ export default function InteractiveMap() {
         }
 
         setUploadProgress(100);
-        return mapUrl;
+        return storagePath;
       } catch (err: any) {
         throw new Error(err.message || "Erro ao processar o arquivo ZIP.");
       }
@@ -493,8 +490,45 @@ export default function InteractiveMap() {
 
   const isStorageUrl = (url: string | null | undefined): boolean => {
     if (!url) return false;
-    return url.includes("supabase") && url.includes("interactive-maps");
+    // Check if it's a storage path (not a full URL) - storage paths don't start with http
+    return !url.startsWith("http://") && !url.startsWith("https://") && url.includes("/");
   };
+
+  // Generate signed URL for storage maps
+  const getMapDisplayUrl = useCallback(async () => {
+    if (!project?.interactive_map_url) return null;
+    
+    // If it's an external URL, use it directly
+    if (isExternalUrl(project.interactive_map_url)) {
+      return project.interactive_map_url;
+    }
+    
+    // If it's a storage path, generate a signed URL
+    if (isStorageUrl(project.interactive_map_url)) {
+      const { data, error } = await supabase.storage
+        .from("interactive-maps")
+        .createSignedUrl(project.interactive_map_url, 3600); // 1 hour expiry
+      
+      if (error) {
+        console.error("Error creating signed URL:", error);
+        return null;
+      }
+      return data.signedUrl;
+    }
+    
+    return project.interactive_map_url;
+  }, [project?.interactive_map_url]);
+
+  // Load signed URL when project changes
+  useEffect(() => {
+    const loadSignedUrl = async () => {
+      const url = await getMapDisplayUrl();
+      setSignedMapUrl(url);
+    };
+    if (project?.interactive_map_url) {
+      loadSignedUrl();
+    }
+  }, [project?.interactive_map_url, getMapDisplayUrl]);
 
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return "text-green-500";
@@ -702,16 +736,22 @@ export default function InteractiveMap() {
 
                   <Card className="overflow-hidden animate-fade-in">
                     <div className="relative">
-                      <iframe
-                        ref={iframeRef}
-                        src={project.interactive_map_url}
-                        className="w-full h-[600px] border-0"
-                        title="Mapa Interativo"
-                        allow="geolocation; fullscreen"
-                        onLoad={() => {
-                          // Iframe loaded successfully
-                        }}
-                      />
+                      {signedMapUrl ? (
+                        <iframe
+                          ref={iframeRef}
+                          src={signedMapUrl}
+                          className="w-full h-[600px] border-0"
+                          title="Mapa Interativo"
+                          allow="geolocation; fullscreen"
+                          onLoad={() => {
+                            // Iframe loaded successfully
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-[600px] flex items-center justify-center">
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                      )}
                     </div>
                   </Card>
 

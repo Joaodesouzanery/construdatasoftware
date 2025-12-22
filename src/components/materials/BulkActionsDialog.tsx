@@ -185,31 +185,61 @@ export const BulkActionsDialog = ({
     }
   });
 
-  // Export selected materials
+  // Export selected materials with proper Excel formatting
   const handleExport = (format: 'excel' | 'csv') => {
     const exportData = selectedMaterialsData.map(m => ({
-      'Descrição': m.name,
+      'Descrição': m.name || '',
       'Marca': m.brand || '',
       'Categoria': m.category || '',
       'Fornecedor': m.supplier || '',
       'Medida': m.measurement || '',
-      'Unidade': m.unit,
+      'Unidade': m.unit || '',
       'Preço Material': m.material_price || 0,
       'Preço M.O.': m.labor_price || 0,
       'Preço Total': m.current_price || 0,
       'Palavras-Chave': (m.keywords || []).join(', ')
     }));
 
+    // Create worksheet
     const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Set column widths for better readability
+    const colWidths = [
+      { wch: 40 }, // Descrição
+      { wch: 15 }, // Marca
+      { wch: 15 }, // Categoria
+      { wch: 20 }, // Fornecedor
+      { wch: 12 }, // Medida
+      { wch: 10 }, // Unidade
+      { wch: 15 }, // Preço Material
+      { wch: 15 }, // Preço M.O.
+      { wch: 15 }, // Preço Total
+      { wch: 30 }, // Palavras-Chave
+    ];
+    ws['!cols'] = colWidths;
+
+    // Format currency columns (columns G, H, I - indices 6, 7, 8)
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    for (let row = range.s.r + 1; row <= range.e.r; row++) {
+      // Price columns formatting
+      for (let col = 6; col <= 8; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        if (ws[cellAddress]) {
+          ws[cellAddress].t = 'n'; // Ensure number type
+          ws[cellAddress].z = '"R$" #,##0.00'; // Brazilian currency format
+        }
+      }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Materiais");
 
     const fileName = `materiais_selecionados_${new Date().toISOString().split('T')[0]}`;
     
     if (format === 'excel') {
-      XLSX.writeFile(wb, `${fileName}.xlsx`);
+      XLSX.writeFile(wb, `${fileName}.xlsx`, { bookType: 'xlsx', cellStyles: true });
     } else {
-      XLSX.writeFile(wb, `${fileName}.csv`);
+      XLSX.writeFile(wb, `${fileName}.csv`, { bookType: 'csv' });
     }
 
     toast({ title: `${selectedMaterials.length} materiais exportados!` });
