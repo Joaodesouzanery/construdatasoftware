@@ -3,9 +3,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Save, X, CheckCircle, AlertCircle, Check, SkipForward, Plus, Trash2 } from "lucide-react";
+import { Upload, Save, X, CheckCircle, AlertCircle, Check, SkipForward, Plus, Trash2, Settings2, DollarSign, Building2, FolderOpen, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from 'xlsx';
@@ -50,6 +57,13 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   const [showReview, setShowReview] = useState(false);
   const [pendingApprovalIndex, setPendingApprovalIndex] = useState<number | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [showBulkPriceDialog, setShowBulkPriceDialog] = useState(false);
+  const [showBulkSupplierDialog, setShowBulkSupplierDialog] = useState(false);
+  const [showBulkCategoryDialog, setShowBulkCategoryDialog] = useState(false);
+  const [bulkPriceOperation, setBulkPriceOperation] = useState<'set' | 'increase_percent' | 'decrease_percent'>('increase_percent');
+  const [bulkPriceValue, setBulkPriceValue] = useState("");
+  const [bulkSupplier, setBulkSupplier] = useState("");
+  const [bulkCategory, setBulkCategory] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -533,6 +547,111 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     setSelectedItems(new Set());
   };
 
+  const applyBulkPrice = () => {
+    const numValue = parseFloat(bulkPriceValue);
+    if (isNaN(numValue)) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+
+    setExtractedMaterials(prev => {
+      const updated = [...prev];
+      selectedItems.forEach(index => {
+        if (!updated[index].isNew) return;
+        
+        const currentPrice = updated[index].current_price || 0;
+        let newPrice: number;
+
+        switch (bulkPriceOperation) {
+          case 'set':
+            newPrice = numValue;
+            break;
+          case 'increase_percent':
+            newPrice = currentPrice * (1 + numValue / 100);
+            break;
+          case 'decrease_percent':
+            newPrice = currentPrice * (1 - numValue / 100);
+            break;
+          default:
+            newPrice = currentPrice;
+        }
+
+        updated[index] = {
+          ...updated[index],
+          current_price: Math.round(newPrice * 100) / 100,
+          material_price: Math.round(newPrice * 100) / 100,
+        };
+      });
+      return updated;
+    });
+
+    toast({ title: `Preços de ${selectedItems.size} itens atualizados!` });
+    setShowBulkPriceDialog(false);
+    setBulkPriceValue("");
+  };
+
+  const applyBulkSupplier = () => {
+    if (!bulkSupplier.trim()) {
+      toast({ title: "Fornecedor não pode estar vazio", variant: "destructive" });
+      return;
+    }
+
+    setExtractedMaterials(prev => {
+      const updated = [...prev];
+      selectedItems.forEach(index => {
+        if (!updated[index].isNew) return;
+        updated[index] = { ...updated[index], supplier: bulkSupplier.trim() };
+      });
+      return updated;
+    });
+
+    toast({ title: `Fornecedor de ${selectedItems.size} itens atualizado!` });
+    setShowBulkSupplierDialog(false);
+    setBulkSupplier("");
+  };
+
+  const applyBulkCategory = () => {
+    if (!bulkCategory.trim()) {
+      toast({ title: "Categoria não pode estar vazia", variant: "destructive" });
+      return;
+    }
+
+    setExtractedMaterials(prev => {
+      const updated = [...prev];
+      selectedItems.forEach(index => {
+        if (!updated[index].isNew) return;
+        updated[index] = { ...updated[index], category: bulkCategory.trim() };
+      });
+      return updated;
+    });
+
+    toast({ title: `Categoria de ${selectedItems.size} itens atualizada!` });
+    setShowBulkCategoryDialog(false);
+    setBulkCategory("");
+  };
+
+  const exportSelectedItems = () => {
+    const selectedMaterials = extractedMaterials.filter((_, i) => selectedItems.has(i));
+    
+    const exportData = selectedMaterials.map(m => ({
+      'Descrição': m.name,
+      'Unidade': m.unit,
+      'Fornecedor': m.supplier || '',
+      'Categoria': m.category || '',
+      'Preço Material': m.material_price || 0,
+      'Preço M.O.': m.labor_price || 0,
+      'Preço Total': m.current_price || 0,
+      'Palavras-Chave': (m.keywords || []).join(', ')
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Materiais");
+    XLSX.writeFile(wb, `materiais_selecionados_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({ title: `${selectedItems.size} itens exportados!` });
+  };
+
   const currentPending = pendingApprovalIndex !== null ? extractedMaterials[pendingApprovalIndex] : null;
   const newMaterialsCount = extractedMaterials.filter(m => m.isNew && !m.needsApproval).length;
   const missingPriceCount = extractedMaterials.filter(
@@ -683,21 +802,50 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                  <p className="text-xs text-muted-foreground">
                    {extractedMaterials.filter(m => !m.isNew).length} já existem na base
                  </p>
-                 {missingPriceCount > 0 && (
-                   <p className="text-xs text-destructive">
-                     {missingPriceCount} {missingPriceCount === 1 ? 'item está sem preço' : 'itens estão sem preço'} (obrigatório)
-                   </p>
-                 )}
-               </div>
+                  {missingPriceCount > 0 && (
+                    <p className="text-xs text-destructive">
+                      {missingPriceCount} {missingPriceCount === 1 ? 'item está sem preço' : 'itens estão sem preço'} (obrigatório)
+                    </p>
+                  )}
+                </div>
               {selectedItems.size > 0 && (
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={deleteSelectedItems}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Excluir {selectedItems.size} selecionados
-                </Button>
+                <div className="flex gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Settings2 className="h-4 w-4 mr-2" />
+                        Ações ({selectedItems.size})
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setShowBulkPriceDialog(true)}>
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Ajustar Preços
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowBulkSupplierDialog(true)}>
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Alterar Fornecedor
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowBulkCategoryDialog(true)}>
+                        <FolderOpen className="h-4 w-4 mr-2" />
+                        Alterar Categoria
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={exportSelectedItems}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Exportar Selecionados
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={deleteSelectedItems}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </Button>
+                </div>
               )}
              </div>
 
@@ -859,6 +1007,103 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
             </div>
           </div>
         )}
+
+        {/* Bulk Price Dialog */}
+        <Dialog open={showBulkPriceDialog} onOpenChange={setShowBulkPriceDialog}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Ajustar Preços em Bloco</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Tipo de Ajuste</Label>
+                <select 
+                  className="w-full border rounded-md p-2"
+                  value={bulkPriceOperation}
+                  onChange={(e) => setBulkPriceOperation(e.target.value as any)}
+                >
+                  <option value="set">Definir Valor Fixo</option>
+                  <option value="increase_percent">Aumentar por %</option>
+                  <option value="decrease_percent">Diminuir por %</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>
+                  {bulkPriceOperation === 'set' ? 'Novo Preço (R$)' : 'Porcentagem (%)'}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={bulkPriceValue}
+                  onChange={(e) => setBulkPriceValue(e.target.value)}
+                  placeholder={bulkPriceOperation === 'set' ? 'Ex: 10.50' : 'Ex: 10'}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowBulkPriceDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={applyBulkPrice} disabled={!bulkPriceValue}>
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Supplier Dialog */}
+        <Dialog open={showBulkSupplierDialog} onOpenChange={setShowBulkSupplierDialog}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Alterar Fornecedor em Bloco</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Novo Fornecedor</Label>
+                <Input
+                  value={bulkSupplier}
+                  onChange={(e) => setBulkSupplier(e.target.value)}
+                  placeholder="Nome do fornecedor"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowBulkSupplierDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={applyBulkSupplier} disabled={!bulkSupplier.trim()}>
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Category Dialog */}
+        <Dialog open={showBulkCategoryDialog} onOpenChange={setShowBulkCategoryDialog}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Alterar Categoria em Bloco</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nova Categoria</Label>
+                <Input
+                  value={bulkCategory}
+                  onChange={(e) => setBulkCategory(e.target.value)}
+                  placeholder="Nome da categoria"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowBulkCategoryDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={applyBulkCategory} disabled={!bulkCategory.trim()}>
+                  Aplicar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

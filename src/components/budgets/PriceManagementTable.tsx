@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Check, X, Search, Plus, Trash2 } from "lucide-react";
+import { Pencil, Check, X, Search, Plus, Trash2, Settings2 } from "lucide-react";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
 import { EditMaterialDialog } from "@/components/materials/EditMaterialDialog";
+import { BulkActionsDialog } from "@/components/materials/BulkActionsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -32,6 +33,7 @@ export const PriceManagementTable = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBulkActionsDialog, setShowBulkActionsDialog] = useState(false);
 
   const { data: materials, isLoading } = useQuery({
     queryKey: ['materials-prices'],
@@ -231,10 +233,16 @@ export const PriceManagementTable = () => {
           </div>
           <div className="flex gap-2">
             {selectedItems.size > 0 && (
-              <Button variant="destructive" onClick={handleDeleteSelected}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Excluir ({selectedItems.size})
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setShowBulkActionsDialog(true)}>
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  Ações ({selectedItems.size})
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteSelected}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir ({selectedItems.size})
+                </Button>
+              </>
             )}
             <Button onClick={() => setIsAddDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -422,6 +430,14 @@ export const PriceManagementTable = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkActionsDialog
+        open={showBulkActionsDialog}
+        onOpenChange={setShowBulkActionsDialog}
+        selectedMaterials={Array.from(selectedItems)}
+        materials={filteredMaterials}
+        onClearSelection={() => setSelectedItems(new Set())}
+      />
     </Card>
   );
 };
