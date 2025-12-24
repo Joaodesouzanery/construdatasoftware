@@ -2414,6 +2414,7 @@ export type Database = {
           id: string
           notes: string | null
           payment_terms: string | null
+          project_id: string | null
           purchase_request_id: string
           supplier_contact: string | null
           supplier_name: string
@@ -2428,6 +2429,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_terms?: string | null
+          project_id?: string | null
           purchase_request_id: string
           supplier_contact?: string | null
           supplier_name: string
@@ -2442,6 +2444,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_terms?: string | null
+          project_id?: string | null
           purchase_request_id?: string
           supplier_contact?: string | null
           supplier_name?: string
@@ -2450,6 +2453,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_quotes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplier_quotes_purchase_request_id_fkey"
             columns: ["purchase_request_id"]
@@ -2607,6 +2617,18 @@ export type Database = {
     Functions: {
       can_create_employee: { Args: { user_uuid: string }; Returns: boolean }
       can_create_project: { Args: { user_uuid: string }; Returns: boolean }
+      get_supplier_quote_project_id: {
+        Args: { _quote_id: string }
+        Returns: string
+      }
+      has_project_access: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_qrcode_access: {
+        Args: { _qr_code_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _project_id?: string
@@ -2616,9 +2638,13 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_project_manager: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2746,7 +2772,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "manager"],
     },
   },
 } as const
