@@ -118,7 +118,7 @@ export default function Admin() {
   };
 
   const addNewUser = async () => {
-    // Validate inputs with Zod
+    // Validate inputs with Zod (client-side)
     const addUserSchema = z.object({
       email: z.string().trim().email("Email inválido").max(255, "Email muito longo"),
       password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres").max(128, "Senha muito longa"),
@@ -142,38 +142,36 @@ export default function Admin() {
     }
 
     try {
-      // Create the user using Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUserEmail,
-        password: newUserPassword,
-      });
-
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error("Falha ao criar usuário");
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast.error("Sessão não encontrada");
+        return;
       }
 
-      // Add the user role (without project_id - user will create their own projects)
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: newUserRole,
-        });
+      // Call secure edge function for user creation
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: newUserEmail.trim(),
+            password: newUserPassword,
+            role: newUserRole,
+            maxProjects: maxProjects,
+            maxEmployees: maxEmployees,
+          }),
+        }
+      );
 
-      if (roleError) throw roleError;
+      const result = await response.json();
 
-      // Add user quota
-      const { error: quotaError } = await supabase
-        .from("user_quotas")
-        .insert({
-          user_id: authData.user.id,
-          max_projects: maxProjects,
-          max_employees: maxEmployees,
-        });
-
-      if (quotaError) throw quotaError;
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao criar usuário");
+      }
 
       toast.success("Usuário criado com sucesso!");
       setAddUserOpen(false);
