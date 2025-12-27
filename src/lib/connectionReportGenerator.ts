@@ -227,7 +227,7 @@ export async function generateConnectionReportPDF(report: ConnectionReport) {
     }
   }
 
-  // Footer on all pages
+  // Footer on all pages with signature
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -236,9 +236,20 @@ export async function generateConnectionReportPDF(report: ConnectionReport) {
     doc.text(
       `Página ${i} de ${pageCount}`,
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 15,
       { align: "center" }
     );
+    // ConstruData signature
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(120);
+    doc.text(
+      "Gerado automaticamente e sem dor de cabeça pelo ConstruData.",
+      pageWidth / 2,
+      pageHeight - 8,
+      { align: "center" }
+    );
+    doc.setFont("helvetica", "normal");
   }
 
   // Save
@@ -541,7 +552,7 @@ export async function generateConsolidatedReportPDF(
     }
   }
 
-  // Footer em todas as páginas
+  // Footer em todas as páginas com assinatura
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -550,9 +561,20 @@ export async function generateConsolidatedReportPDF(
     doc.text(
       `Página ${i} de ${pageCount} - Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`,
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 15,
       { align: "center" }
     );
+    // ConstruData signature
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(120);
+    doc.text(
+      "Gerado automaticamente e sem dor de cabeça pelo ConstruData.",
+      pageWidth / 2,
+      pageHeight - 8,
+      { align: "center" }
+    );
+    doc.setFont("helvetica", "normal");
   }
 
   // Save
