@@ -109,17 +109,30 @@ export async function generateFacilityReport(
     });
   }
 
-  // Footer
+  // Footer with signature
   const pageCount = doc.getNumberOfPages();
+  const pageHeightVal = doc.internal.pageSize.getHeight();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
+    doc.setTextColor(100);
     doc.text(
       `Página ${i} de ${pageCount}`,
       pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
+      pageHeightVal - 15,
       { align: "center" }
     );
+    // ConstruData signature
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(120);
+    doc.text(
+      "Gerado automaticamente e sem dor de cabeça pelo ConstruData.",
+      pageWidth / 2,
+      pageHeightVal - 8,
+      { align: "center" }
+    );
+    doc.setFont("helvetica", "normal");
   }
 
   // Save

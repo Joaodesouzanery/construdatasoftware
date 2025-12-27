@@ -337,7 +337,7 @@ export async function generateRDOReportPDF(report: RDOReport, consolidateService
     }
   }
 
-  // Footer on all pages
+  // Footer on all pages with signature
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -346,9 +346,20 @@ export async function generateRDOReportPDF(report: RDOReport, consolidateService
     doc.text(
       `RDO - ${report.project.name} | Página ${i} de ${pageCount}`,
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 15,
       { align: "center" }
     );
+    // ConstruData signature
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(120);
+    doc.text(
+      "Gerado automaticamente e sem dor de cabeça pelo ConstruData.",
+      pageWidth / 2,
+      pageHeight - 8,
+      { align: "center" }
+    );
+    doc.setFont("helvetica", "normal");
   }
 
   // Save
