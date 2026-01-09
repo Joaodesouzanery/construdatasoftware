@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,18 +71,45 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   const [bulkCategory, setBulkCategory] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  type MaterialRow = Record<string, any> & {
+    id: string;
+    name: string;
+    current_price?: number | null;
+    material_price?: number | null;
+    labor_price?: number | null;
+  };
 
-  const { data: existingMaterials } = useQuery({
-    queryKey: ['materials-for-import'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('materials')
-        .select('*');
-      if (error) throw error;
-      return data || [];
-    }
+  const catalogRef = useRef<MaterialRow[]>([]);
+
+  const fetchMaterialsCatalog = async (): Promise<MaterialRow[]> => {
+    const { data, error } = await supabase.from("materials").select("*");
+    if (error) throw error;
+    return (data || []) as MaterialRow[];
+  };
+
+  const { data: existingMaterials = [] } = useQuery<MaterialRow[]>({
+    queryKey: ["materials-for-import"],
+    queryFn: fetchMaterialsCatalog,
+    staleTime: 0,
   });
 
+  useEffect(() => {
+    catalogRef.current = existingMaterials;
+  }, [existingMaterials]);
+
+  const getFreshCatalog = async (): Promise<MaterialRow[]> => {
+    try {
+      const catalog = await queryClient.fetchQuery<MaterialRow[]>({
+        queryKey: ["materials-for-import"],
+        queryFn: fetchMaterialsCatalog,
+      });
+      catalogRef.current = catalog || [];
+      return catalog || [];
+    } catch {
+      catalogRef.current = existingMaterials;
+      return existingMaterials;
+    }
+  };
   const normalizeText = (text: string): string => {
     return text
       .toLowerCase()
@@ -91,6 +118,20 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       .replace(/[^\w\s]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  };
+
+  const fileToBase64 = (inputFile: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
+      reader.onload = () => {
+        const result = String(reader.result || "");
+        // data:application/pdf;base64,....
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64);
+      };
+      reader.readAsDataURL(inputFile);
+    });
   };
 
   const levenshteinDistance = (str1: string, str2: string): number => {
@@ -125,44 +166,54 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     return Math.max(0, (1 - distance / maxLen) * 100);
   };
 
-  const findSimilarMaterial = (name: string, importedPrice?: number, importedMaterialPrice?: number, importedLaborPrice?: number): { 
-    material: any; 
-    similarity: number; 
+  const findSimilarMaterial = (
+    name: string,
+    importedPrice?: number,
+    importedMaterialPrice?: number,
+    importedLaborPrice?: number
+  ): {
+    material: any;
+    similarity: number;
     matchType: string;
     isExactDuplicate?: boolean;
     hasPriceChange?: boolean;
   } | null => {
-    if (!existingMaterials || existingMaterials.length === 0) return null;
+    const catalog = (catalogRef.current && catalogRef.current.length > 0)
+      ? catalogRef.current
+      : (existingMaterials || []);
+
+    if (catalog.length === 0) return null;
 
     const normalizedName = normalizeText(name);
-    
+
     // Busca exata
-    const exactMatch = existingMaterials.find(m => normalizeText(m.name) === normalizedName);
+    const exactMatch = catalog.find((m) => normalizeText(m.name) === normalizedName);
     if (exactMatch) {
       // Verificar se há mudança de preço
       const existingTotal = (exactMatch.material_price || 0) + (exactMatch.labor_price || 0);
-      const newTotal = (importedMaterialPrice || 0) + (importedLaborPrice || 0) || importedPrice || 0;
+      const newTotal =
+        (importedMaterialPrice || 0) + (importedLaborPrice || 0) || importedPrice || 0;
       const hasPriceChange = newTotal > 0 && Math.abs(existingTotal - newTotal) > 0.01;
-      
-      return { 
-        material: exactMatch, 
-        similarity: 100, 
-        matchType: 'Exato',
+
+      return {
+        material: exactMatch,
+        similarity: 100,
+        matchType: "Exato",
         isExactDuplicate: true,
-        hasPriceChange
+        hasPriceChange,
       };
     }
 
     // Busca parcial
-    const partialMatch = existingMaterials.find(m => {
+    const partialMatch = catalog.find((m) => {
       const normalizedMat = normalizeText(m.name);
       return normalizedName.includes(normalizedMat) || normalizedMat.includes(normalizedName);
     });
-    if (partialMatch) return { material: partialMatch, similarity: 85, matchType: 'Parcial' };
+    if (partialMatch) return { material: partialMatch, similarity: 85, matchType: "Parcial" };
 
     // Busca por similaridade
     let bestMatch: { material: any; similarity: number } | null = null;
-    existingMaterials.forEach(m => {
+    catalog.forEach((m) => {
       const similarity = calculateSimilarity(name, m.name);
       if (similarity >= 60 && (!bestMatch || similarity > bestMatch.similarity)) {
         bestMatch = { material: m, similarity };
@@ -170,7 +221,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     });
 
     if (bestMatch) {
-      return { material: bestMatch.material, similarity: bestMatch.similarity, matchType: 'Similaridade' };
+      return {
+        material: bestMatch.material,
+        similarity: bestMatch.similarity,
+        matchType: "Similaridade",
+      };
     }
 
     return null;
@@ -204,8 +259,12 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   ): { materials: ExtractedMaterial[]; pendingApprovals: number[] } => {
     const pendingApprovals: number[] = [];
 
+    const catalog = (catalogRef.current && catalogRef.current.length > 0)
+      ? catalogRef.current
+      : (existingMaterials || []);
+
     // Sem catálogo carregado ainda: trata tudo como novo.
-    if (!existingMaterials || existingMaterials.length === 0) {
+    if (catalog.length === 0) {
       return {
         materials: materials.map((m) => ({ ...m, isNew: true })),
         pendingApprovals,
@@ -414,14 +473,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       let jsonData: any[] = [];
       let useAIProcessing = false;
 
+      // Garante catálogo atualizado (evita importar duplicados quando ainda não carregou)
+      const catalog = await getFreshCatalog();
+
       if (file.type === 'application/pdf') {
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(
-          new Uint8Array(arrayBuffer).reduce(
-            (data, byte) => data + String.fromCharCode(byte),
-            ''
-          )
-        );
+        const base64 = await fileToBase64(file);
 
         toast({
           title: "Extraindo dados do PDF...",
@@ -492,7 +548,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       }
 
       // If we have cataloged materials, use AI processing to find prices
-      if (useAIProcessing && existingMaterials && existingMaterials.length > 0) {
+      if (useAIProcessing && catalog.length > 0) {
         toast({
           title: "Processando com IA...",
           description: "Identificando materiais e buscando preços no catálogo"
@@ -502,7 +558,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           body: {
             spreadsheetData: jsonData,
             customKeywords: [],
-            catalogedMaterials: existingMaterials || []
+            catalogedMaterials: catalog
           }
         });
 
