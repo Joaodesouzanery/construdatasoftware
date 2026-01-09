@@ -48,6 +48,11 @@ interface ExtractedMaterial {
   needsApproval?: boolean;
   approved?: boolean;
   isNew?: boolean;
+  isExactDuplicate?: boolean;
+  hasPriceChange?: boolean;
+  newPrice?: number;
+  newMaterialPrice?: number;
+  newLaborPrice?: number;
 }
 
 export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialogProps) => {
@@ -120,14 +125,33 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     return Math.max(0, (1 - distance / maxLen) * 100);
   };
 
-  const findSimilarMaterial = (name: string): { material: any; similarity: number; matchType: string } | null => {
+  const findSimilarMaterial = (name: string, importedPrice?: number, importedMaterialPrice?: number, importedLaborPrice?: number): { 
+    material: any; 
+    similarity: number; 
+    matchType: string;
+    isExactDuplicate?: boolean;
+    hasPriceChange?: boolean;
+  } | null => {
     if (!existingMaterials || existingMaterials.length === 0) return null;
 
     const normalizedName = normalizeText(name);
     
     // Busca exata
     const exactMatch = existingMaterials.find(m => normalizeText(m.name) === normalizedName);
-    if (exactMatch) return { material: exactMatch, similarity: 100, matchType: 'Exato' };
+    if (exactMatch) {
+      // Verificar se há mudança de preço
+      const existingTotal = (exactMatch.material_price || 0) + (exactMatch.labor_price || 0);
+      const newTotal = (importedMaterialPrice || 0) + (importedLaborPrice || 0) || importedPrice || 0;
+      const hasPriceChange = newTotal > 0 && Math.abs(existingTotal - newTotal) > 0.01;
+      
+      return { 
+        material: exactMatch, 
+        similarity: 100, 
+        matchType: 'Exato',
+        isExactDuplicate: true,
+        hasPriceChange
+      };
+    }
 
     // Busca parcial
     const partialMatch = existingMaterials.find(m => {
@@ -152,14 +176,64 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     return null;
   };
 
+  const updatePriceMutation = useMutation({
+    mutationFn: async (materials: ExtractedMaterial[]) => {
+      // Filtra materiais que são duplicatas exatas com alteração de preço aprovada
+      const materialsToUpdate = materials.filter(m => 
+        m.isExactDuplicate && 
+        m.hasPriceChange && 
+        m.approved && 
+        m.existingMaterial?.id
+      );
+
+      for (const material of materialsToUpdate) {
+        const { error } = await supabase
+          .from('materials')
+          .update({
+            material_price: material.newMaterialPrice ?? material.material_price ?? 0,
+            labor_price: material.newLaborPrice ?? material.labor_price ?? 0,
+            current_price: (material.newMaterialPrice ?? material.material_price ?? 0) + (material.newLaborPrice ?? material.labor_price ?? 0),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', material.existingMaterial.id);
+
+        if (error) throw error;
+      }
+
+      return materialsToUpdate.length;
+    },
+    onSuccess: (count) => {
+      if (count > 0) {
+        queryClient.invalidateQueries({ queryKey: ['materials-prices'] });
+        queryClient.invalidateQueries({ queryKey: ['materials'] });
+        queryClient.invalidateQueries({ queryKey: ['materials-for-import'] });
+        toast({
+          title: "Sucesso",
+          description: `${count} ${count === 1 ? 'material atualizado' : 'materiais atualizados'} com sucesso!`,
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar preços",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const importMutation = useMutation({
     mutationFn: async (materials: ExtractedMaterial[]) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Primeiro, atualiza os preços dos materiais existentes
+      await updatePriceMutation.mutateAsync(materials);
+
       // Filtra apenas os materiais novos (não existentes e aprovados ou sem match)
+      // Exclui duplicatas exatas
       const materialsToInsert = materials
-        .filter(m => m.isNew !== false && !m.existingMaterial)
+        .filter(m => m.isNew === true && !m.existingMaterial && !m.isExactDuplicate)
         .map(material => ({
           name: material.name,
           description: material.description || null,
@@ -187,6 +261,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['materials-prices'] });
       queryClient.invalidateQueries({ queryKey: ['materials'] });
+      queryClient.invalidateQueries({ queryKey: ['materials-for-import'] });
       toast({
         title: "Sucesso",
         description: `${count} ${count === 1 ? 'material adicionado' : 'materiais adicionados'} com sucesso!`,
@@ -372,26 +447,55 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
         if (!name || name.length < 2) continue;
 
-        // Busca material similar
-        const similar = findSimilarMaterial(name);
+        // Busca material similar COM os preços importados
+        const similar = findSimilarMaterial(name, totalPrice, materialPrice, laborPrice);
         
         if (similar) {
-          if (similar.matchType === 'Exato') {
-            // Material já existe, não precisa adicionar
-            materials.push({
-              name,
-              description: name,
-              unit,
-              current_price: totalPrice || similar.material.current_price || 0,
-              material_price: materialPrice || similar.material.material_price || 0,
-              labor_price: laborPrice || similar.material.labor_price || 0,
-              supplier,
-              keywords,
-              existingMaterial: similar.material,
-              similarity: 100,
-              matchType: 'Já existe',
-              isNew: false,
-            });
+          if (similar.isExactDuplicate) {
+            // Material já existe - verificar se há alteração de preço
+            if (similar.hasPriceChange) {
+              // Duplicata com preço diferente - precisa de aprovação para atualizar
+              materials.push({
+                name,
+                description: name,
+                unit,
+                current_price: similar.material.current_price || 0,
+                material_price: similar.material.material_price || 0,
+                labor_price: similar.material.labor_price || 0,
+                newPrice: totalPrice,
+                newMaterialPrice: materialPrice,
+                newLaborPrice: laborPrice,
+                supplier,
+                keywords,
+                existingMaterial: similar.material,
+                similarity: 100,
+                matchType: 'Duplicado - Preço diferente',
+                isExactDuplicate: true,
+                hasPriceChange: true,
+                needsApproval: true,
+                approved: false,
+                isNew: false,
+              });
+              pendingApprovals.push(materials.length - 1);
+            } else {
+              // Duplicata exata sem mudança de preço - ignorar
+              materials.push({
+                name,
+                description: name,
+                unit,
+                current_price: similar.material.current_price || 0,
+                material_price: similar.material.material_price || 0,
+                labor_price: similar.material.labor_price || 0,
+                supplier,
+                keywords,
+                existingMaterial: similar.material,
+                similarity: 100,
+                matchType: 'Já existe (ignorado)',
+                isExactDuplicate: true,
+                hasPriceChange: false,
+                isNew: false,
+              });
+            }
           } else {
             // Similar encontrado, precisa de aprovação
             materials.push({
@@ -454,16 +558,43 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     }
   };
 
-  const handleApproval = (index: number, useExisting: boolean) => {
+  const handleApproval = (index: number, useExisting: boolean, updatePrice: boolean = false) => {
     setExtractedMaterials(prev => {
       const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        needsApproval: false,
-        approved: true,
-        isNew: !useExisting, // Se usar existente, não é novo
-        matchType: useExisting ? 'Usando existente' : 'Cadastrar novo',
-      };
+      const material = updated[index];
+      
+      if (material.isExactDuplicate && material.hasPriceChange) {
+        // Para duplicatas com preço diferente
+        if (updatePrice) {
+          // Usuário quer atualizar o preço
+          updated[index] = {
+            ...material,
+            needsApproval: false,
+            approved: true,
+            isNew: false,
+            matchType: 'Preço será atualizado',
+          };
+        } else {
+          // Usuário não quer atualizar - manter como está
+          updated[index] = {
+            ...material,
+            needsApproval: false,
+            approved: false,
+            isNew: false,
+            hasPriceChange: false,
+            matchType: 'Mantido como está',
+          };
+        }
+      } else {
+        // Para materiais similares (não exatos)
+        updated[index] = {
+          ...material,
+          needsApproval: false,
+          approved: true,
+          isNew: !useExisting,
+          matchType: useExisting ? 'Usando existente' : 'Cadastrar novo',
+        };
+      }
       return updated;
     });
 
@@ -481,12 +612,27 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   const handleSkipApproval = (index: number) => {
     setExtractedMaterials(prev => {
       const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        needsApproval: false,
-        isNew: true,
-        matchType: 'Cadastrar novo',
-      };
+      const material = updated[index];
+      
+      if (material.isExactDuplicate) {
+        // Para duplicatas, pular significa manter como está
+        updated[index] = {
+          ...material,
+          needsApproval: false,
+          approved: false,
+          isNew: false,
+          hasPriceChange: false,
+          matchType: 'Ignorado',
+        };
+      } else {
+        // Para similares, pular significa criar novo
+        updated[index] = {
+          ...material,
+          needsApproval: false,
+          isNew: true,
+          matchType: 'Cadastrar novo',
+        };
+      }
       return updated;
     });
 
@@ -653,100 +799,190 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   };
 
   const currentPending = pendingApprovalIndex !== null ? extractedMaterials[pendingApprovalIndex] : null;
-  const newMaterialsCount = extractedMaterials.filter(m => m.isNew && !m.needsApproval).length;
-  const missingPriceCount = extractedMaterials.filter(
-    (m) => m.isNew && !m.needsApproval && (!m.current_price || m.current_price <= 0)
-  ).length;
+  const newMaterialsCount = extractedMaterials.filter(m => m.isNew && !m.needsApproval && !m.isExactDuplicate).length;
+  const updatePriceCount = extractedMaterials.filter(m => m.isExactDuplicate && m.hasPriceChange && m.approved).length;
+  // Preços são opcionais agora
+  const missingPriceCount = 0;
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {pendingApprovalIndex !== null ? "Confirmar Material Similar" : 
-             showReview ? "Revisão dos Materiais" : "Importar Materiais"}
+            {pendingApprovalIndex !== null 
+              ? (currentPending?.isExactDuplicate && currentPending?.hasPriceChange 
+                  ? "Material Duplicado Encontrado" 
+                  : "Confirmar Material Similar")
+              : showReview ? "Revisão dos Materiais" : "Importar Materiais"}
           </DialogTitle>
           {pendingApprovalIndex !== null && currentPending && (
             <DialogDescription>
-              Encontramos um material similar. Confirme se deseja usar o existente ou cadastrar novo.
+              {currentPending.isExactDuplicate && currentPending.hasPriceChange
+                ? "Este material já existe na sua base de dados, mas com um preço diferente. Deseja atualizar o preço?"
+                : "Encontramos um material similar. Confirme se deseja usar o existente ou cadastrar novo."}
             </DialogDescription>
           )}
         </DialogHeader>
 
         {pendingApprovalIndex !== null && currentPending ? (
           <div className="space-y-4 py-4">
-            <div className="p-4 border rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground mb-1">Material na planilha:</p>
-              <p className="font-medium">{currentPending.name}</p>
-              <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                {currentPending.unit && <span>Unidade: <strong>{currentPending.unit}</strong></span>}
-                {currentPending.quantity && <span>Quantidade: <strong>{currentPending.quantity}</strong></span>}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center">
-              <span className="text-muted-foreground">↓</span>
-            </div>
-
-            <div className="p-4 border rounded-lg border-primary/50 bg-primary/5">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-muted-foreground">Material existente encontrado:</p>
-                <Badge variant={currentPending.matchType === 'Parcial' ? 'secondary' : 'outline'}>
-                  {currentPending.similarity?.toFixed(0)}% similar
-                </Badge>
-              </div>
-              <p className="font-semibold text-lg">{currentPending.existingMaterial?.name}</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Unidade</p>
-                  <p className="font-medium">{currentPending.existingMaterial?.unit || 'UN'}</p>
-                </div>
-                {currentPending.existingMaterial?.category && (
-                  <div>
-                    <p className="text-muted-foreground">Categoria</p>
-                    <p className="font-medium">{currentPending.existingMaterial.category}</p>
-                  </div>
-                )}
-                {currentPending.existingMaterial?.supplier && (
-                  <div>
-                    <p className="text-muted-foreground">Fornecedor</p>
-                    <p className="font-medium">{currentPending.existingMaterial.supplier}</p>
-                  </div>
-                )}
-              </div>
-
-              {(currentPending.existingMaterial?.material_price || currentPending.existingMaterial?.labor_price) && (
-                <div className="flex items-center gap-4 mt-4 pt-3 border-t">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Material</p>
-                    <p className="text-blue-600 font-semibold">
-                      R$ {(currentPending.existingMaterial.material_price || 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Mão de Obra</p>
-                    <p className="text-orange-600 font-semibold">
-                      R$ {(currentPending.existingMaterial.labor_price || 0).toFixed(2)}
-                    </p>
+            {currentPending.isExactDuplicate && currentPending.hasPriceChange ? (
+              /* UI para duplicata com preço diferente */
+              <>
+                <div className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-amber-800 dark:text-amber-200">Material já existe na base de dados</p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                        Identificamos que "{currentPending.name}" já está cadastrado, mas com um preço diferente.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => handleSkipApproval(pendingApprovalIndex)} className="sm:mr-auto">
-                <SkipForward className="h-4 w-4 mr-2" />
-                Pular
-              </Button>
-              <Button variant="secondary" onClick={() => handleApproval(pendingApprovalIndex, false)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Novo
-              </Button>
-              <Button onClick={() => handleApproval(pendingApprovalIndex, true)}>
-                <Check className="h-4 w-4 mr-2" />
-                Usar Existente
-              </Button>
-            </DialogFooter>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border rounded-lg bg-muted/50">
+                    <p className="text-sm text-muted-foreground mb-2">Preço atual na base:</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Material:</span>
+                        <span className="font-semibold text-blue-600">
+                          R$ {(currentPending.existingMaterial?.material_price || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Mão de Obra:</span>
+                        <span className="font-semibold text-orange-600">
+                          R$ {(currentPending.existingMaterial?.labor_price || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-sm font-medium">Total:</span>
+                        <span className="font-bold">
+                          R$ {((currentPending.existingMaterial?.material_price || 0) + (currentPending.existingMaterial?.labor_price || 0)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border rounded-lg bg-primary/5 border-primary/30">
+                    <p className="text-sm text-muted-foreground mb-2">Novo preço (da planilha):</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Material:</span>
+                        <span className="font-semibold text-blue-600">
+                          R$ {(currentPending.newMaterialPrice || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Mão de Obra:</span>
+                        <span className="font-semibold text-orange-600">
+                          R$ {(currentPending.newLaborPrice || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t">
+                        <span className="text-sm font-medium">Total:</span>
+                        <span className="font-bold text-primary">
+                          R$ {((currentPending.newMaterialPrice || 0) + (currentPending.newLaborPrice || 0)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => handleSkipApproval(pendingApprovalIndex)} className="sm:mr-auto">
+                    <X className="h-4 w-4 mr-2" />
+                    Ignorar
+                  </Button>
+                  <Button variant="secondary" onClick={() => handleApproval(pendingApprovalIndex, true, false)}>
+                    <SkipForward className="h-4 w-4 mr-2" />
+                    Manter Preço Atual
+                  </Button>
+                  <Button onClick={() => handleApproval(pendingApprovalIndex, true, true)}>
+                    <Check className="h-4 w-4 mr-2" />
+                    Atualizar Preço
+                  </Button>
+                </DialogFooter>
+              </>
+            ) : (
+              /* UI para material similar (não exato) */
+              <>
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground mb-1">Material na planilha:</p>
+                  <p className="font-medium">{currentPending.name}</p>
+                  <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                    {currentPending.unit && <span>Unidade: <strong>{currentPending.unit}</strong></span>}
+                    {currentPending.quantity && <span>Quantidade: <strong>{currentPending.quantity}</strong></span>}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <span className="text-muted-foreground">↓</span>
+                </div>
+
+                <div className="p-4 border rounded-lg border-primary/50 bg-primary/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">Material existente encontrado:</p>
+                    <Badge variant={currentPending.matchType === 'Parcial' ? 'secondary' : 'outline'}>
+                      {currentPending.similarity?.toFixed(0)}% similar
+                    </Badge>
+                  </div>
+                  <p className="font-semibold text-lg">{currentPending.existingMaterial?.name}</p>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Unidade</p>
+                      <p className="font-medium">{currentPending.existingMaterial?.unit || 'UN'}</p>
+                    </div>
+                    {currentPending.existingMaterial?.category && (
+                      <div>
+                        <p className="text-muted-foreground">Categoria</p>
+                        <p className="font-medium">{currentPending.existingMaterial.category}</p>
+                      </div>
+                    )}
+                    {currentPending.existingMaterial?.supplier && (
+                      <div>
+                        <p className="text-muted-foreground">Fornecedor</p>
+                        <p className="font-medium">{currentPending.existingMaterial.supplier}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {(currentPending.existingMaterial?.material_price || currentPending.existingMaterial?.labor_price) && (
+                    <div className="flex items-center gap-4 mt-4 pt-3 border-t">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Material</p>
+                        <p className="text-blue-600 font-semibold">
+                          R$ {(currentPending.existingMaterial.material_price || 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Mão de Obra</p>
+                        <p className="text-orange-600 font-semibold">
+                          R$ {(currentPending.existingMaterial.labor_price || 0).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => handleSkipApproval(pendingApprovalIndex)} className="sm:mr-auto">
+                    <SkipForward className="h-4 w-4 mr-2" />
+                    Pular
+                  </Button>
+                  <Button variant="secondary" onClick={() => handleApproval(pendingApprovalIndex, false)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Cadastrar Novo
+                  </Button>
+                  <Button onClick={() => handleApproval(pendingApprovalIndex, true)}>
+                    <Check className="h-4 w-4 mr-2" />
+                    Usar Existente
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
           </div>
         ) : !showReview ? (
           <div className="space-y-4">
@@ -768,7 +1004,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                 <br />
                 <strong>• Fornecedor</strong> (opcional)
                 <br />
-                <strong>• Preço Material</strong> (obrigatório)
+                <strong>• Preço Material</strong> (opcional)
                 <br />
                 <strong>• Preço M.O.</strong> (opcional)
                 <br />
@@ -777,7 +1013,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                 <strong>• Palavras-Chave</strong> (opcional - separadas por vírgula)
                 <br />
                 <br />
-                O sistema irá buscar materiais similares na sua base e pedir confirmação.
+                O sistema identifica materiais duplicados e oferece opção de atualizar preços.
               </p>
             </div>
 
@@ -798,15 +1034,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                <div className="space-y-1">
                  <p className="text-sm font-medium">
                    {newMaterialsCount} novos materiais para adicionar
+                   {updatePriceCount > 0 && ` • ${updatePriceCount} preços para atualizar`}
                  </p>
                  <p className="text-xs text-muted-foreground">
-                   {extractedMaterials.filter(m => !m.isNew).length} já existem na base
+                   {extractedMaterials.filter(m => !m.isNew && !m.hasPriceChange).length} já existem na base (serão ignorados)
                  </p>
-                  {missingPriceCount > 0 && (
-                    <p className="text-xs text-destructive">
-                      {missingPriceCount} {missingPriceCount === 1 ? 'item está sem preço' : 'itens estão sem preço'} (obrigatório)
-                    </p>
-                  )}
                 </div>
               {selectedItems.size > 0 && (
                 <div className="flex gap-2">
@@ -943,13 +1175,17 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                       </TableCell>
                        <TableCell>
                          {material.isNew ? (
+                           <span className="font-medium text-primary">
+                             R$ {(material.current_price || 0).toFixed(2)}
+                           </span>
+                         ) : material.hasPriceChange && material.approved ? (
                            <div className="space-y-1">
-                             <span className="font-medium text-primary">
+                             <span className="text-muted-foreground line-through text-xs">
                                R$ {(material.current_price || 0).toFixed(2)}
                              </span>
-                             {(!material.current_price || material.current_price <= 0) && (
-                               <p className="text-xs text-destructive">Obrigatório</p>
-                             )}
+                             <span className="font-medium text-green-600 block">
+                               R$ {((material.newMaterialPrice || 0) + (material.newLaborPrice || 0)).toFixed(2)}
+                             </span>
                            </div>
                          ) : material.current_price ? (
                            `R$ ${material.current_price.toFixed(2)}`
@@ -959,9 +1195,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                        </TableCell>
                       <TableCell>
                         <Badge variant={
+                          material.matchType?.includes('atualizado') || material.matchType?.includes('Atualizar') ? 'default' :
                           material.isNew === false ? 'secondary' :
                           material.matchType === 'Cadastrar novo' ? 'default' :
                           material.matchType === 'Usando existente' ? 'secondary' :
+                          material.matchType?.includes('Ignorado') || material.matchType?.includes('Mantido') ? 'outline' :
                           'outline'
                         }>
                           {material.matchType || 'Novo'}
@@ -995,13 +1233,16 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
               </Button>
                <Button 
                  onClick={handleImport}
-                 disabled={newMaterialsCount === 0 || missingPriceCount > 0 || importMutation.isPending}
+                 disabled={(newMaterialsCount === 0 && updatePriceCount === 0) || importMutation.isPending}
                  className="flex-1"
                >
                  <Save className="h-4 w-4 mr-2" />
-                 {importMutation.isPending ? "Adicionando..." : 
-                   missingPriceCount > 0 ? "Preencha os preços para continuar" :
-                   `Adicionar ${newMaterialsCount} Materiais`
+                 {importMutation.isPending ? "Processando..." : 
+                   newMaterialsCount > 0 && updatePriceCount > 0 
+                     ? `Adicionar ${newMaterialsCount} e Atualizar ${updatePriceCount}`
+                     : newMaterialsCount > 0 
+                       ? `Adicionar ${newMaterialsCount} Materiais`
+                       : `Atualizar ${updatePriceCount} Preços`
                  }
                </Button>
             </div>
