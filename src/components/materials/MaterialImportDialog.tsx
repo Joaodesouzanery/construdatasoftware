@@ -176,6 +176,129 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     return null;
   };
 
+  const getImportKey = (name: string, unit?: string) => {
+    const safeUnit = unit || "UN";
+    return `${normalizeText(name)}|${normalizeText(safeUnit)}`;
+  };
+
+  const dedupeImportedMaterials = (materials: ExtractedMaterial[]) => {
+    const seen = new Set<string>();
+    const deduped: ExtractedMaterial[] = [];
+    let duplicatesSkipped = 0;
+
+    for (const m of materials) {
+      const key = getImportKey(m.name, m.unit);
+      if (seen.has(key)) {
+        duplicatesSkipped++;
+        continue;
+      }
+      seen.add(key);
+      deduped.push(m);
+    }
+
+    return { deduped, duplicatesSkipped };
+  };
+
+  const applyMatchingToImportedMaterials = (
+    materials: ExtractedMaterial[]
+  ): { materials: ExtractedMaterial[]; pendingApprovals: number[] } => {
+    const pendingApprovals: number[] = [];
+
+    // Sem catálogo carregado ainda: trata tudo como novo.
+    if (!existingMaterials || existingMaterials.length === 0) {
+      return {
+        materials: materials.map((m) => ({ ...m, isNew: true })),
+        pendingApprovals,
+      };
+    }
+
+    const updated = materials.map((m) => {
+      const importedMaterialPrice = m.material_price ?? 0;
+      const importedLaborPrice = m.labor_price ?? 0;
+      const importedSplitTotal = importedMaterialPrice + importedLaborPrice;
+      const importedTotal = importedSplitTotal > 0 ? importedSplitTotal : (m.current_price ?? 0);
+
+      const normalizedMatch = findSimilarMaterial(
+        m.name,
+        importedTotal,
+        importedMaterialPrice,
+        importedLaborPrice
+      );
+
+      if (!normalizedMatch) {
+        return {
+          ...m,
+          isNew: true,
+          matchType: m.matchType || (importedTotal > 0 ? "Com preço" : "Novo material"),
+        };
+      }
+
+      if (normalizedMatch.isExactDuplicate) {
+        if (normalizedMatch.hasPriceChange) {
+          const newMaterialPrice = importedSplitTotal > 0 ? importedMaterialPrice : importedTotal;
+          const newLaborPrice = importedSplitTotal > 0 ? importedLaborPrice : 0;
+
+          return {
+            ...m,
+            existingMaterial: normalizedMatch.material,
+            similarity: 100,
+            matchType: "Duplicado - Preço diferente",
+            isExactDuplicate: true,
+            hasPriceChange: true,
+            needsApproval: true,
+            approved: false,
+            isNew: false,
+            current_price: normalizedMatch.material.current_price || 0,
+            material_price: normalizedMatch.material.material_price || 0,
+            labor_price: normalizedMatch.material.labor_price || 0,
+            newPrice: importedTotal,
+            newMaterialPrice,
+            newLaborPrice,
+          } satisfies ExtractedMaterial;
+        }
+
+        return {
+          ...m,
+          existingMaterial: normalizedMatch.material,
+          similarity: 100,
+          matchType: "Já existe (ignorado)",
+          isExactDuplicate: true,
+          hasPriceChange: false,
+          isNew: false,
+          current_price: normalizedMatch.material.current_price || 0,
+          material_price: normalizedMatch.material.material_price || 0,
+          labor_price: normalizedMatch.material.labor_price || 0,
+        } satisfies ExtractedMaterial;
+      }
+
+      // Similar (não exato): pede confirmação.
+      return {
+        ...m,
+        existingMaterial: normalizedMatch.material,
+        similarity: normalizedMatch.similarity,
+        matchType: normalizedMatch.matchType,
+        needsApproval: true,
+        approved: false,
+        isNew: true,
+        current_price: importedTotal || normalizedMatch.material.current_price || 0,
+        material_price: importedMaterialPrice || normalizedMatch.material.material_price || 0,
+        labor_price: importedLaborPrice || normalizedMatch.material.labor_price || 0,
+      } satisfies ExtractedMaterial;
+    });
+
+    updated.forEach((m, i) => {
+      if (m.needsApproval) pendingApprovals.push(i);
+    });
+
+    return { materials: updated, pendingApprovals };
+  };
+
+  const prepareImportedMaterialsForReview = (materials: ExtractedMaterial[]) => {
+    const { deduped, duplicatesSkipped } = dedupeImportedMaterials(materials);
+    const { materials: matched, pendingApprovals } = applyMatchingToImportedMaterials(deduped);
+    return { materials: matched, pendingApprovals, duplicatesSkipped };
+  };
+
   const updatePriceMutation = useMutation({
     mutationFn: async (materials: ExtractedMaterial[]) => {
       // Filtra materiais que são duplicatas exatas com alteração de preço aprovada
@@ -314,11 +437,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         if (!pdfData?.items || pdfData.items.length === 0) throw new Error('Nenhum dado encontrado no PDF');
 
         // Processa diretamente os itens do PDF com o novo formato padronizado
-        const pdfMaterials: ExtractedMaterial[] = pdfData.items.map((item: any) => {
+        const pdfMaterialsRaw: ExtractedMaterial[] = pdfData.items.map((item: any) => {
           const materialPrice = item.material_price || 0;
           const laborPrice = item.labor_price || 0;
           const totalPrice = item.price || (materialPrice + laborPrice);
-          
+
           return {
             name: item.description || item.name || '',
             description: item.description || item.name || '',
@@ -334,13 +457,25 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           };
         }).filter((m: ExtractedMaterial) => m.name && m.name.length > 1);
 
+        const { materials: pdfMaterials, pendingApprovals, duplicatesSkipped } =
+          prepareImportedMaterialsForReview(pdfMaterialsRaw);
+
         setExtractedMaterials(pdfMaterials);
         setShowReview(true);
-        
+
+        // Se há materiais similares/duplicados pendentes de aprovação, inicia o fluxo de aprovação
+        if (pendingApprovals.length > 0) {
+          setPendingApprovalIndex(pendingApprovals[0]);
+          toast({
+            title: "Materiais encontrados no catálogo",
+            description: `${pendingApprovals.length} itens precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}`,
+          });
+        }
+
         const withPrices = pdfMaterials.filter(m => (m.current_price || 0) > 0).length;
         toast({
           title: "PDF processado!",
-          description: `${pdfMaterials.length} materiais identificados, ${withPrices} com preços`,
+          description: `${pdfMaterials.length} materiais identificados, ${withPrices} com preços${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados ignorados` : ''}`,
         });
         setIsProcessing(false);
         return;
@@ -373,14 +508,14 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
         if (!aiError && aiProcessedData?.materials && aiProcessedData.materials.length > 0) {
           // Use AI-processed materials with prices
-          const aiMaterials: ExtractedMaterial[] = aiProcessedData.materials.map((m: any) => {
+          const aiMaterialsRaw: ExtractedMaterial[] = aiProcessedData.materials.map((m: any) => {
             const hasPrice = (m.material_price && m.material_price > 0) || (m.labor_price && m.labor_price > 0) || (m.price && m.price > 0);
             return {
               name: m.name,
               description: m.name,
               unit: m.unit || 'UN',
               quantity: m.quantity || 1,
-              current_price: m.price || m.material_price || 0,
+              current_price: m.price || ((m.material_price || 0) + (m.labor_price || 0)) || 0,
               material_price: m.material_price || 0,
               labor_price: m.labor_price || 0,
               category: m.brand ? `Marca: ${m.brand}` : undefined,
@@ -391,14 +526,25 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
             };
           });
 
+          const { materials: aiMaterials, pendingApprovals, duplicatesSkipped } =
+            prepareImportedMaterialsForReview(aiMaterialsRaw);
+
           const withPrices = aiMaterials.filter(m => (m.current_price || 0) > 0).length;
-          
+
           setExtractedMaterials(aiMaterials);
           setShowReview(true);
-          
+
+          if (pendingApprovals.length > 0) {
+            setPendingApprovalIndex(pendingApprovals[0]);
+            toast({
+              title: "Materiais encontrados no catálogo",
+              description: `${pendingApprovals.length} itens precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}`,
+            });
+          }
+
           toast({
             title: "Processamento concluído!",
-            description: `${aiMaterials.length} materiais identificados, ${withPrices} com preços encontrados`,
+            description: `${aiMaterials.length} materiais identificados, ${withPrices} com preços encontrados${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados ignorados` : ''}`,
           });
           return;
         }
@@ -426,6 +572,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
       const materials: ExtractedMaterial[] = [];
       const pendingApprovals: number[] = [];
+      const seenImportKeys = new Set<string>();
+      let duplicatesSkipped = 0;
 
       for (let i = 0; i < jsonData.length; i++) {
         const rowData: any = jsonData[i];
@@ -446,6 +594,13 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         const keywords = keywordsStr ? keywordsStr.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
 
         if (!name || name.length < 2) continue;
+
+        const importKey = getImportKey(name, unit);
+        if (seenImportKeys.has(importKey)) {
+          duplicatesSkipped++;
+          continue;
+        }
+        seenImportKeys.add(importKey);
 
         // Busca material similar COM os preços importados
         const similar = findSimilarMaterial(name, totalPrice, materialPrice, laborPrice);
@@ -544,7 +699,12 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         setPendingApprovalIndex(pendingApprovals[0]);
         toast({
           title: "Materiais similares encontrados",
-          description: `${pendingApprovals.length} materiais precisam da sua confirmação`,
+          description: `${pendingApprovals.length} materiais precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}`,
+        });
+      } else if (duplicatesSkipped > 0) {
+        toast({
+          title: "Itens duplicados ignorados",
+          description: `${duplicatesSkipped} itens repetidos no arquivo não serão importados`,
         });
       }
     } catch (error: any) {
@@ -587,11 +747,14 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         }
       } else {
         // Para materiais similares (não exatos)
+        const creatingNew = !useExisting;
         updated[index] = {
           ...material,
           needsApproval: false,
           approved: true,
-          isNew: !useExisting,
+          isNew: creatingNew,
+          existingMaterial: creatingNew ? undefined : material.existingMaterial,
+          similarity: creatingNew ? undefined : material.similarity,
           matchType: useExisting ? 'Usando existente' : 'Cadastrar novo',
         };
       }
@@ -630,6 +793,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           ...material,
           needsApproval: false,
           isNew: true,
+          existingMaterial: undefined,
+          similarity: undefined,
           matchType: 'Cadastrar novo',
         };
       }
