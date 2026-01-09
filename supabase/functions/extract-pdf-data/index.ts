@@ -90,14 +90,21 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
             role: 'system',
-            content: `Você é um extrator de dados de tabelas de materiais em PDF. Extraia TODOS os itens da tabela no formato JSON.
+            content: `Você é um extrator de dados de tabelas de materiais em PDF com ALTA PRECISÃO. Extraia TODOS os itens da tabela no formato JSON.
 
-A planilha segue um formato PADRONIZADO com as colunas:
-- Descrição: descrição do item/material/serviço
+⚠️ ATENÇÃO MÁXIMA À ORTOGRAFIA:
+- Copie os nomes dos materiais EXATAMENTE como aparecem no documento
+- NÃO corrija, altere ou "interprete" os nomes - transcreva-os LITERALMENTE
+- Preste atenção especial a: letras duplas (rr, ss, ll), acentos (é, ã, ç), maiúsculas/minúsculas
+- Se houver dúvida sobre uma letra, mantenha exatamente como está no PDF
+- Exemplos de erros a EVITAR: "argamassa" virar "argamasa", "cerâmica" virar "ceramica", "hidráulico" virar "hidraulico"
+
+A planilha pode ter as seguintes colunas:
+- Descrição/Nome: descrição do item/material/serviço
 - Unidade: unidade de medida (ex: UN, M, M², KG, etc.)
 - Fornecedor: nome do fornecedor
 - Preço Material: preço do material (número)
@@ -106,9 +113,9 @@ A planilha segue um formato PADRONIZADO com as colunas:
 - Palavras-Chave: palavras-chave separadas por vírgula
             
 Retorne um array JSON com objetos contendo:
-- description: descrição do item/material/serviço (texto)
+- description: descrição do item/material/serviço (texto) - COPIE EXATAMENTE COMO ESTÁ NO PDF
 - unit: unidade de medida (texto). Se não houver, use "UN"
-- supplier: nome do fornecedor (texto ou null)
+- supplier: nome do fornecedor (texto ou null) - COPIE EXATAMENTE COMO ESTÁ NO PDF
 - material_price: preço do material (número). Se não houver, use 0
 - labor_price: preço da mão de obra (número). Se não houver, use 0
 - price: preço total (número). Se não houver, calcule material_price + labor_price
@@ -116,15 +123,16 @@ Retorne um array JSON com objetos contendo:
 
 Exemplo de saída esperada:
 [
-  {"description": "Cimento CP II", "unit": "KG", "supplier": "Votorantim", "material_price": 25.5, "labor_price": 7.0, "price": 32.5, "keywords": ["cimento", "construção"]},
-  {"description": "Areia média", "unit": "M³", "supplier": null, "material_price": 150, "labor_price": 30, "price": 180, "keywords": ["areia"]}
+  {"description": "Cimento CP II-Z-32", "unit": "KG", "supplier": "Votorantim", "material_price": 25.5, "labor_price": 7.0, "price": 32.5, "keywords": ["cimento", "construção"]},
+  {"description": "Areia média lavada", "unit": "M³", "supplier": null, "material_price": 150, "labor_price": 30, "price": 180, "keywords": ["areia"]}
 ]
 
-IMPORTANTE:
-- Extraia TODOS os itens que encontrar (ignore títulos/cabeçalhos e linhas vazias)
-- Normalize números com vírgula/ponto (R$ 12,90 → 12.9)
-- Se o preço estiver como "R$ -" ou vazio, use 0
-- Retorne APENAS o array JSON, sem explicações`
+REGRAS CRÍTICAS:
+1. TRANSCREVA OS NOMES EXATAMENTE - sem correções ortográficas, sem alterações
+2. Extraia TODOS os itens (ignore títulos/cabeçalhos e linhas vazias)
+3. Normalize números com vírgula/ponto (R$ 12,90 → 12.9)
+4. Se o preço estiver como "R$ -" ou vazio, use 0
+5. Retorne APENAS o array JSON, sem explicações`
           },
           {
             role: 'user',
