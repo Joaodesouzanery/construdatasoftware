@@ -477,20 +477,43 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       const catalog = await getFreshCatalog();
 
       if (file.type === 'application/pdf') {
+        // Verifica tamanho do arquivo (máximo 5MB)
+        const maxSizeMB = 5;
+        if (file.size > maxSizeMB * 1024 * 1024) {
+          throw new Error(`O arquivo PDF é muito grande. Tamanho máximo: ${maxSizeMB}MB`);
+        }
+
         const base64 = await fileToBase64(file);
 
         toast({
           title: "Extraindo dados do PDF...",
-          description: "Aguarde enquanto processamos o arquivo"
+          description: "Aguarde enquanto processamos o arquivo (pode levar até 30 segundos)"
         });
 
-        const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
-          'extract-pdf-data',
-          { body: { pdfBase64: base64 } }
-        );
+        let pdfData: any = null;
+        let pdfError: any = null;
 
-        if (pdfError) throw new Error(`Erro ao processar PDF: ${pdfError.message}`);
-        if (!pdfData?.items || pdfData.items.length === 0) throw new Error('Nenhum dado encontrado no PDF');
+        try {
+          const response = await supabase.functions.invoke(
+            'extract-pdf-data',
+            { body: { pdfBase64: base64 } }
+          );
+          pdfData = response.data;
+          pdfError = response.error;
+        } catch (fetchError: any) {
+          console.error('Erro de conexão com a função:', fetchError);
+          throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
+        }
+
+        if (pdfError) {
+          console.error('Erro da função extract-pdf-data:', pdfError);
+          const errorMessage = pdfError.message || 'Erro desconhecido ao processar PDF';
+          throw new Error(`Erro ao processar PDF: ${errorMessage}`);
+        }
+        
+        if (!pdfData?.items || pdfData.items.length === 0) {
+          throw new Error('Nenhum dado encontrado no PDF. Verifique se o arquivo contém uma tabela de materiais.');
+        }
 
         // Processa diretamente os itens do PDF com o novo formato padronizado
         const pdfMaterialsRaw: ExtractedMaterial[] = pdfData.items.map((item: any) => {
