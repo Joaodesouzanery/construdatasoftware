@@ -16,7 +16,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.process-spreadsheet]
-verify_jwt = true
+verify_jwt = false
 
 [functions.extract-pdf-data]
-verify_jwt = true
+verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-list-users]
+verify_jwt = false
