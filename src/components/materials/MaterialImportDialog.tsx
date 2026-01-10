@@ -354,8 +354,18 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
   const prepareImportedMaterialsForReview = (materials: ExtractedMaterial[]) => {
     const { deduped, duplicatesSkipped } = dedupeImportedMaterials(materials);
-    const { materials: matched, pendingApprovals } = applyMatchingToImportedMaterials(deduped);
-    return { materials: matched, pendingApprovals, duplicatesSkipped };
+    const { materials: matched } = applyMatchingToImportedMaterials(deduped);
+
+    // Remove itens que já existem exatamente no catálogo e NÃO têm mudança de preço.
+    const filtered = matched.filter((m) => !(m.isExactDuplicate && !m.hasPriceChange));
+    const existingSkipped = matched.length - filtered.length;
+
+    const pendingApprovals: number[] = [];
+    filtered.forEach((m, i) => {
+      if (m.needsApproval) pendingApprovals.push(i);
+    });
+
+    return { materials: filtered, pendingApprovals, duplicatesSkipped, existingSkipped };
   };
 
   const updatePriceMutation = useMutation({
@@ -536,7 +546,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           };
         }).filter((m: ExtractedMaterial) => m.name && m.name.length > 1);
 
-        const { materials: pdfMaterials, pendingApprovals, duplicatesSkipped } =
+        const { materials: pdfMaterials, pendingApprovals, duplicatesSkipped, existingSkipped } =
           prepareImportedMaterialsForReview(pdfMaterialsRaw);
 
         setExtractedMaterials(pdfMaterials);
@@ -547,14 +557,14 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           setPendingApprovalIndex(pendingApprovals[0]);
           toast({
             title: "Materiais encontrados no catálogo",
-            description: `${pendingApprovals.length} itens precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}`,
+            description: `${pendingApprovals.length} itens precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}${existingSkipped > 0 ? ` • ${existingSkipped} já existiam e foram ignorados` : ''}`,
           });
         }
 
         const withPrices = pdfMaterials.filter(m => (m.current_price || 0) > 0).length;
         toast({
           title: "PDF processado!",
-          description: `${pdfMaterials.length} materiais identificados, ${withPrices} com preços${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados ignorados` : ''}`,
+          description: `${pdfMaterials.length} materiais para revisão, ${withPrices} com preços${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados ignorados` : ''}${existingSkipped > 0 ? ` • ${existingSkipped} já existiam e foram ignorados` : ''}`,
         });
         setIsProcessing(false);
         return;
@@ -605,7 +615,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
             };
           });
 
-          const { materials: aiMaterials, pendingApprovals, duplicatesSkipped } =
+          const { materials: aiMaterials, pendingApprovals, duplicatesSkipped, existingSkipped } =
             prepareImportedMaterialsForReview(aiMaterialsRaw);
 
           const withPrices = aiMaterials.filter(m => (m.current_price || 0) > 0).length;
@@ -617,13 +627,13 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
             setPendingApprovalIndex(pendingApprovals[0]);
             toast({
               title: "Materiais encontrados no catálogo",
-              description: `${pendingApprovals.length} itens precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}`,
+              description: `${pendingApprovals.length} itens precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}${existingSkipped > 0 ? ` • ${existingSkipped} já existiam e foram ignorados` : ''}`,
             });
           }
 
           toast({
             title: "Processamento concluído!",
-            description: `${aiMaterials.length} materiais identificados, ${withPrices} com preços encontrados${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados ignorados` : ''}`,
+            description: `${aiMaterials.length} materiais para revisão, ${withPrices} com preços encontrados${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados ignorados` : ''}${existingSkipped > 0 ? ` • ${existingSkipped} já existiam e foram ignorados` : ''}`,
           });
           return;
         }
@@ -653,6 +663,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       const pendingApprovals: number[] = [];
       const seenImportKeys = new Set<string>();
       let duplicatesSkipped = 0;
+      let existingSkipped = 0;
 
       for (let i = 0; i < jsonData.length; i++) {
         const rowData: any = jsonData[i];
@@ -712,23 +723,9 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
               });
               pendingApprovals.push(materials.length - 1);
             } else {
-              // Duplicata exata sem mudança de preço - ignorar
-              materials.push({
-                name,
-                description: name,
-                unit,
-                current_price: similar.material.current_price || 0,
-                material_price: similar.material.material_price || 0,
-                labor_price: similar.material.labor_price || 0,
-                supplier,
-                keywords,
-                existingMaterial: similar.material,
-                similarity: 100,
-                matchType: 'Já existe (ignorado)',
-                isExactDuplicate: true,
-                hasPriceChange: false,
-                isNew: false,
-              });
+              // Duplicata exata sem mudança de preço - ignorar silenciosamente
+              existingSkipped++;
+              continue;
             }
           } else {
             // Similar encontrado, precisa de aprovação
@@ -778,12 +775,12 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         setPendingApprovalIndex(pendingApprovals[0]);
         toast({
           title: "Materiais similares encontrados",
-          description: `${pendingApprovals.length} materiais precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}`,
+          description: `${pendingApprovals.length} materiais precisam da sua confirmação${duplicatesSkipped > 0 ? ` • ${duplicatesSkipped} duplicados no arquivo foram ignorados` : ''}${existingSkipped > 0 ? ` • ${existingSkipped} já existiam e foram ignorados` : ''}`,
         });
-      } else if (duplicatesSkipped > 0) {
+      } else if (duplicatesSkipped > 0 || existingSkipped > 0) {
         toast({
-          title: "Itens duplicados ignorados",
-          description: `${duplicatesSkipped} itens repetidos no arquivo não serão importados`,
+          title: "Itens ignorados",
+          description: `${duplicatesSkipped > 0 ? `${duplicatesSkipped} duplicados no arquivo` : ''}${duplicatesSkipped > 0 && existingSkipped > 0 ? ' • ' : ''}${existingSkipped > 0 ? `${existingSkipped} já existiam no catálogo` : ''}`,
         });
       }
     } catch (error: any) {
