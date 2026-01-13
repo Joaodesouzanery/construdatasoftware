@@ -124,60 +124,52 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       .trim();
   };
 
-  const fileToBase64 = (inputFile: File) => {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
-      reader.onload = () => {
-        const result = String(reader.result || "");
-        // data:application/pdf;base64,....
-        const base64 = result.includes(",") ? result.split(",")[1] : result;
-        resolve(base64);
-      };
-      reader.readAsDataURL(inputFile);
-    });
-  };
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const fetchExtractPdfData = async (pdfFile: File): Promise<{ items: any[] }> => {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) throw sessionError;
+  const invokeExtractPdfData = async (
+    body: Record<string, any> | ArrayBuffer,
+  ): Promise<{ items: any[] }> => {
+    let last: { error: any; response?: Response } | null = null;
 
-    const accessToken = sessionData?.session?.access_token;
-    if (!accessToken) {
-      throw new Error("Sessão expirada. Faça login novamente.");
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90_000);
+
+      try {
+        const { data, error, response } = await supabase.functions.invoke("extract-pdf-data", {
+          body,
+          signal: controller.signal,
+        });
+
+        if (!error) return (data || { items: [] }) as { items: any[] };
+
+        last = { error, response };
+
+        const status = response?.status;
+        const retryable =
+          error?.name === "FunctionsFetchError" ||
+          (typeof status === "number" && [502, 503, 504].includes(status));
+
+        if (!retryable || attempt === 3) break;
+        await sleep(600 * attempt);
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
-    const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "");
-    const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "");
-
-    if (!supabaseUrl || !publishableKey) {
-      throw new Error("Configuração do backend ausente. Recarregue a página e tente novamente.");
+    if (last?.response) {
+      let text = "";
+      try {
+        text = await last.response.text();
+      } catch {
+        // ignore
+      }
+      throw new Error(text ? `${last.response.status} ${text}` : `HTTP ${last.response.status}`);
     }
 
-    const url = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/extract-pdf-data`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        apikey: publishableKey,
-        "Content-Type": "application/octet-stream",
-      },
-      body: await pdfFile.arrayBuffer(),
-    });
-
-    const raw = await res.text();
-
-    if (!res.ok) {
-      // Mantém o corpo para diagnóstico (normalmente é JSON com {error: ...})
-      throw new Error(raw ? `${res.status} ${raw}` : `HTTP ${res.status}`);
-    }
-
-    try {
-      return JSON.parse(raw);
-    } catch {
-      throw new Error("Resposta inválida do processamento do PDF");
-    }
+    const msg = typeof last?.error?.message === "string" ? last.error.message : "Falha ao processar PDF";
+    const ctx = typeof last?.error?.context?.message === "string" ? ` (${last.error.context.message})` : "";
+    throw new Error(`${msg}${ctx}`);
   };
 
   const levenshteinDistance = (str1: string, str2: string): number => {
@@ -573,16 +565,12 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           const pdfText = await extractPdfText(file);
 
           // Se o PDF for digital, o texto vem preenchido e o processamento fica leve.
-          // Se vier praticamente vazio (PDF escaneado/imagem), caímos no modo binário (multimodal).
+          // Se vier praticamente vazio (PDF escaneado/imagem), caímos no modo binário.
           if (pdfText && pdfText.trim().length >= 200) {
-            const { data, error } = await supabase.functions.invoke("extract-pdf-data", {
-              body: { pdfText },
-            });
-            if (error) throw error;
-            pdfData = data;
+            pdfData = await invokeExtractPdfData({ pdfText });
           } else {
-            // Fallback: envia o PDF como binário.
-            pdfData = await fetchExtractPdfData(file);
+            // Fallback: envia o PDF como binário (auth + headers gerenciados pelo client).
+            pdfData = await invokeExtractPdfData(await file.arrayBuffer());
           }
         } catch (err: any) {
           console.error('Erro ao chamar extract-pdf-data:', err);
