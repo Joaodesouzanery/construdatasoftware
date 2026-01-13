@@ -48,7 +48,30 @@ export async function extractPdfText(file: File): Promise<string> {
     const flush = () => {
       if (!currentLine.length) return;
       currentLine.sort((a, b) => a.x - b.x);
-      const lineText = currentLine.map((p) => p.str).join(" ").replace(/\s+/g, " ").trim();
+
+      const GAP_TAB_THRESHOLD = 32; // heurística p/ separar colunas (tab) vs palavras (espaço)
+      let lineText = "";
+      let prevX: number | null = null;
+
+      for (const p of currentLine) {
+        if (prevX === null) {
+          lineText += p.str;
+          prevX = p.x;
+          continue;
+        }
+
+        const gap = p.x - prevX;
+        lineText += gap > GAP_TAB_THRESHOLD ? "\t" : " ";
+        lineText += p.str;
+        prevX = p.x;
+      }
+
+      // normaliza sem destruir tabs (usadas como separador de colunas)
+      lineText = lineText
+        .replace(/\t+/g, "\t")
+        .replace(/[ ]{2,}/g, " ")
+        .trim();
+
       if (lineText) lines.push(lineText);
       currentLine = [];
     };

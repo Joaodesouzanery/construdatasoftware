@@ -288,27 +288,68 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     return null;
   };
 
+  const normalizeImportKeyText = (text: string) => {
+    return normalizeText(
+      text
+        // remove apenas tokens monetários “colados” com R$ (sem afetar medidas tipo 01,00)
+        .replace(/R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}/gi, " ")
+        .replace(/\d{1,3}(?:\.\d{3})*,\d{2}\s*R\$/gi, " ")
+        .replace(/\bR\$\b/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+    );
+  };
+
   const getImportKey = (name: string, unit?: string) => {
     const safeUnit = unit || "UN";
-    return `${normalizeText(name)}|${normalizeText(safeUnit)}`;
+    const normalizedUnit = normalizeText(safeUnit) === "und" ? "un" : normalizeText(safeUnit);
+    return `${normalizeImportKeyText(name)}|${normalizedUnit}`;
+  };
+
+  const mergeImportedMaterial = (base: ExtractedMaterial, incoming: ExtractedMaterial): ExtractedMaterial => {
+    const pickNonEmpty = (a?: string | null, b?: string | null) => (a && a.trim() ? a : (b && b.trim() ? b : a)) as any;
+    const pickPositive = (a?: number | null, b?: number | null) => ((a ?? 0) > 0 ? a : (b ?? 0) > 0 ? b : a) as any;
+
+    const mergedKeywords = Array.from(
+      new Set([...(base.keywords || []), ...(incoming.keywords || [])].map((k) => normalizeText(k)).filter(Boolean))
+    );
+
+    return {
+      ...base,
+      // mantém o nome “mais completo”
+      name: (incoming.name?.length || 0) > (base.name?.length || 0) ? incoming.name : base.name,
+      description: pickNonEmpty(base.description, incoming.description),
+      supplier: pickNonEmpty(base.supplier, incoming.supplier),
+      category: pickNonEmpty(base.category, incoming.category),
+      quantity: Math.max(base.quantity ?? 0, incoming.quantity ?? 0) || base.quantity || incoming.quantity,
+      material_price: pickPositive(base.material_price, incoming.material_price),
+      labor_price: pickPositive(base.labor_price, incoming.labor_price),
+      current_price: pickPositive(base.current_price, incoming.current_price),
+      keywords: mergedKeywords,
+    };
   };
 
   const dedupeImportedMaterials = (materials: ExtractedMaterial[]) => {
-    const seen = new Set<string>();
+    const indexByKey = new Map<string, number>();
     const deduped: ExtractedMaterial[] = [];
-    let duplicatesSkipped = 0;
+    let duplicatesMerged = 0;
 
     for (const m of materials) {
       const key = getImportKey(m.name, m.unit);
-      if (seen.has(key)) {
-        duplicatesSkipped++;
+      const idx = indexByKey.get(key);
+
+      if (idx === undefined) {
+        indexByKey.set(key, deduped.length);
+        deduped.push(m);
         continue;
       }
-      seen.add(key);
-      deduped.push(m);
+
+      // Em vez de “pular”, consolida duplicados para evitar itens repetidos na revisão.
+      deduped[idx] = mergeImportedMaterial(deduped[idx], m);
+      duplicatesMerged++;
     }
 
-    return { deduped, duplicatesSkipped };
+    return { deduped, duplicatesSkipped: duplicatesMerged };
   };
 
   const applyMatchingToImportedMaterials = (

@@ -60,18 +60,29 @@ const coerceNumber = (v: unknown): number => {
 
 const normalizeItem = (item: any) => {
   let description = typeof item?.description === "string" ? item.description.trim() : "";
-  
-  // Clean up description: remove trailing price patterns and R$ values
+
+  // Remove tokens de preço quando o parser “vaza” R$ / valores para dentro da descrição
+  // (sem remover medidas do tipo "01,00" que aparecem em nomes: só remove quando há R$ associado)
   description = description
-    .replace(/\s+R\$[\s\d.,]+$/g, "")
+    .replace(/R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}/gi, " ")
+    .replace(/\d{1,3}(?:\.\d{3})*,\d{2}\s*R\$/gi, " ")
+    .replace(/\bR\$\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Clean up description: remove trailing price patterns
+  description = description
     .replace(/\s+\d{1,3}(?:\.\d{3})*,\d{2}\s*$/g, "")
     .trim();
-  
+
   // Remove unit if it appears at the end of description (already captured separately)
   const UNITS_PATTERN = /\s+(UN|UND|PC|PÇ|PCA|CX|MT|M|M2|M3|KG|GL|LT|L|RL|BA|SC|CJ|VB|MES|MÊS|LA|CH|CT|ML|PT|BAL)\s*$/i;
   description = description.replace(UNITS_PATTERN, "").trim();
-  
-  const unit = typeof item?.unit === "string" && item.unit.trim() ? item.unit.trim().toUpperCase() : "UN";
+
+  const unit =
+    typeof item?.unit === "string" && item.unit.trim()
+      ? item.unit.trim().toUpperCase()
+      : "UN";
   const supplier = typeof item?.supplier === "string" && item.supplier.trim() ? item.supplier.trim() : null;
   const material_price = coerceNumber(item?.material_price);
   const labor_price = coerceNumber(item?.labor_price);
@@ -85,6 +96,10 @@ const normalizeItem = (item: any) => {
 
 const normalizeTextKey = (s: string) =>
   s
+    // remove “vazamento” de preços na chave de dedupe (somente quando há R$ associado)
+    .replace(/R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}/gi, " ")
+    .replace(/\d{1,3}(?:\.\d{3})*,\d{2}\s*R\$/gi, " ")
+    .replace(/\bR\$\b/gi, " ")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
