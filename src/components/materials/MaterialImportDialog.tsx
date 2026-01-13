@@ -134,6 +134,48 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     });
   };
 
+  const fetchExtractPdfData = async (pdfFile: File): Promise<{ items: any[] }> => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
+
+    const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "");
+    const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "");
+
+    if (!supabaseUrl || !publishableKey) {
+      throw new Error("Configuração do backend ausente. Recarregue a página e tente novamente.");
+    }
+
+    const url = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/extract-pdf-data`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: publishableKey,
+        "Content-Type": "application/octet-stream",
+      },
+      body: await pdfFile.arrayBuffer(),
+    });
+
+    const raw = await res.text();
+
+    if (!res.ok) {
+      // Mantém o corpo para diagnóstico (normalmente é JSON com {error: ...})
+      throw new Error(raw ? `${res.status} ${raw}` : `HTTP ${res.status}`);
+    }
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      throw new Error("Resposta inválida do processamento do PDF");
+    }
+  };
+
   const levenshteinDistance = (str1: string, str2: string): number => {
     const len1 = str1.length;
     const len2 = str2.length;
@@ -502,32 +544,15 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         });
 
         let pdfData: any = null;
-        let pdfError: any = null;
 
         try {
-          // Envia como multipart/form-data (mais compatível com supabase.functions.invoke)
-          const formData = new FormData();
-          formData.append('file', file, file.name);
-
-          const response = await supabase.functions.invoke('extract-pdf-data', {
-            body: formData,
-          });
-
-          pdfData = response.data;
-          pdfError = response.error;
-        } catch (fetchError: any) {
-          console.error('Erro de conexão com a função:', fetchError);
-          throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
-        }
-
-        if (pdfError) {
-          console.error('Erro da função extract-pdf-data:', pdfError);
-          const status = (pdfError as any)?.context?.status;
-          const ctxBody = (pdfError as any)?.context?.body;
-          const errorMessage = pdfError.message || 'Erro desconhecido ao processar PDF';
-          const extra = status ? ` (status ${status})` : '';
-          const details = typeof ctxBody === 'string' && ctxBody.trim().length > 0 ? `: ${ctxBody}` : '';
-          throw new Error(`Erro ao processar PDF: ${errorMessage}${extra}${details}`);
+          // Supabase SDK (functions.invoke) não é confiável para enviar binário/FormData em alguns ambientes.
+          // Aqui usamos fetch direto para garantir o envio como application/octet-stream.
+          pdfData = await fetchExtractPdfData(file);
+        } catch (err: any) {
+          console.error('Erro ao chamar extract-pdf-data:', err);
+          const msg = typeof err?.message === 'string' ? err.message : 'Falha ao processar PDF';
+          throw new Error(`Erro ao processar PDF: ${msg}`);
         }
         
         if (!pdfData?.items || pdfData.items.length === 0) {
