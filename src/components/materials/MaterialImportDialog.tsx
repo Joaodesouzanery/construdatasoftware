@@ -82,7 +82,10 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   const catalogRef = useRef<MaterialRow[]>([]);
 
   const fetchMaterialsCatalog = async (): Promise<MaterialRow[]> => {
-    const { data, error } = await supabase.from("materials").select("*");
+    // Otimização: para o fluxo de importação, só precisamos de alguns campos.
+    const { data, error } = await supabase
+      .from("materials")
+      .select("id,name,unit,current_price,material_price,labor_price");
     if (error) throw error;
     return (data || []) as MaterialRow[];
   };
