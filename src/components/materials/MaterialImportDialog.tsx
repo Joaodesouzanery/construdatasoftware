@@ -505,18 +505,14 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         let pdfError: any = null;
 
         try {
-          // Usa ArrayBuffer para enviar como binário puro (application/octet-stream)
-          const arrayBuffer = await file.arrayBuffer();
-          
-          const response = await supabase.functions.invoke(
-            'extract-pdf-data',
-            { 
-              body: arrayBuffer,
-              headers: {
-                'Content-Type': 'application/octet-stream'
-              }
-            }
-          );
+          // Envia como multipart/form-data (mais compatível com supabase.functions.invoke)
+          const formData = new FormData();
+          formData.append('file', file, file.name);
+
+          const response = await supabase.functions.invoke('extract-pdf-data', {
+            body: formData,
+          });
+
           pdfData = response.data;
           pdfError = response.error;
         } catch (fetchError: any) {
@@ -526,8 +522,12 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
         if (pdfError) {
           console.error('Erro da função extract-pdf-data:', pdfError);
+          const status = (pdfError as any)?.context?.status;
+          const ctxBody = (pdfError as any)?.context?.body;
           const errorMessage = pdfError.message || 'Erro desconhecido ao processar PDF';
-          throw new Error(`Erro ao processar PDF: ${errorMessage}`);
+          const extra = status ? ` (status ${status})` : '';
+          const details = typeof ctxBody === 'string' && ctxBody.trim().length > 0 ? `: ${ctxBody}` : '';
+          throw new Error(`Erro ao processar PDF: ${errorMessage}${extra}${details}`);
         }
         
         if (!pdfData?.items || pdfData.items.length === 0) {
