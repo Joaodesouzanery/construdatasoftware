@@ -59,8 +59,19 @@ const coerceNumber = (v: unknown): number => {
 };
 
 const normalizeItem = (item: any) => {
-  const description = typeof item?.description === "string" ? item.description.trim() : "";
-  const unit = typeof item?.unit === "string" && item.unit.trim() ? item.unit.trim() : "UN";
+  let description = typeof item?.description === "string" ? item.description.trim() : "";
+  
+  // Clean up description: remove trailing price patterns and R$ values
+  description = description
+    .replace(/\s+R\$[\s\d.,]+$/g, "")
+    .replace(/\s+\d{1,3}(?:\.\d{3})*,\d{2}\s*$/g, "")
+    .trim();
+  
+  // Remove unit if it appears at the end of description (already captured separately)
+  const UNITS_PATTERN = /\s+(UN|UND|PC|PÇ|PCA|CX|MT|M|M2|M3|KG|GL|LT|L|RL|BA|SC|CJ|VB|MES|MÊS|LA|CH|CT|ML|PT|BAL)\s*$/i;
+  description = description.replace(UNITS_PATTERN, "").trim();
+  
+  const unit = typeof item?.unit === "string" && item.unit.trim() ? item.unit.trim().toUpperCase() : "UN";
   const supplier = typeof item?.supplier === "string" && item.supplier.trim() ? item.supplier.trim() : null;
   const material_price = coerceNumber(item?.material_price);
   const labor_price = coerceNumber(item?.labor_price);
@@ -247,84 +258,111 @@ serve(async (req) => {
     // Fast path: if we already have searchable PDF text, parse deterministically (no AI).
     const parsePdfTextToItems = (text: string) => {
       const KNOWN_UNITS = new Set([
-        "UN",
-        "UND",
-        "PC",
-        "PÇ",
-        "PCA",
-        "CX",
-        "MT",
-        "M",
-        "M2",
-        "M3",
-        "KG",
-        "GL",
-        "LT",
-        "L",
-        "RL",
-        "BA",
-        "SC",
-        "CJ",
-        "VB",
-        "MES",
-        "MÊS",
+        "UN", "UND", "PC", "PÇ", "PCA", "CX", "MT", "M", "M2", "M3",
+        "KG", "GL", "LT", "L", "RL", "BA", "SC", "CJ", "VB", "MES",
+        "MÊS", "LA", "CH", "CT", "ML", "PT", "BAL",
       ]);
 
       const isLikelyHeaderOrNoise = (line: string) => {
         const l = line.trim();
-        if (!l) return true;
+        if (!l || l.length < 3) return true;
         const n = normalizeTextKey(l);
-        if (n.includes("descricao") && n.includes("unidade") && n.includes("preco")) return true;
+        if (n.includes("descricao") && n.includes("unidade")) return true;
+        if (n.includes("preco material") && n.includes("preco total")) return true;
         if (n === "product list") return true;
-        if (n.startsWith("page ")) return true;
-        if (n.startsWith("#")) return true;
+        if (/^page\s+\d+/i.test(l)) return true;
+        if (/^#/.test(l)) return true;
+        // Skip lines that are only "R$" patterns or numbers
+        if (/^R\$\s*[\d.,]+$/i.test(l)) return true;
         return false;
       };
 
       const parseMoneyNumbers = (line: string): number[] => {
-        // Capture Brazilian money formats: 1.234,56 or 123,45
+        // Capture Brazilian money formats: R$ 1.234,56 or 123,45
         const matches = line.match(/\d{1,3}(?:\.\d{3})*,\d{2}/g) ?? [];
         return matches.map((m) => coerceNumber(m));
+      };
+
+      // Remove "R$" prefix from supplier names and clean up
+      const cleanSupplier = (s: string | null): string | null => {
+        if (!s) return null;
+        // If it starts with R$ it's a price, not a supplier
+        if (/^R\$\s*\d/.test(s)) return null;
+        return s.replace(/^R\$\s*/i, "").trim() || null;
       };
 
       const itemsRaw: any[] = [];
       const lines = text
         .split(/\r?\n/)
-        .map((l) => l.replace(/\s+/g, " ").trim())
+        .map((l) => l.trim())
         .filter((l) => !isLikelyHeaderOrNoise(l));
 
+      console.log(`Parser: processing ${lines.length} lines from PDF text`);
+
       for (const line of lines) {
-        // Prefer column parsing (2+ spaces become separators in many PDF text extractions)
+        // Parse columns by splitting on 2+ spaces or tabs
         const cols = line
-          .split(/\s{2,}/)
+          .split(/\s{2,}|\t/)
           .map((c) => c.trim())
           .filter(Boolean);
 
-        // Try to identify unit
-        let unit: string | null = null;
+        if (cols.length === 0) continue;
+
         let description = "";
+        let unit: string = "UN";
         let supplier: string | null = null;
 
+        // Strategy: find the unit column (usually 2nd column)
+        // Format expected: Description | Unit | Supplier | Preço Material | Preço M.O. | Preço Total | Keywords
+
         if (cols.length >= 2) {
-          const candidateUnit = cols[1]?.toUpperCase();
+          // Check if second column is a known unit
+          const candidateUnit = cols[1]?.toUpperCase().replace(/[^A-Z0-9ÇÃÉÊÔ]/g, "");
           if (candidateUnit && KNOWN_UNITS.has(candidateUnit)) {
             description = cols[0];
             unit = candidateUnit === "UND" ? "UN" : candidateUnit;
-            supplier = cols.length >= 3 ? cols[2] : null;
+            // Third column might be supplier (if not starting with R$)
+            if (cols.length >= 3) {
+              supplier = cleanSupplier(cols[2]);
+            }
+          } else {
+            // Maybe unit is embedded in description or missing
+            // Check if any column is a unit
+            let foundUnit = false;
+            for (let i = 1; i < Math.min(cols.length, 4); i++) {
+              const cu = cols[i]?.toUpperCase().replace(/[^A-Z0-9ÇÃÉÊÔ]/g, "");
+              if (cu && KNOWN_UNITS.has(cu)) {
+                description = cols.slice(0, i).join(" ");
+                unit = cu === "UND" ? "UN" : cu;
+                if (cols.length > i + 1) {
+                  supplier = cleanSupplier(cols[i + 1]);
+                }
+                foundUnit = true;
+                break;
+              }
+            }
+            if (!foundUnit) {
+              // Use first column as description
+              description = cols[0];
+            }
           }
+        } else {
+          description = cols[0] || line;
         }
 
-        // Fallback: description-only lines (still valid items, but missing structured columns)
-        if (!description) {
-          description = line;
-          unit = "UN";
-        }
+        // Skip if description is too short or looks like noise
+        const descClean = description.replace(/[^a-zA-Z0-9À-ÿ]/g, "");
+        if (descClean.length < 3) continue;
+        // Skip if description is just numbers/prices
+        if (/^[\d.,R$\s]+$/.test(description)) continue;
 
         const nums = parseMoneyNumbers(line);
         let material_price = 0;
         let labor_price = 0;
         let price = 0;
 
+        // Usually format is: Preço Material | Preço M.O. | Preço Total
+        // The last number is typically the total
         if (nums.length === 1) {
           material_price = nums[0];
           price = nums[0];
@@ -337,19 +375,22 @@ serve(async (req) => {
           price = nums[2];
         }
 
-        // Keywords: if last column looks like keywords (comma/semicolon-separated)
+        // Keywords: look for comma/semicolon-separated values in last columns
         let keywords: string[] = [];
-        const maybeKeywords = cols.length >= 7 ? cols[6] : "";
-        if (maybeKeywords && /[,;|]/.test(maybeKeywords)) {
-          keywords = maybeKeywords
-            .split(/[,;|]/)
-            .map((k) => k.trim())
-            .filter(Boolean);
+        if (cols.length >= 7) {
+          const maybeKeywords = cols[cols.length - 1];
+          if (maybeKeywords && /[,;|]/.test(maybeKeywords) && !/R\$/.test(maybeKeywords)) {
+            keywords = maybeKeywords
+              .split(/[,;|]/)
+              .map((k) => k.trim())
+              .filter(Boolean);
+          }
         }
 
         itemsRaw.push({ description, unit, supplier, material_price, labor_price, price, keywords });
       }
 
+      console.log(`Parser: extracted ${itemsRaw.length} raw items before normalization`);
       return itemsRaw;
     };
 
