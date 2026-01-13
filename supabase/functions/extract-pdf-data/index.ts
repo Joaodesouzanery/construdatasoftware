@@ -10,6 +10,7 @@ const corsHeaders = {
 
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 const MAX_PDF_BASE64_LENGTH = Math.ceil((MAX_PDF_BYTES / 3) * 4) + 16;
+const MAX_PDF_TEXT_CHARS = 250_000;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -99,6 +100,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  class HttpError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -136,6 +145,7 @@ serve(async (req) => {
     const isJson = contentType.includes("application/json");
 
     let pdfBytes: Uint8Array | null = null;
+    let pdfText: string | null = null;
 
     if (isMultipart) {
       const form = await req.formData();
@@ -155,26 +165,38 @@ serve(async (req) => {
       pdfBytes = new Uint8Array(await file.arrayBuffer());
     } else if (isJson) {
       const body = await req.json().catch(() => ({} as any));
+
+      const maybeText = body?.pdfText;
       const base64 = body?.pdfBase64;
-      if (!base64 || typeof base64 !== "string") {
-        return new Response(JSON.stringify({ error: "Invalid input: pdfBase64 is required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (base64.length > MAX_PDF_BASE64_LENGTH) {
-        return new Response(JSON.stringify({ error: "PDF file is too large. Maximum size is 5MB." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      try {
-        const binaryStr = atob(base64);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-        pdfBytes = bytes;
-      } catch {
-        return new Response(JSON.stringify({ error: "Invalid PDF format: not valid base64 encoding" }), {
+
+      if (typeof maybeText === "string" && maybeText.trim()) {
+        if (maybeText.length > MAX_PDF_TEXT_CHARS) {
+          return new Response(
+            JSON.stringify({ error: `PDF text is too large. Max ${MAX_PDF_TEXT_CHARS} characters.` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        pdfText = maybeText;
+      } else if (typeof base64 === "string" && base64) {
+        if (base64.length > MAX_PDF_BASE64_LENGTH) {
+          return new Response(JSON.stringify({ error: "PDF file is too large. Maximum size is 5MB." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        try {
+          const binaryStr = atob(base64);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+          pdfBytes = bytes;
+        } catch {
+          return new Response(JSON.stringify({ error: "Invalid PDF format: not valid base64 encoding" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        return new Response(JSON.stringify({ error: "Invalid input: pdfText or pdfBase64 is required" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -188,10 +210,13 @@ serve(async (req) => {
         });
       }
       if (!contentType.includes("application/octet-stream") && !isPdfHeader(bytes)) {
-        return new Response(JSON.stringify({ error: "Unsupported content-type. Send PDF bytes or multipart/form-data." }), {
-          status: 415,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Unsupported content-type. Send PDF bytes, multipart/form-data, or JSON." }),
+          {
+            status: 415,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
       if (bytes.byteLength > MAX_PDF_BYTES) {
         return new Response(JSON.stringify({ error: "PDF file is too large. Maximum size is 5MB." }), {
@@ -202,18 +227,21 @@ serve(async (req) => {
       pdfBytes = bytes;
     }
 
-    if (!pdfBytes) {
-      return new Response(JSON.stringify({ error: "Invalid input: PDF bytes missing" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Validations
+    if (!pdfText) {
+      if (!pdfBytes) {
+        return new Response(JSON.stringify({ error: "Invalid input: PDF bytes missing" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    if (!isPdfHeader(pdfBytes)) {
-      return new Response(JSON.stringify({ error: "Invalid input: body does not look like a PDF" }), {
-        status: 415,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (!isPdfHeader(pdfBytes)) {
+        return new Response(JSON.stringify({ error: "Invalid input: body does not look like a PDF" }), {
+          status: 415,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -221,11 +249,13 @@ serve(async (req) => {
 
     console.log(`Extracting data from PDF using AI for user: ${user.id}...`);
 
-    // Convert to base64
-    const pdfBase64 = encodeBase64(new Uint8Array(pdfBytes).buffer as ArrayBuffer);
+    // Prepare payload (either PDF bytes -> base64, or plain text)
+    const pdfBase64 = pdfText
+      ? null
+      : encodeBase64(new Uint8Array(pdfBytes!).buffer as ArrayBuffer);
 
     const systemPrompt = `Você é um extrator de dados de tabelas de materiais em PDF com ALTA PRECISÃO.
-IMPORTANTE: Extraia TODOS os itens da tabela - TODAS AS PÁGINAS do documento PDF.
+IMPORTANTE: Extraia TODOS os itens da tabela - TODAS AS PÁGINAS do documento.
 
 ⚠️ ATENÇÃO MÁXIMA À ORTOGRAFIA:
 - Copie os nomes dos materiais EXATAMENTE como aparecem no documento
@@ -241,18 +271,46 @@ Retorne um array JSON com objetos contendo:
 - keywords (array)
 
 REGRAS CRÍTICAS:
-1) EXTRAIA TODOS OS ITENS DE TODAS AS PÁGINAS - não limite a quantidade
+1) EXTRAIA TODOS OS ITENS DISPONÍVEIS NO CONTEÚDO RECEBIDO
 2) TRANSCREVA OS NOMES EXATAMENTE como aparecem
 3) Normalize números com vírgula/ponto (R$ 12,90 → 12.9)
 4) Se preço vazio, use 0
-5) Retorne APENAS o array JSON, sem explicações
-6) O PDF pode ter múltiplas páginas - extraia TUDO`;
+5) Retorne APENAS o array JSON, sem explicações`;
 
-    const callAi = async (model: string) => {
+    type Payload =
+      | { mode: "pdf"; pdfBase64: string }
+      | { mode: "text"; text: string };
+
+    const callAi = async (model: string, payload: Payload) => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout for large PDFs
+      const timeout = setTimeout(() => controller.abort(), 45_000);
 
       try {
+        const messages =
+          payload.mode === "pdf"
+            ? [
+                { role: "system", content: systemPrompt },
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: "Extraia TODOS os itens deste documento PDF (todas as páginas) em formato JSON:" },
+                    {
+                      type: "image_url",
+                      image_url: { url: `data:application/pdf;base64,${payload.pdfBase64}` },
+                    },
+                  ],
+                },
+              ]
+            : [
+                { role: "system", content: systemPrompt },
+                {
+                  role: "user",
+                  content:
+                    "Extraia TODOS os itens do texto abaixo (ele representa o conteúdo do PDF). Retorne APENAS um array JSON.\n\n" +
+                    payload.text,
+                },
+              ];
+
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -262,19 +320,7 @@ REGRAS CRÍTICAS:
           signal: controller.signal,
           body: JSON.stringify({
             model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: "Extraia TODOS os itens deste documento PDF (todas as páginas) em formato JSON:" },
-                  {
-                    type: "image_url",
-                    image_url: { url: `data:application/pdf;base64,${pdfBase64}` },
-                  },
-                ],
-              },
-            ],
+            messages,
             temperature: 0,
           }),
         });
@@ -283,8 +329,8 @@ REGRAS CRÍTICAS:
 
         if (!resp.ok) {
           console.error("AI API error:", resp.status, raw);
-          if (resp.status === 429) return { kind: "rate_limit" as const, error: "Rate limit exceeded. Please try again later." };
-          if (resp.status === 402) return { kind: "unavailable" as const, error: "AI service unavailable. Please try again later." };
+          if (resp.status === 429) throw new HttpError(429, "Rate limit exceeded. Please try again later.");
+          if (resp.status === 402) throw new HttpError(402, "AI service unavailable. Please try again later.");
           throw new Error(`AI API error: ${resp.status} ${raw || ""}`.trim());
         }
 
@@ -294,62 +340,93 @@ REGRAS CRÍTICAS:
         const extractedText = data?.choices?.[0]?.message?.content;
         if (!extractedText || typeof extractedText !== "string") throw new Error("AI response missing content");
 
-        return { kind: "ok" as const, extractedText };
+        return extractedText;
       } finally {
         clearTimeout(timeout);
       }
     };
 
-    // Use gemini-2.5-pro for better multi-page PDF handling, with fallbacks
-    const modelsToTry = ["google/gemini-2.5-pro", "google/gemini-2.5-flash", "google/gemini-3-flash-preview"];
-    let extractedText: string | null = null;
-    let lastErr: unknown = null;
+    const modelsToTry = ["google/gemini-3-flash-preview", "google/gemini-2.5-flash", "google/gemini-2.5-pro"];
 
-    for (const model of modelsToTry) {
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          console.log(`AI call: model=${model} attempt=${attempt}`);
-          const res = await callAi(model);
-          if (res.kind === "rate_limit") {
-            return new Response(JSON.stringify({ error: res.error }), {
-              status: 429,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+    const runAiWithFallbacks = async (payload: Payload): Promise<string> => {
+      let extractedText: string | null = null;
+      let lastErr: unknown = null;
+
+      for (const model of modelsToTry) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            console.log(`AI call: model=${model} attempt=${attempt} mode=${payload.mode}`);
+            extractedText = await callAi(model, payload);
+            break;
+          } catch (err) {
+            lastErr = err;
+            // Não adianta tentar outros modelos se for erro de rate limit/credits.
+            if (err instanceof HttpError) throw err;
+            console.error(`AI call failed: model=${model} attempt=${attempt}`, err);
+            if (attempt < 2) await sleep(400 * attempt);
           }
-          if (res.kind === "unavailable") {
-            return new Response(JSON.stringify({ error: res.error }), {
-              status: 503,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-          extractedText = res.extractedText;
-          break;
-        } catch (err) {
-          lastErr = err;
-          console.error(`AI call failed: model=${model} attempt=${attempt}`, err);
-          if (attempt < 2) await sleep(500 * attempt);
         }
+        if (extractedText) break;
       }
-      if (extractedText) break;
+
+      if (!extractedText) throw (lastErr instanceof Error ? lastErr : new Error("Failed to extract PDF data"));
+      return extractedText;
+    };
+
+    const chunkText = (text: string, size = 60_000, overlap = 1_000) => {
+      const cleaned = text.replace(/\s+/g, " ").trim();
+      if (cleaned.length <= size) return [cleaned];
+
+      const chunks: string[] = [];
+      let start = 0;
+      while (start < cleaned.length) {
+        const end = Math.min(cleaned.length, start + size);
+        chunks.push(cleaned.slice(start, end));
+        if (end === cleaned.length) break;
+        start = Math.max(0, end - overlap);
+      }
+      return chunks;
+    };
+
+    let rawItemsAll: Array<ReturnType<typeof normalizeItem>> = [];
+
+    if (pdfText) {
+      const chunks = chunkText(pdfText);
+      if (chunks.length > 6) {
+        return new Response(JSON.stringify({ error: "PDF muito grande para processar neste momento. Reduza o tamanho ou divida em partes." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      for (let i = 0; i < chunks.length; i++) {
+        console.log(`AI extraction chunk ${i + 1}/${chunks.length} for user: ${user.id}`);
+        const extracted = await runAiWithFallbacks({ mode: "text", text: chunks[i] });
+        const itemsChunk = parseJsonArrayFromModel(extracted).map(normalizeItem).filter((it) => it.description);
+        rawItemsAll.push(...itemsChunk);
+      }
+    } else {
+      const extracted = await runAiWithFallbacks({ mode: "pdf", pdfBase64: pdfBase64! });
+      rawItemsAll = parseJsonArrayFromModel(extracted).map(normalizeItem).filter((it) => it.description);
     }
 
-    if (!extractedText) throw (lastErr instanceof Error ? lastErr : new Error("Failed to extract PDF data"));
-
-    console.log("AI response received for user:", user.id);
-
-    const rawItems = parseJsonArrayFromModel(extractedText).map(normalizeItem).filter((it) => it.description);
-    
-    // Deduplicate items (same description + unit)
-    const items = dedupeItems(rawItems);
+    const items = dedupeItems(rawItemsAll);
 
     if (items.length === 0) throw new Error("No valid items extracted from PDF");
 
-    console.log(`Successfully extracted ${items.length} items (${rawItems.length} before dedupe) for user: ${user.id}`);
+    console.log(`Successfully extracted ${items.length} items (${rawItemsAll.length} before dedupe) for user: ${user.id}`);
 
     return new Response(JSON.stringify({ items }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    if (error instanceof HttpError) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: error.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.error("Error in extract-pdf-data function:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
