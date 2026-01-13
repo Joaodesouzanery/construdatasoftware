@@ -244,15 +244,144 @@ serve(async (req) => {
       }
     }
 
+    // Fast path: if we already have searchable PDF text, parse deterministically (no AI).
+    const parsePdfTextToItems = (text: string) => {
+      const KNOWN_UNITS = new Set([
+        "UN",
+        "UND",
+        "PC",
+        "PÇ",
+        "PCA",
+        "CX",
+        "MT",
+        "M",
+        "M2",
+        "M3",
+        "KG",
+        "GL",
+        "LT",
+        "L",
+        "RL",
+        "BA",
+        "SC",
+        "CJ",
+        "VB",
+        "MES",
+        "MÊS",
+      ]);
+
+      const isLikelyHeaderOrNoise = (line: string) => {
+        const l = line.trim();
+        if (!l) return true;
+        const n = normalizeTextKey(l);
+        if (n.includes("descricao") && n.includes("unidade") && n.includes("preco")) return true;
+        if (n === "product list") return true;
+        if (n.startsWith("page ")) return true;
+        if (n.startsWith("#")) return true;
+        return false;
+      };
+
+      const parseMoneyNumbers = (line: string): number[] => {
+        // Capture Brazilian money formats: 1.234,56 or 123,45
+        const matches = line.match(/\d{1,3}(?:\.\d{3})*,\d{2}/g) ?? [];
+        return matches.map((m) => coerceNumber(m));
+      };
+
+      const itemsRaw: any[] = [];
+      const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.replace(/\s+/g, " ").trim())
+        .filter((l) => !isLikelyHeaderOrNoise(l));
+
+      for (const line of lines) {
+        // Prefer column parsing (2+ spaces become separators in many PDF text extractions)
+        const cols = line
+          .split(/\s{2,}/)
+          .map((c) => c.trim())
+          .filter(Boolean);
+
+        // Try to identify unit
+        let unit: string | null = null;
+        let description = "";
+        let supplier: string | null = null;
+
+        if (cols.length >= 2) {
+          const candidateUnit = cols[1]?.toUpperCase();
+          if (candidateUnit && KNOWN_UNITS.has(candidateUnit)) {
+            description = cols[0];
+            unit = candidateUnit === "UND" ? "UN" : candidateUnit;
+            supplier = cols.length >= 3 ? cols[2] : null;
+          }
+        }
+
+        // Fallback: description-only lines (still valid items, but missing structured columns)
+        if (!description) {
+          description = line;
+          unit = "UN";
+        }
+
+        const nums = parseMoneyNumbers(line);
+        let material_price = 0;
+        let labor_price = 0;
+        let price = 0;
+
+        if (nums.length === 1) {
+          material_price = nums[0];
+          price = nums[0];
+        } else if (nums.length === 2) {
+          material_price = nums[0];
+          price = nums[1];
+        } else if (nums.length >= 3) {
+          material_price = nums[0];
+          labor_price = nums[1];
+          price = nums[2];
+        }
+
+        // Keywords: if last column looks like keywords (comma/semicolon-separated)
+        let keywords: string[] = [];
+        const maybeKeywords = cols.length >= 7 ? cols[6] : "";
+        if (maybeKeywords && /[,;|]/.test(maybeKeywords)) {
+          keywords = maybeKeywords
+            .split(/[,;|]/)
+            .map((k) => k.trim())
+            .filter(Boolean);
+        }
+
+        itemsRaw.push({ description, unit, supplier, material_price, labor_price, price, keywords });
+      }
+
+      return itemsRaw;
+    };
+
+    if (pdfText) {
+      console.log(`Parsing PDF text (no AI) for user: ${user.id}...`);
+      const rawItems = parsePdfTextToItems(pdfText)
+        .map(normalizeItem)
+        .filter((it) => it.description);
+
+      const items = dedupeItems(rawItems);
+
+      if (items.length === 0) {
+        return new Response(JSON.stringify({ error: "Nenhum item válido encontrado no texto do PDF." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Successfully parsed ${items.length} items from PDF text for user: ${user.id}`);
+      return new Response(JSON.stringify({ items }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Slow path: binary/scanned PDFs require AI.
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     console.log(`Extracting data from PDF using AI for user: ${user.id}...`);
 
-    // Prepare payload (either PDF bytes -> base64, or plain text)
-    const pdfBase64 = pdfText
-      ? null
-      : encodeBase64(new Uint8Array(pdfBytes!).buffer as ArrayBuffer);
+    // Prepare payload (PDF bytes -> base64)
+    const pdfBase64 = encodeBase64(new Uint8Array(pdfBytes!).buffer as ArrayBuffer);
 
     const systemPrompt = `Você é um extrator de dados de tabelas de materiais em PDF com ALTA PRECISÃO.
 IMPORTANTE: Extraia TODOS os itens da tabela - TODAS AS PÁGINAS do documento.
@@ -277,39 +406,26 @@ REGRAS CRÍTICAS:
 4) Se preço vazio, use 0
 5) Retorne APENAS o array JSON, sem explicações`;
 
-    type Payload =
-      | { mode: "pdf"; pdfBase64: string }
-      | { mode: "text"; text: string };
+    type Payload = { mode: "pdf"; pdfBase64: string };
 
     const callAi = async (model: string, payload: Payload) => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 45_000);
+      const timeout = setTimeout(() => controller.abort(), 55_000);
 
       try {
-        const messages =
-          payload.mode === "pdf"
-            ? [
-                { role: "system", content: systemPrompt },
-                {
-                  role: "user",
-                  content: [
-                    { type: "text", text: "Extraia TODOS os itens deste documento PDF (todas as páginas) em formato JSON:" },
-                    {
-                      type: "image_url",
-                      image_url: { url: `data:application/pdf;base64,${payload.pdfBase64}` },
-                    },
-                  ],
-                },
-              ]
-            : [
-                { role: "system", content: systemPrompt },
-                {
-                  role: "user",
-                  content:
-                    "Extraia TODOS os itens do texto abaixo (ele representa o conteúdo do PDF). Retorne APENAS um array JSON.\n\n" +
-                    payload.text,
-                },
-              ];
+        const messages = [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Extraia TODOS os itens deste documento PDF (todas as páginas) em formato JSON:" },
+              {
+                type: "image_url",
+                image_url: { url: `data:application/pdf;base64,${payload.pdfBase64}` },
+              },
+            ],
+          },
+        ];
 
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -360,7 +476,6 @@ REGRAS CRÍTICAS:
             break;
           } catch (err) {
             lastErr = err;
-            // Não adianta tentar outros modelos se for erro de rate limit/credits.
             if (err instanceof HttpError) throw err;
             console.error(`AI call failed: model=${model} attempt=${attempt}`, err);
             if (attempt < 2) await sleep(400 * attempt);
@@ -373,42 +488,8 @@ REGRAS CRÍTICAS:
       return extractedText;
     };
 
-    const chunkText = (text: string, size = 60_000, overlap = 1_000) => {
-      const cleaned = text.replace(/\s+/g, " ").trim();
-      if (cleaned.length <= size) return [cleaned];
-
-      const chunks: string[] = [];
-      let start = 0;
-      while (start < cleaned.length) {
-        const end = Math.min(cleaned.length, start + size);
-        chunks.push(cleaned.slice(start, end));
-        if (end === cleaned.length) break;
-        start = Math.max(0, end - overlap);
-      }
-      return chunks;
-    };
-
-    let rawItemsAll: Array<ReturnType<typeof normalizeItem>> = [];
-
-    if (pdfText) {
-      const chunks = chunkText(pdfText);
-      if (chunks.length > 6) {
-        return new Response(JSON.stringify({ error: "PDF muito grande para processar neste momento. Reduza o tamanho ou divida em partes." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      for (let i = 0; i < chunks.length; i++) {
-        console.log(`AI extraction chunk ${i + 1}/${chunks.length} for user: ${user.id}`);
-        const extracted = await runAiWithFallbacks({ mode: "text", text: chunks[i] });
-        const itemsChunk = parseJsonArrayFromModel(extracted).map(normalizeItem).filter((it) => it.description);
-        rawItemsAll.push(...itemsChunk);
-      }
-    } else {
-      const extracted = await runAiWithFallbacks({ mode: "pdf", pdfBase64: pdfBase64! });
-      rawItemsAll = parseJsonArrayFromModel(extracted).map(normalizeItem).filter((it) => it.description);
-    }
+    const extracted = await runAiWithFallbacks({ mode: "pdf", pdfBase64 });
+    const rawItemsAll = parseJsonArrayFromModel(extracted).map(normalizeItem).filter((it) => it.description);
 
     const items = dedupeItems(rawItemsAll);
 
@@ -434,3 +515,4 @@ REGRAS CRÍTICAS:
     );
   }
 });
+
