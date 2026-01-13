@@ -16,6 +16,7 @@ import {
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from 'xlsx';
+import { extractPdfText } from "@/lib/pdfTextExtractor";
 import {
   Table,
   TableBody,
@@ -558,20 +559,31 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           throw new Error(`O arquivo PDF é muito grande. Tamanho máximo: ${maxSizeMB}MB`);
         }
 
-        // Envia o PDF como binário para evitar estouro de payload (base64 aumenta ~33%)
-        // e pode falhar com "Failed to send a request to the Edge Function".
+        // Preferimos extrair TEXTO do PDF no client (rápido) e mandar apenas texto para o backend.
+        // Isso evita timeouts e elimina o "Failed to fetch" quando o processamento fica pesado.
 
         toast({
           title: "Extraindo dados do PDF...",
-          description: "Aguarde enquanto processamos o arquivo (pode levar até 30 segundos)"
+          description: "Lendo o PDF e identificando todos os itens (todas as páginas)"
         });
 
         let pdfData: any = null;
 
         try {
-          // Supabase SDK (functions.invoke) não é confiável para enviar binário/FormData em alguns ambientes.
-          // Aqui usamos fetch direto para garantir o envio como application/octet-stream.
-          pdfData = await fetchExtractPdfData(file);
+          const pdfText = await extractPdfText(file);
+
+          // Se o PDF for digital, o texto vem preenchido e o processamento fica leve.
+          // Se vier praticamente vazio (PDF escaneado/imagem), caímos no modo binário (multimodal).
+          if (pdfText && pdfText.trim().length >= 200) {
+            const { data, error } = await supabase.functions.invoke("extract-pdf-data", {
+              body: { pdfText },
+            });
+            if (error) throw error;
+            pdfData = data;
+          } else {
+            // Fallback: envia o PDF como binário.
+            pdfData = await fetchExtractPdfData(file);
+          }
         } catch (err: any) {
           console.error('Erro ao chamar extract-pdf-data:', err);
           const msg = typeof err?.message === 'string' ? err.message : 'Falha ao processar PDF';
