@@ -215,7 +215,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     name: string,
     importedPrice?: number,
     importedMaterialPrice?: number,
-    importedLaborPrice?: number
+    importedLaborPrice?: number,
+    importedUnit?: string
   ): {
     material: any;
     similarity: number;
@@ -230,9 +231,15 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     if (catalog.length === 0) return null;
 
     const normalizedName = normalizeText(name);
+    const normalizedUnit = normalizeText(importedUnit || 'un');
 
-    // Busca exata
-    const exactMatch = catalog.find((m) => normalizeText(m.name) === normalizedName);
+    // Busca exata - considera nome E unidade
+    const exactMatch = catalog.find((m) => {
+      const catName = normalizeText(m.name);
+      const catUnit = normalizeText(m.unit || 'un');
+      return catName === normalizedName && catUnit === normalizedUnit;
+    });
+    
     if (exactMatch) {
       // Verificar se há mudança de preço
       const existingTotal = (exactMatch.material_price || 0) + (exactMatch.labor_price || 0);
@@ -246,6 +253,18 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         matchType: "Exato",
         isExactDuplicate: true,
         hasPriceChange,
+      };
+    }
+
+    // Busca apenas por nome (sem considerar unidade) para materiais que podem ter unidade diferente
+    const nameOnlyMatch = catalog.find((m) => normalizeText(m.name) === normalizedName);
+    if (nameOnlyMatch) {
+      return {
+        material: nameOnlyMatch,
+        similarity: 95,
+        matchType: "Mesmo nome, unidade diferente",
+        isExactDuplicate: false,
+        hasPriceChange: false,
       };
     }
 
@@ -326,7 +345,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         m.name,
         importedTotal,
         importedMaterialPrice,
-        importedLaborPrice
+        importedLaborPrice,
+        m.unit
       );
 
       if (!normalizedMatch) {
@@ -730,7 +750,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         seenImportKeys.add(importKey);
 
         // Busca material similar COM os preços importados
-        const similar = findSimilarMaterial(name, totalPrice, materialPrice, laborPrice);
+        const similar = findSimilarMaterial(name, totalPrice, materialPrice, laborPrice, unit);
         
         if (similar) {
           if (similar.isExactDuplicate) {
