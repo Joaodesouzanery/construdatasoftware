@@ -493,7 +493,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
           throw new Error(`O arquivo PDF é muito grande. Tamanho máximo: ${maxSizeMB}MB`);
         }
 
-        const base64 = await fileToBase64(file);
+        // Envia o PDF como binário para evitar estouro de payload (base64 aumenta ~33%)
+        // e pode falhar com "Failed to send a request to the Edge Function".
 
         toast({
           title: "Extraindo dados do PDF...",
@@ -506,7 +507,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         try {
           const response = await supabase.functions.invoke(
             'extract-pdf-data',
-            { body: { pdfBase64: base64 } }
+            { body: file }
           );
           pdfData = response.data;
           pdfError = response.error;
