@@ -7,8 +7,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Maximum PDF size in bytes (5MB base64 encoded = ~6.67MB string)
-const MAX_PDF_SIZE = 7 * 1024 * 1024;
+// Limite de tamanho do PDF (em bytes). Importante: evitar base64 no client, pois aumenta ~33%.
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+// Tamanho máximo aproximado do base64 gerado a partir de MAX_PDF_BYTES
+const MAX_PDF_BASE64_LENGTH = Math.ceil((MAX_PDF_BYTES / 3) * 4) + 16;
+
+const uint8ToBase64 = (bytes: Uint8Array) => {
+  // Converte Uint8Array -> base64 com chunking para não estourar o stack
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -28,13 +40,13 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
+
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    
+
     if (authError || !user) {
       console.error('Authentication failed:', authError?.message || 'No user found');
       return new Response(
@@ -45,7 +57,47 @@ serve(async (req) => {
 
     console.log(`Authenticated user: ${user.id}`);
 
-    const { pdfBase64 } = await req.json();
+    const contentType = req.headers.get('content-type') ?? '';
+    let pdfBase64: string | null = null;
+
+    // Aceita 3 formatos:
+    // 1) application/octet-stream (recomendado): corpo = bytes do PDF
+    // 2) multipart/form-data: campo "file"
+    // 3) application/json: { pdfBase64 }
+    if (contentType.includes('application/octet-stream')) {
+      const bytes = new Uint8Array(await req.arrayBuffer());
+      if (bytes.byteLength > MAX_PDF_BYTES) {
+        console.error(`PDF too large (bytes): ${bytes.byteLength} (max: ${MAX_PDF_BYTES})`);
+        return new Response(
+          JSON.stringify({ error: 'PDF file is too large. Maximum size is 5MB.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      pdfBase64 = uint8ToBase64(bytes);
+    } else if (contentType.includes('multipart/form-data')) {
+      const form = await req.formData();
+      const file = form.get('file');
+      if (!(file instanceof File)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid input: missing file field' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (file.size > MAX_PDF_BYTES) {
+        console.error(`PDF too large (file): ${file.size} (max: ${MAX_PDF_BYTES})`);
+        return new Response(
+          JSON.stringify({ error: 'PDF file is too large. Maximum size is 5MB.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      pdfBase64 = uint8ToBase64(bytes);
+    } else {
+      const body = await req.json().catch(() => ({} as any));
+      if (body?.pdfBase64 && typeof body.pdfBase64 === 'string') {
+        pdfBase64 = body.pdfBase64;
+      }
+    }
 
     // Input validation
     if (!pdfBase64 || typeof pdfBase64 !== 'string') {
@@ -56,9 +108,9 @@ serve(async (req) => {
       );
     }
 
-    // Size validation
-    if (pdfBase64.length > MAX_PDF_SIZE) {
-      console.error(`PDF too large: ${pdfBase64.length} bytes (max: ${MAX_PDF_SIZE})`);
+    // Size validation (base64)
+    if (pdfBase64.length > MAX_PDF_BASE64_LENGTH) {
+      console.error(`PDF too large (base64): ${pdfBase64.length} (max: ${MAX_PDF_BASE64_LENGTH})`);
       return new Response(
         JSON.stringify({ error: 'PDF file is too large. Maximum size is 5MB.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
