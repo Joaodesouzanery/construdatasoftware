@@ -2,7 +2,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as pdfjsLib from "npm:pdfjs-dist@4.10.38/legacy/build/pdf.mjs";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,9 +10,6 @@ const corsHeaders = {
 
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 const MAX_PDF_BASE64_LENGTH = Math.ceil((MAX_PDF_BYTES / 3) * 4) + 16;
-
-const MAX_PAGES_PER_AI_CALL = 3;
-const MAX_TEXT_CHARS_PER_AI_CALL = 80_000;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -96,59 +92,6 @@ const dedupeItems = (items: Array<ReturnType<typeof normalizeItem>>) => {
   }
 
   return out;
-};
-
-const extractTextLinesFromPdf = async (pdfBytes: Uint8Array): Promise<{ numPages: number; pages: string[] }> => {
-  const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
-  const pdf = await loadingTask.promise;
-
-  const pages: string[] = [];
-
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
-    const content = await page.getTextContent();
-
-    // Agrupa por linha usando coordenada Y (tende a preservar linhas de tabela)
-    const lines: string[] = [];
-    let currentLine = "";
-    let lastY: number | null = null;
-
-    for (const item of (content.items as any[])) {
-      const str = typeof item?.str === "string" ? item.str.trim() : "";
-      if (!str) continue;
-
-      const y = typeof item?.transform?.[5] === "number" ? item.transform[5] : 0;
-      const yBucket = Math.round(y * 2) / 2; // bucket 0.5
-
-      if (lastY !== null && Math.abs(yBucket - lastY) > 1) {
-        if (currentLine.trim()) lines.push(currentLine.trim());
-        currentLine = str;
-      } else {
-        currentLine = currentLine ? `${currentLine} ${str}` : str;
-      }
-
-      lastY = yBucket;
-    }
-
-    if (currentLine.trim()) lines.push(currentLine.trim());
-
-    // Limpa linhas vazias e remove cabeçalhos comuns
-    const cleaned = lines
-      .map((l) => l.replace(/\s+/g, " ").trim())
-      .filter(Boolean)
-      .filter((l) => {
-        const n = normalizeTextKey(l);
-        return !(
-          n.includes("descricao") &&
-          (n.includes("unidade") || n.includes("unit")) &&
-          (n.includes("fornecedor") || n.includes("supplier"))
-        );
-      });
-
-    pages.push(cleaned.join("\n"));
-  }
-
-  return { numPages: pdf.numPages, pages };
 };
 
 serve(async (req) => {
@@ -276,33 +219,21 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPromptText = `Você é um extrator de dados a partir de TEXTO de tabelas de materiais.
-Retorne SEMPRE apenas um array JSON (sem explicações) com objetos contendo:
-- description (texto)
-- unit (texto, default \"UN\")
-- supplier (texto|null)
-- material_price (número)
-- labor_price (número)
-- price (número)
-- keywords (array)
+    console.log(`Extracting data from PDF using AI for user: ${user.id}...`);
 
-REGRAS:
-1) Extraia TODOS os itens do trecho fornecido (não limite a 28).
-2) Preserve a descrição o mais fiel possível ao texto.
-3) Se só existir um preço, coloque em material_price e price; labor_price=0.
-4) Se preço vazio, use 0.
-5) Ignore cabeçalhos/rodapés e linhas sem material.`;
+    // Convert to base64
+    const pdfBase64 = encodeBase64(new Uint8Array(pdfBytes).buffer as ArrayBuffer);
 
-    const systemPromptMultimodal = `Você é um extrator de dados de tabelas de materiais em PDF com ALTA PRECISÃO.
-Extraia TODOS os itens da tabela no formato JSON.
+    const systemPrompt = `Você é um extrator de dados de tabelas de materiais em PDF com ALTA PRECISÃO.
+IMPORTANTE: Extraia TODOS os itens da tabela - TODAS AS PÁGINAS do documento PDF.
 
 ⚠️ ATENÇÃO MÁXIMA À ORTOGRAFIA:
 - Copie os nomes dos materiais EXATAMENTE como aparecem no documento
-- NÃO corrija, altere ou \"interprete\" os nomes - transcreva-os LITERALMENTE
+- NÃO corrija, altere ou "interprete" os nomes - transcreva-os LITERALMENTE
 
 Retorne um array JSON com objetos contendo:
 - description (texto)
-- unit (texto, default \"UN\")
+- unit (texto, default "UN")
 - supplier (texto|null)
 - material_price (número)
 - labor_price (número)
@@ -310,14 +241,16 @@ Retorne um array JSON com objetos contendo:
 - keywords (array)
 
 REGRAS CRÍTICAS:
-1) TRANSCREVA OS NOMES EXATAMENTE
-2) Normalize números com vírgula/ponto (R$ 12,90 → 12.9)
-3) Se preço vazio, use 0
-4) Retorne APENAS o array JSON, sem explicações`;
+1) EXTRAIA TODOS OS ITENS DE TODAS AS PÁGINAS - não limite a quantidade
+2) TRANSCREVA OS NOMES EXATAMENTE como aparecem
+3) Normalize números com vírgula/ponto (R$ 12,90 → 12.9)
+4) Se preço vazio, use 0
+5) Retorne APENAS o array JSON, sem explicações
+6) O PDF pode ter múltiplas páginas - extraia TUDO`;
 
-    const callAiText = async (model: string, textChunk: string) => {
+    const callAi = async (model: string) => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90_000);
+      const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout for large PDFs
 
       try {
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -330,57 +263,11 @@ REGRAS CRÍTICAS:
           body: JSON.stringify({
             model,
             messages: [
-              { role: "system", content: systemPromptText },
-              {
-                role: "user",
-                content: `Extraia os itens do trecho abaixo:\n\n${textChunk}`,
-              },
-            ],
-            temperature: 0,
-          }),
-        });
-
-        const raw = await resp.text();
-
-        if (!resp.ok) {
-          console.error("AI API error:", resp.status, raw);
-          if (resp.status === 429) return { kind: "rate_limit" as const, error: "Rate limit exceeded. Please try again later." };
-          if (resp.status === 402) return { kind: "unavailable" as const, error: "AI service unavailable. Please try again later." };
-          throw new Error(`AI API error: ${resp.status} ${raw || ""}`.trim());
-        }
-
-        if (!raw.trim()) throw new Error("AI API returned an empty response body");
-
-        const data = safeJson(raw);
-        const extractedText = data?.choices?.[0]?.message?.content;
-        if (!extractedText || typeof extractedText !== "string") throw new Error("AI response missing content");
-
-        return { kind: "ok" as const, extractedText };
-      } finally {
-        clearTimeout(timeout);
-      }
-    };
-
-    const callAiPdf = async (model: string, pdfBase64: string) => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90_000);
-
-      try {
-        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: systemPromptMultimodal },
+              { role: "system", content: systemPrompt },
               {
                 role: "user",
                 content: [
-                  { type: "text", text: "Extraia os dados desta planilha em formato JSON:" },
+                  { type: "text", text: "Extraia TODOS os itens deste documento PDF (todas as páginas) em formato JSON:" },
                   {
                     type: "image_url",
                     image_url: { url: `data:application/pdf;base64,${pdfBase64}` },
@@ -413,144 +300,60 @@ REGRAS CRÍTICAS:
       }
     };
 
-    const modelsToTry = ["google/gemini-3-flash-preview", "google/gemini-2.5-flash", "google/gemini-2.5-pro"];
+    // Use gemini-2.5-pro for better multi-page PDF handling, with fallbacks
+    const modelsToTry = ["google/gemini-2.5-pro", "google/gemini-2.5-flash", "google/gemini-3-flash-preview"];
+    let extractedText: string | null = null;
+    let lastErr: unknown = null;
 
-    // 1) Tenta extrair texto do PDF (lê o PDF inteiro / todas as páginas)
-    let pages: string[] | null = null;
-    let numPages = 0;
-
-    try {
-      const extracted = await extractTextLinesFromPdf(pdfBytes);
-      pages = extracted.pages;
-      numPages = extracted.numPages;
-      console.log(`PDF text extracted: pages=${numPages}, chars=${pages.join("\n").length}`);
-    } catch (e) {
-      console.error("PDF text extraction failed, falling back to multimodal", e);
-      pages = null;
-      numPages = 0;
-    }
-
-    let allItems: ReturnType<typeof normalizeItem>[] = [];
-
-    if (pages && pages.length > 0) {
-      // 2) Chama IA por blocos de páginas (mais confiável para retornar tudo)
-      const totalPages = pages.length;
-      const batches: Array<{ start: number; end: number; text: string }> = [];
-
-      for (let i = 0; i < totalPages; i += MAX_PAGES_PER_AI_CALL) {
-        const start = i + 1;
-        const end = Math.min(i + MAX_PAGES_PER_AI_CALL, totalPages);
-        const slice = pages.slice(i, end);
-        let text = slice.map((t, idx) => `### Página ${start + idx}\n${t}`).join("\n\n");
-
-        // proteção contra payload grande
-        if (text.length > MAX_TEXT_CHARS_PER_AI_CALL) {
-          text = text.slice(0, MAX_TEXT_CHARS_PER_AI_CALL);
-        }
-
-        batches.push({ start, end, text });
-      }
-
-      for (const batch of batches) {
-        let extractedText: string | null = null;
-        let lastErr: unknown = null;
-
-        for (const model of modelsToTry) {
-          for (let attempt = 1; attempt <= 2; attempt++) {
-            try {
-              console.log(`AI(text) call: pages=${batch.start}-${batch.end} model=${model} attempt=${attempt}`);
-              const res = await callAiText(model, batch.text);
-              if (res.kind === "rate_limit") {
-                return new Response(JSON.stringify({ error: res.error }), {
-                  status: 429,
-                  headers: { ...corsHeaders, "Content-Type": "application/json" },
-                });
-              }
-              if (res.kind === "unavailable") {
-                return new Response(JSON.stringify({ error: res.error }), {
-                  status: 503,
-                  headers: { ...corsHeaders, "Content-Type": "application/json" },
-                });
-              }
-              extractedText = res.extractedText;
-              break;
-            } catch (err) {
-              lastErr = err;
-              console.error(`AI(text) call failed: pages=${batch.start}-${batch.end} model=${model} attempt=${attempt}`, err);
-              if (attempt < 2) await sleep(500 * attempt);
-            }
+    for (const model of modelsToTry) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          console.log(`AI call: model=${model} attempt=${attempt}`);
+          const res = await callAi(model);
+          if (res.kind === "rate_limit") {
+            return new Response(JSON.stringify({ error: res.error }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
           }
-          if (extractedText) break;
-        }
-
-        if (!extractedText) throw (lastErr instanceof Error ? lastErr : new Error("Failed to extract PDF data"));
-
-        const batchItems = parseJsonArrayFromModel(extractedText)
-          .map(normalizeItem)
-          .filter((it) => it.description);
-
-        console.log(`Batch extracted: pages=${batch.start}-${batch.end} items=${batchItems.length}`);
-        allItems.push(...batchItems);
-        await sleep(150); // pequena pausa para evitar throttling
-      }
-
-      allItems = dedupeItems(allItems);
-      console.log(`Total extracted from text: items=${allItems.length}`);
-    }
-
-    // 3) Fallback: multimodal (caso texto falhe ou retorne vazio)
-    if (allItems.length === 0) {
-      console.log(`Extracting data from PDF using AI(multimodal) for user: ${user.id}...`);
-      const pdfBase64 = encodeBase64(new Uint8Array(pdfBytes).buffer as ArrayBuffer);
-
-      let extractedText: string | null = null;
-      let lastErr: unknown = null;
-
-      for (const model of modelsToTry) {
-        for (let attempt = 1; attempt <= 2; attempt++) {
-          try {
-            console.log(`AI(pdf) call: model=${model} attempt=${attempt}`);
-            const res = await callAiPdf(model, pdfBase64);
-            if (res.kind === "rate_limit") {
-              return new Response(JSON.stringify({ error: res.error }), {
-                status: 429,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              });
-            }
-            if (res.kind === "unavailable") {
-              return new Response(JSON.stringify({ error: res.error }), {
-                status: 503,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              });
-            }
-            extractedText = res.extractedText;
-            break;
-          } catch (err) {
-            lastErr = err;
-            console.error(`AI(pdf) call failed: model=${model} attempt=${attempt}`, err);
-            if (attempt < 2) await sleep(500 * attempt);
+          if (res.kind === "unavailable") {
+            return new Response(JSON.stringify({ error: res.error }), {
+              status: 503,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
           }
+          extractedText = res.extractedText;
+          break;
+        } catch (err) {
+          lastErr = err;
+          console.error(`AI call failed: model=${model} attempt=${attempt}`, err);
+          if (attempt < 2) await sleep(500 * attempt);
         }
-        if (extractedText) break;
       }
-
-      if (!extractedText) throw (lastErr instanceof Error ? lastErr : new Error("Failed to extract PDF data"));
-
-      const items = parseJsonArrayFromModel(extractedText).map(normalizeItem).filter((it) => it.description);
-      allItems = dedupeItems(items);
-      console.log(`Successfully extracted ${allItems.length} items (multimodal) for user: ${user.id}`);
+      if (extractedText) break;
     }
 
-    if (allItems.length === 0) throw new Error("No valid items extracted from PDF");
+    if (!extractedText) throw (lastErr instanceof Error ? lastErr : new Error("Failed to extract PDF data"));
 
-    return new Response(JSON.stringify({ items: allItems, meta: { pages: numPages || undefined } }), {
+    console.log("AI response received for user:", user.id);
+
+    const rawItems = parseJsonArrayFromModel(extractedText).map(normalizeItem).filter((it) => it.description);
+    
+    // Deduplicate items (same description + unit)
+    const items = dedupeItems(rawItems);
+
+    if (items.length === 0) throw new Error("No valid items extracted from PDF");
+
+    console.log(`Successfully extracted ${items.length} items (${rawItems.length} before dedupe) for user: ${user.id}`);
+
+    return new Response(JSON.stringify({ items }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error in extract-pdf-data function:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
