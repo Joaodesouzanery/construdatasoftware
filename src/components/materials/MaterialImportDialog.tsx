@@ -505,9 +505,17 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         let pdfError: any = null;
 
         try {
+          // Usa ArrayBuffer para enviar como binário puro (application/octet-stream)
+          const arrayBuffer = await file.arrayBuffer();
+          
           const response = await supabase.functions.invoke(
             'extract-pdf-data',
-            { body: file }
+            { 
+              body: arrayBuffer,
+              headers: {
+                'Content-Type': 'application/octet-stream'
+              }
+            }
           );
           pdfData = response.data;
           pdfError = response.error;
