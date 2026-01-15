@@ -18,7 +18,7 @@ interface KeywordsManagementDialogProps {
 export const KeywordsManagementDialog = ({ open, onOpenChange }: KeywordsManagementDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [newKeyword, setNewKeyword] = useState({ type: 'brand', value: '', synonyms: '' });
+  const [newKeyword, setNewKeyword] = useState({ type: 'material', value: '', synonyms: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editSynonyms, setEditSynonyms] = useState('');
 
@@ -57,7 +57,7 @@ export const KeywordsManagementDialog = ({ open, onOpenChange }: KeywordsManagem
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-keywords'] });
       toast({ title: "Palavra-chave adicionada!" });
-      setNewKeyword({ type: 'brand', value: '', synonyms: '' });
+      setNewKeyword({ type: 'material', value: '', synonyms: '' });
     },
     onError: (error: any) => {
       toast({
@@ -212,6 +212,7 @@ export const KeywordsManagementDialog = ({ open, onOpenChange }: KeywordsManagem
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="material">Material (Sinônimos)</SelectItem>
                     <SelectItem value="brand">Marca</SelectItem>
                     <SelectItem value="color">Cor</SelectItem>
                     <SelectItem value="unit">Unidade</SelectItem>
@@ -279,7 +280,8 @@ export const KeywordsManagementDialog = ({ open, onOpenChange }: KeywordsManagem
               {Object.entries(keywordsByType || {}).map(([type, items]: [string, any]) => (
                 <div key={type} className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-3 capitalize">
-                    {type === 'brand' ? 'Marcas' :
+                    {type === 'material' ? 'Materiais (Sinônimos)' :
+                     type === 'brand' ? 'Marcas' :
                      type === 'color' ? 'Cores' :
                      type === 'unit' ? 'Unidades' : 'Geral'}
                   </h3>
