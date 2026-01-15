@@ -78,15 +78,16 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     current_price?: number | null;
     material_price?: number | null;
     labor_price?: number | null;
+    keywords?: string[] | null;
   };
 
   const catalogRef = useRef<MaterialRow[]>([]);
 
   const fetchMaterialsCatalog = async (): Promise<MaterialRow[]> => {
-    // Otimização: para o fluxo de importação, só precisamos de alguns campos.
+    // Inclui keywords para busca por palavras-chave durante importação
     const { data, error } = await supabase
       .from("materials")
-      .select("id,name,unit,current_price,material_price,labor_price");
+      .select("id,name,unit,current_price,material_price,labor_price,keywords");
     if (error) throw error;
     return (data || []) as MaterialRow[];
   };
@@ -96,6 +97,27 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     queryFn: fetchMaterialsCatalog,
     staleTime: 0,
   });
+
+  // Busca palavras-chave customizadas do tipo "material" para identificar sinônimos
+  const { data: customMaterialKeywords = [] } = useQuery({
+    queryKey: ["custom-material-keywords"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("custom_keywords")
+        .select("keyword_value, synonyms")
+        .eq("keyword_type", "material");
+      if (error) throw error;
+      return (data || []) as Array<{ keyword_value: string; synonyms: string[] | null }>;
+    },
+    staleTime: 0,
+  });
+
+  // Ref para custom keywords
+  const customKeywordsRef = useRef<Array<{ keyword_value: string; synonyms: string[] | null }>>([]);
+  
+  useEffect(() => {
+    customKeywordsRef.current = customMaterialKeywords;
+  }, [customMaterialKeywords]);
 
   useEffect(() => {
     catalogRef.current = existingMaterials;
@@ -209,7 +231,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     importedPrice?: number,
     importedMaterialPrice?: number,
     importedLaborPrice?: number,
-    importedUnit?: string
+    importedUnit?: string,
+    importedKeywords?: string[]
   ): {
     material: any;
     similarity: number;
@@ -225,6 +248,9 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
     const normalizedName = normalizeText(name);
     const normalizedUnit = normalizeText(importedUnit || 'un');
+    
+    // Extrair tokens do nome importado para busca por keywords
+    const nameTokens = normalizedName.split(/\s+/).filter((t) => t.length > 2);
 
     // Busca exata - considera nome E unidade
     const exactMatch = catalog.find((m) => {
@@ -256,6 +282,106 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         material: nameOnlyMatch,
         similarity: 95,
         matchType: "Mesmo nome, unidade diferente",
+        isExactDuplicate: false,
+        hasPriceChange: false,
+      };
+    }
+
+    // ==== BUSCA POR SINÔNIMOS CUSTOMIZADOS (custom_keywords do tipo "material") ====
+    // Verifica se o nome importado contém alguma keyword customizada ou seus sinônimos
+    const customKeywords = customKeywordsRef.current || [];
+    for (const customKw of customKeywords) {
+      const normalizedKwValue = normalizeText(customKw.keyword_value);
+      const allSynonyms = [normalizedKwValue, ...(customKw.synonyms || []).map((s) => normalizeText(s))];
+      
+      // Verifica se o nome importado contém algum sinônimo
+      let matchedSynonym: string | null = null;
+      for (const syn of allSynonyms) {
+        if (syn.length > 3 && normalizedName.includes(syn)) {
+          matchedSynonym = syn;
+          break;
+        }
+      }
+      
+      if (matchedSynonym) {
+        // Procura no catálogo um material que contenha qualquer um dos sinônimos
+        const synonymMatch = catalog.find((m) => {
+          const normalizedMatName = normalizeText(m.name);
+          const materialKeywords = (m.keywords || []).map((k: string) => normalizeText(k));
+          
+          for (const syn of allSynonyms) {
+            if (syn.length > 3) {
+              // Verifica no nome do material
+              if (normalizedMatName.includes(syn)) return true;
+              // Verifica nas keywords do material
+              if (materialKeywords.some((kw) => kw.includes(syn) || syn.includes(kw))) return true;
+            }
+          }
+          return false;
+        });
+        
+        if (synonymMatch) {
+          return {
+            material: synonymMatch,
+            similarity: 92,
+            matchType: "Sinônimo customizado",
+            isExactDuplicate: false,
+            hasPriceChange: false,
+          };
+        }
+      }
+    }
+
+    // ==== BUSCA POR PALAVRAS-CHAVE DO MATERIAL ====
+    // Verifica se alguma palavra-chave do material cadastrado aparece no nome importado
+    // OU se as keywords importadas coincidem com as do catálogo
+    const keywordMatch = catalog.find((m) => {
+      const materialKeywords = (m.keywords || []).map((k: string) => normalizeText(k));
+      if (materialKeywords.length === 0) return false;
+      
+      // Verifica se alguma keyword do material está contida no nome importado
+      for (const kw of materialKeywords) {
+        const kwTokens = kw.split(/\s+/).filter((t) => t.length > 2);
+        // Se a keyword tem múltiplas palavras, todas devem estar no nome
+        if (kwTokens.length > 0 && kwTokens.every((t) => normalizedName.includes(t))) {
+          return true;
+        }
+        // Ou se a keyword inteira aparece no nome
+        if (kw.length > 3 && normalizedName.includes(kw)) {
+          return true;
+        }
+      }
+
+      // Verifica se as keywords importadas coincidem com as do catálogo
+      if (importedKeywords && importedKeywords.length > 0) {
+        const normalizedImportedKws = importedKeywords.map((k) => normalizeText(k));
+        for (const importedKw of normalizedImportedKws) {
+          if (materialKeywords.some((mKw: string) => 
+            mKw.includes(importedKw) || importedKw.includes(mKw)
+          )) {
+            return true;
+          }
+        }
+      }
+
+      // Verifica se o nome do material cadastrado contém as keywords importadas
+      const normalizedMatName = normalizeText(m.name);
+      if (importedKeywords && importedKeywords.length > 0) {
+        for (const importedKw of importedKeywords.map((k) => normalizeText(k))) {
+          if (importedKw.length > 3 && normalizedMatName.includes(importedKw)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    });
+
+    if (keywordMatch) {
+      return {
+        material: keywordMatch,
+        similarity: 90,
+        matchType: "Palavra-chave",
         isExactDuplicate: false,
         hasPriceChange: false,
       };
@@ -380,7 +506,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         importedTotal,
         importedMaterialPrice,
         importedLaborPrice,
-        m.unit
+        m.unit,
+        m.keywords
       );
 
       if (!normalizedMatch) {
@@ -790,8 +917,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         }
         seenImportKeys.add(importKey);
 
-        // Busca material similar COM os preços importados
-        const similar = findSimilarMaterial(name, totalPrice, materialPrice, laborPrice, unit);
+        // Busca material similar COM os preços e keywords importados
+        const similar = findSimilarMaterial(name, totalPrice, materialPrice, laborPrice, unit, keywords);
         
         if (similar) {
           if (similar.isExactDuplicate) {

@@ -87,8 +87,23 @@ const normalizeItem = (item: any) => {
   const material_price = coerceNumber(item?.material_price);
   const labor_price = coerceNumber(item?.labor_price);
   const price = coerceNumber(item?.price) || material_price + labor_price;
+  // Clean keywords: filter out price-like strings and pure numbers
+  const cleanKeyword = (k: string): string => {
+    // Remove price patterns (e.g., "186 00", "1.234,56")
+    const cleaned = k
+      .replace(/R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}/gi, "")
+      .replace(/\d{1,3}(?:\.\d{3})*,\d{2}/g, "")
+      .replace(/^\d+(?:\s+\d+)*$/, "") // pure numbers like "186 00"
+      .replace(/\s+/g, " ")
+      .trim();
+    return cleaned;
+  };
+
   const keywords = Array.isArray(item?.keywords)
-    ? item.keywords.filter((k: any) => typeof k === "string").map((k: string) => k.trim()).filter(Boolean)
+    ? item.keywords
+        .filter((kw: any) => typeof kw === "string")
+        .map((kw: string) => cleanKeyword(kw))
+        .filter((kw: string) => kw.length > 2 && !/^\d+$/.test(kw)) // ignore if only digits or too short
     : [];
 
   return { description, unit, supplier, material_price, labor_price, price, keywords };
