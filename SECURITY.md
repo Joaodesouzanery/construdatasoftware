@@ -129,6 +129,17 @@ Se você descobrir uma vulnerabilidade de segurança, por favor:
 
 ## 📝 Histórico de Atualizações
 
+### 2026-01-20 - Hardening de Segurança v3
+- ✅ **Rate Limiting**: Edge function `maintenance-request-upload` implementada com:
+  - Limite de 5 requisições por IP por hora
+  - Limite de 10 requisições por QR Code por hora
+  - Sanitização de inputs contra XSS
+  - URLs assinadas para uploads de fotos (expiram em 5 minutos)
+- ✅ **Políticas RLS corrigidas**: Removidas políticas duplicadas/antigas da tabela `employees`
+- ✅ **Proteção de IPs**: Tabela `maintenance_request_rate_limits` agora restringe acesso a IPs
+- ✅ **Dados financeiros protegidos**: Tabela `purchase_orders` usa `is_project_manager()` para validação
+- ⚠️ **Supply Chain**: Vulnerabilidades conhecidas em `html2pdf.js`, `jspdf`, `xlsx` - mitigadas por uso controlado
+
 ### 2025-10-20 - Correção Crítica de Segurança
 - ✅ Implementadas políticas RLS restritivas em todas as tabelas
 - ✅ Adicionada autenticação JWT em todas as Edge Functions
@@ -141,7 +152,9 @@ Se você descobrir uma vulnerabilidade de segurança, por favor:
 
 ---
 
-**Última atualização**: 20 de Outubro de 2025  
-**Versão de Segurança**: 2.0 - Empresarial
+**Última atualização**: 20 de Janeiro de 2026  
+**Versão de Segurança**: 3.0 - Enterprise Hardened
+
+Para mais informações sobre as funcionalidades do sistema, consulte [FUNCIONALIDADES.md](./FUNCIONALIDADES.md)
 
 Para mais informações sobre as funcionalidades do sistema, consulte [FUNCIONALIDADES.md](./FUNCIONALIDADES.md)
