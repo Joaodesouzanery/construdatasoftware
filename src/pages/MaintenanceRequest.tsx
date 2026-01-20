@@ -18,6 +18,10 @@ interface QRCodeData {
   projects: { name: string };
 }
 
+const MAX_NAME_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 2000;
+const MAX_CONTACT_LENGTH = 100;
+
 export default function MaintenanceRequest() {
   const [searchParams] = useSearchParams();
   const qrParam = searchParams.get("qr");
@@ -77,28 +81,67 @@ export default function MaintenanceRequest() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const uploadPhotos = async () => {
+  const uploadPhotosViaEdgeFunction = async (qrCodeId: string): Promise<string[]> => {
     const uploadedUrls: string[] = [];
 
     for (const photo of photos) {
-      const fileExt = photo.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Request signed upload URL from edge function
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
+        'maintenance-request-upload',
+        {
+          body: {
+            action: 'get_upload_url',
+            qr_code_id: qrCodeId,
+            file_name: photo.name,
+          },
+        }
+      );
 
-      const { error: uploadError } = await supabase.storage
-        .from("maintenance-request-photos")
-        .upload(filePath, photo);
+      if (uploadError || !uploadData?.signedUploadUrl) {
+        throw new Error(uploadData?.error || 'Erro ao obter URL de upload');
+      }
 
-      if (uploadError) throw uploadError;
+      // Upload photo using signed URL
+      const uploadResponse = await fetch(uploadData.signedUploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': photo.type,
+        },
+        body: photo,
+      });
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("maintenance-request-photos")
-        .getPublicUrl(filePath);
+      if (!uploadResponse.ok) {
+        throw new Error('Erro ao fazer upload da foto');
+      }
 
-      uploadedUrls.push(publicUrl);
+      uploadedUrls.push(uploadData.publicUrl);
     }
 
     return uploadedUrls;
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.requesterName.trim()) {
+      toast.error("Nome é obrigatório");
+      return false;
+    }
+    if (formData.requesterName.length > MAX_NAME_LENGTH) {
+      toast.error(`Nome muito longo (máximo ${MAX_NAME_LENGTH} caracteres)`);
+      return false;
+    }
+    if (!formData.issueDescription.trim()) {
+      toast.error("Descrição do problema é obrigatória");
+      return false;
+    }
+    if (formData.issueDescription.length > MAX_DESCRIPTION_LENGTH) {
+      toast.error(`Descrição muito longa (máximo ${MAX_DESCRIPTION_LENGTH} caracteres)`);
+      return false;
+    }
+    if (formData.requesterContact && formData.requesterContact.length > MAX_CONTACT_LENGTH) {
+      toast.error(`Contato muito longo (máximo ${MAX_CONTACT_LENGTH} caracteres)`);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,33 +157,57 @@ export default function MaintenanceRequest() {
       return;
     }
 
-    if (!formData.requesterName || !formData.issueDescription) {
-      toast.error("Preencha os campos obrigatórios");
+    if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Upload photos
-      const photoUrls = await uploadPhotos();
+      // Upload photos via edge function (with rate limiting)
+      const photoUrls = await uploadPhotosViaEdgeFunction(qrCodeData.id);
 
-      // Create maintenance request
-      const { error } = await supabase.from("maintenance_requests").insert({
-        qr_code_id: qrCodeData.id,
-        requester_name: formData.requesterName,
-        requester_contact: formData.requesterContact || null,
-        issue_description: formData.issueDescription,
-        urgency_level: formData.urgencyLevel,
-        photos_urls: photoUrls,
-      });
+      // Create maintenance request via edge function (with rate limiting and sanitization)
+      const { data, error } = await supabase.functions.invoke(
+        'maintenance-request-upload',
+        {
+          body: {
+            action: 'create_request',
+            qr_code_id: qrCodeData.id,
+            maintenance_request: {
+              requester_name: formData.requesterName.trim(),
+              requester_contact: formData.requesterContact.trim() || null,
+              issue_description: formData.issueDescription.trim(),
+              urgency_level: formData.urgencyLevel,
+              photos_urls: photoUrls,
+            },
+          },
+        }
+      );
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || 'Erro ao enviar solicitação');
+      }
+
+      if (data?.error) {
+        // Handle rate limiting errors
+        if (data.error.includes('rate limit') || data.error.includes('Limite')) {
+          toast.error("Você atingiu o limite de solicitações. Tente novamente mais tarde.");
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
 
       setIsSubmitted(true);
       toast.success("Solicitação enviada com sucesso!");
     } catch (error: any) {
-      toast.error("Erro ao enviar solicitação: " + error.message);
+      const message = error.message || "Erro ao enviar solicitação";
+      if (message.includes('rate limit') || message.includes('Limite')) {
+        toast.error("Você atingiu o limite de solicitações. Tente novamente mais tarde.");
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -248,8 +315,12 @@ export default function MaintenanceRequest() {
                   value={formData.requesterName}
                   onChange={(e) => setFormData({ ...formData, requesterName: e.target.value })}
                   placeholder="Nome completo"
+                  maxLength={MAX_NAME_LENGTH}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.requesterName.length}/{MAX_NAME_LENGTH}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -259,6 +330,7 @@ export default function MaintenanceRequest() {
                   value={formData.requesterContact}
                   onChange={(e) => setFormData({ ...formData, requesterContact: e.target.value })}
                   placeholder="Para contato, se necessário"
+                  maxLength={MAX_CONTACT_LENGTH}
                 />
               </div>
 
@@ -288,8 +360,12 @@ export default function MaintenanceRequest() {
                   onChange={(e) => setFormData({ ...formData, issueDescription: e.target.value })}
                   placeholder="Descreva o problema encontrado..."
                   rows={4}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.issueDescription.length}/{MAX_DESCRIPTION_LENGTH}
+                </p>
               </div>
 
               <div className="space-y-2">
