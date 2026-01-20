@@ -1342,6 +1342,35 @@ export type Database = {
           },
         ]
       }
+      maintenance_request_rate_limits: {
+        Row: {
+          client_ip: string
+          created_at: string
+          id: string
+          qr_code_id: string
+        }
+        Insert: {
+          client_ip: string
+          created_at?: string
+          id?: string
+          qr_code_id: string
+        }
+        Update: {
+          client_ip?: string
+          created_at?: string
+          id?: string
+          qr_code_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_request_rate_limits_qr_code_id_fkey"
+            columns: ["qr_code_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_qr_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_requests: {
         Row: {
           created_at: string | null
@@ -2617,6 +2646,7 @@ export type Database = {
     Functions: {
       can_create_employee: { Args: { user_uuid: string }; Returns: boolean }
       can_create_project: { Args: { user_uuid: string }; Returns: boolean }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       get_supplier_quote_project_id: {
         Args: { _quote_id: string }
         Returns: string
