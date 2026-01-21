@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload, Download, Edit, ArrowLeft, History, BarChart3, FileSpreadsheet, Sparkles } from "lucide-react";
+import { Plus, Search, Upload, Download, Edit, ArrowLeft, History, BarChart3, FileSpreadsheet, Sparkles, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
@@ -16,6 +16,8 @@ import { KeywordsManagementDialog } from "@/components/materials/KeywordsManagem
 import { BulkEditDialog } from "@/components/materials/BulkEditDialog";
 import { PriceHistoryDialog } from "@/components/materials/PriceHistoryDialog";
 import { IntelligentSpreadsheetDialog } from "@/components/materials/IntelligentSpreadsheetDialog";
+import { DuplicateMaterialsReport } from "@/components/materials/DuplicateMaterialsReport";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Materials = () => {
   const { toast } = useToast();
@@ -180,28 +182,43 @@ const Materials = () => {
             </Button>
           </div>
         </div>
+        <Tabs defaultValue="catalog" className="w-full">
+          <TabsList>
+            <TabsTrigger value="catalog">Catálogo</TabsTrigger>
+            <TabsTrigger value="duplicates" className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Duplicados
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="catalog" className="space-y-4 mt-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar materiais..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <MaterialFilters filters={filters} onFiltersChange={setFilters} materials={materials || []} />
+            </div>
 
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar materiais..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+            <EditableMaterialsTable
+              materials={filteredMaterials}
+              isLoading={isLoading}
+              onEdit={setEditingMaterial}
+              onDelete={(id) => deleteMutation.mutate(id)}
+              selectedMaterials={selectedMaterials}
+              onSelectionChange={setSelectedMaterials}
             />
-          </div>
-          <MaterialFilters filters={filters} onFiltersChange={setFilters} materials={materials || []} />
-        </div>
-
-        <EditableMaterialsTable
-          materials={filteredMaterials}
-          isLoading={isLoading}
-          onEdit={setEditingMaterial}
-          onDelete={(id) => deleteMutation.mutate(id)}
-          selectedMaterials={selectedMaterials}
-          onSelectionChange={setSelectedMaterials}
-        />
+          </TabsContent>
+          
+          <TabsContent value="duplicates" className="mt-4">
+            <DuplicateMaterialsReport />
+          </TabsContent>
+        </Tabs>
 
         <AddMaterialDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
         
