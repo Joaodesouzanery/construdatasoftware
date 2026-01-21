@@ -1731,8 +1731,10 @@ export type Database = {
           current_price: number
           current_stock: number | null
           description: string | null
+          description_norm: string | null
           id: string
           keywords: string[] | null
+          keywords_norm: string[] | null
           labor_price: number | null
           material_price: number | null
           measurement: string | null
@@ -1752,8 +1754,10 @@ export type Database = {
           current_price?: number
           current_stock?: number | null
           description?: string | null
+          description_norm?: string | null
           id?: string
           keywords?: string[] | null
+          keywords_norm?: string[] | null
           labor_price?: number | null
           material_price?: number | null
           measurement?: string | null
@@ -1773,8 +1777,10 @@ export type Database = {
           current_price?: number
           current_stock?: number | null
           description?: string | null
+          description_norm?: string | null
           id?: string
           keywords?: string[] | null
+          keywords_norm?: string[] | null
           labor_price?: number | null
           material_price?: number | null
           measurement?: string | null
@@ -2672,6 +2678,11 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      normalize_text_for_matching: {
+        Args: { input_text: string }
+        Returns: string
+      }
+      tokenize_keywords: { Args: { input_text: string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "user" | "manager"
