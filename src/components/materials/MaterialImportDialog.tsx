@@ -79,15 +79,19 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     material_price?: number | null;
     labor_price?: number | null;
     keywords?: string[] | null;
+    keywords_norm?: string[] | null;
+    description_norm?: string | null;
+    category?: string | null;
+    measurement?: string | null;
   };
 
   const catalogRef = useRef<MaterialRow[]>([]);
 
   const fetchMaterialsCatalog = async (): Promise<MaterialRow[]> => {
-    // Inclui keywords para busca por palavras-chave durante importação
+    // Inclui keywords_norm e description_norm para matching por tokens
     const { data, error } = await supabase
       .from("materials")
-      .select("id,name,unit,current_price,material_price,labor_price,keywords");
+      .select("id,name,unit,current_price,material_price,labor_price,keywords,keywords_norm,description_norm,category,measurement");
     if (error) throw error;
     return (data || []) as MaterialRow[];
   };
@@ -136,6 +140,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       return existingMaterials;
     }
   };
+  // Normaliza texto removendo acentos, caracteres especiais e espaços extras
   const normalizeText = (text: string): string => {
     return text
       .toLowerCase()
@@ -144,6 +149,97 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       .replace(/[^\w\s]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  };
+
+  // Tokeniza texto em array de palavras-chave normalizadas
+  const tokenizeKeywords = (text: string): string[] => {
+    const normalized = normalizeText(text);
+    // Divide por espaço, vírgula, pipe e ponto-e-vírgula
+    const tokens = normalized.split(/[\s,|;]+/);
+    // Remove tokens vazios, duplicados e com menos de 3 caracteres
+    const uniqueTokens = [...new Set(tokens.filter(t => t.length > 2))];
+    return uniqueTokens;
+  };
+
+  // Extrai medidas do texto (ex: "30m", "16mm", "4k", "2.0")
+  const extractMeasurements = (text: string): string[] => {
+    const normalized = normalizeText(text);
+    // Padrões para medidas: números seguidos de unidades ou formatos específicos
+    const measurementPatterns = [
+      /\d+(?:[.,]\d+)?(?:m|mm|cm|km|kg|g|l|ml|w|v|a|pol|\"|\')(?:\s|$)/gi,
+      /\d+k\b/gi, // 4k
+      /\d+(?:\.\d+)?(?:mm|cm|m)\b/gi,
+    ];
+    
+    const measurements: string[] = [];
+    for (const pattern of measurementPatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        measurements.push(...matches.map(m => normalizeText(m)));
+      }
+    }
+    return [...new Set(measurements)];
+  };
+
+  // Calcula score de matching baseado em overlap de tokens
+  const calculateKeywordMatchScore = (
+    importedTokens: string[],
+    catalogTokens: string[],
+    importedMeasurements: string[],
+    catalogMeasurements: string[],
+    importedUnit?: string,
+    catalogUnit?: string,
+    importedCategory?: string,
+    catalogCategory?: string
+  ): { score: number; matchedTokens: number; totalTokens: number } => {
+    let score = 0;
+    
+    // Conta tokens em comum
+    const matchedTokens = importedTokens.filter(t => catalogTokens.includes(t)).length;
+    const totalTokens = Math.max(importedTokens.length, 1);
+    const overlapPercentage = matchedTokens / totalTokens;
+    
+    // +70 se overlap >= 2 tokens OU >= 60% dos tokens
+    if (matchedTokens >= 2 || overlapPercentage >= 0.6) {
+      score += 70;
+    } else if (matchedTokens >= 1) {
+      // Bonus parcial para 1 token em comum
+      score += 30;
+    }
+    
+    // +20 se medida bater (ex: 30m, 16mm)
+    if (importedMeasurements.length > 0 && catalogMeasurements.length > 0) {
+      const measurementMatch = importedMeasurements.some(m => 
+        catalogMeasurements.some(cm => m === cm || cm.includes(m) || m.includes(cm))
+      );
+      if (measurementMatch) {
+        score += 20;
+      }
+    }
+    
+    // +10 se unidade bater
+    if (importedUnit && catalogUnit) {
+      const normImportedUnit = normalizeText(importedUnit);
+      const normCatalogUnit = normalizeText(catalogUnit);
+      if (normImportedUnit === normCatalogUnit || 
+          (normImportedUnit === "und" && normCatalogUnit === "un") ||
+          (normImportedUnit === "un" && normCatalogUnit === "und")) {
+        score += 10;
+      }
+    }
+    
+    // +10 se categoria bater (se existir)
+    if (importedCategory && catalogCategory) {
+      const normImportedCat = normalizeText(importedCategory);
+      const normCatalogCat = normalizeText(catalogCategory);
+      if (normImportedCat === normCatalogCat || 
+          normImportedCat.includes(normCatalogCat) || 
+          normCatalogCat.includes(normImportedCat)) {
+        score += 10;
+      }
+    }
+    
+    return { score, matchedTokens, totalTokens };
   };
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -232,13 +328,16 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     importedMaterialPrice?: number,
     importedLaborPrice?: number,
     importedUnit?: string,
-    importedKeywords?: string[]
+    importedKeywords?: string[],
+    importedCategory?: string
   ): {
     material: any;
     similarity: number;
     matchType: string;
     isExactDuplicate?: boolean;
     hasPriceChange?: boolean;
+    matchScore?: number;
+    matchedTokens?: number;
   } | null => {
     const catalog = (catalogRef.current && catalogRef.current.length > 0)
       ? catalogRef.current
@@ -249,10 +348,24 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     const normalizedName = normalizeText(name);
     const normalizedUnit = normalizeText(importedUnit || 'un');
     
-    // Extrair tokens do nome importado para busca por keywords
-    const nameTokens = normalizedName.split(/\s+/).filter((t) => t.length > 2);
+    // Tokeniza o nome importado para matching por keywords
+    const importedTokens = tokenizeKeywords(name);
+    // Adiciona keywords importadas aos tokens
+    if (importedKeywords && importedKeywords.length > 0) {
+      for (const kw of importedKeywords) {
+        const kwTokens = tokenizeKeywords(kw);
+        for (const t of kwTokens) {
+          if (!importedTokens.includes(t)) {
+            importedTokens.push(t);
+          }
+        }
+      }
+    }
+    
+    // Extrai medidas do nome importado
+    const importedMeasurements = extractMeasurements(name);
 
-    // Busca exata - considera nome E unidade
+    // ========== 1. BUSCA EXATA - considera nome E unidade ==========
     const exactMatch = catalog.find((m) => {
       const catName = normalizeText(m.name);
       const catUnit = normalizeText(m.unit || 'un');
@@ -260,7 +373,6 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     });
     
     if (exactMatch) {
-      // Verificar se há mudança de preço
       const existingTotal = (exactMatch.material_price || 0) + (exactMatch.labor_price || 0);
       const newTotal =
         (importedMaterialPrice || 0) + (importedLaborPrice || 0) || importedPrice || 0;
@@ -272,10 +384,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         matchType: "Exato",
         isExactDuplicate: true,
         hasPriceChange,
+        matchScore: 100,
       };
     }
 
-    // Busca apenas por nome (sem considerar unidade) para materiais que podem ter unidade diferente
+    // ========== 2. BUSCA POR NOME (sem unidade) ==========
     const nameOnlyMatch = catalog.find((m) => normalizeText(m.name) === normalizedName);
     if (nameOnlyMatch) {
       return {
@@ -284,17 +397,16 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         matchType: "Mesmo nome, unidade diferente",
         isExactDuplicate: false,
         hasPriceChange: false,
+        matchScore: 95,
       };
     }
 
-    // ==== BUSCA POR SINÔNIMOS CUSTOMIZADOS (custom_keywords do tipo "material") ====
-    // Verifica se o nome importado contém alguma keyword customizada ou seus sinônimos
+    // ========== 3. BUSCA POR SINÔNIMOS CUSTOMIZADOS ==========
     const customKeywords = customKeywordsRef.current || [];
     for (const customKw of customKeywords) {
       const normalizedKwValue = normalizeText(customKw.keyword_value);
       const allSynonyms = [normalizedKwValue, ...(customKw.synonyms || []).map((s) => normalizeText(s))];
       
-      // Verifica se o nome importado contém algum sinônimo
       let matchedSynonym: string | null = null;
       for (const syn of allSynonyms) {
         if (syn.length > 3 && normalizedName.includes(syn)) {
@@ -304,16 +416,13 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       }
       
       if (matchedSynonym) {
-        // Procura no catálogo um material que contenha qualquer um dos sinônimos
         const synonymMatch = catalog.find((m) => {
           const normalizedMatName = normalizeText(m.name);
           const materialKeywords = (m.keywords || []).map((k: string) => normalizeText(k));
           
           for (const syn of allSynonyms) {
             if (syn.length > 3) {
-              // Verifica no nome do material
               if (normalizedMatName.includes(syn)) return true;
-              // Verifica nas keywords do material
               if (materialKeywords.some((kw) => kw.includes(syn) || syn.includes(kw))) return true;
             }
           }
@@ -327,74 +436,110 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
             matchType: "Sinônimo customizado",
             isExactDuplicate: false,
             hasPriceChange: false,
+            matchScore: 92,
           };
         }
       }
     }
 
-    // ==== BUSCA POR PALAVRAS-CHAVE DO MATERIAL ====
-    // Verifica se alguma palavra-chave do material cadastrado aparece no nome importado
-    // OU se as keywords importadas coincidem com as do catálogo
-    const keywordMatch = catalog.find((m) => {
-      const materialKeywords = (m.keywords || []).map((k: string) => normalizeText(k));
-      if (materialKeywords.length === 0) return false;
+    // ========== 4. BUSCA POR SCORE DE KEYWORDS NORMALIZADAS (PRIORIDADE!) ==========
+    // Esta é a busca principal baseada em overlap de tokens
+    interface KeywordCandidate {
+      material: MaterialRow;
+      score: number;
+      matchedTokens: number;
+      totalTokens: number;
+    }
+    
+    const keywordCandidates: KeywordCandidate[] = [];
+    
+    for (const m of catalog) {
+      // Usa keywords_norm se disponível, senão tokeniza do nome
+      const catalogTokens = (m.keywords_norm && m.keywords_norm.length > 0) 
+        ? m.keywords_norm 
+        : tokenizeKeywords(m.name);
       
-      // Verifica se alguma keyword do material está contida no nome importado
-      for (const kw of materialKeywords) {
-        const kwTokens = kw.split(/\s+/).filter((t) => t.length > 2);
-        // Se a keyword tem múltiplas palavras, todas devem estar no nome
-        if (kwTokens.length > 0 && kwTokens.every((t) => normalizedName.includes(t))) {
-          return true;
-        }
-        // Ou se a keyword inteira aparece no nome
-        if (kw.length > 3 && normalizedName.includes(kw)) {
-          return true;
-        }
+      // Extrai medidas do material do catálogo
+      const catalogMeasurements = extractMeasurements(m.name);
+      if (m.measurement) {
+        catalogMeasurements.push(normalizeText(m.measurement));
       }
-
-      // Verifica se as keywords importadas coincidem com as do catálogo
-      if (importedKeywords && importedKeywords.length > 0) {
-        const normalizedImportedKws = importedKeywords.map((k) => normalizeText(k));
-        for (const importedKw of normalizedImportedKws) {
-          if (materialKeywords.some((mKw: string) => 
-            mKw.includes(importedKw) || importedKw.includes(mKw)
-          )) {
-            return true;
-          }
-        }
+      
+      const { score, matchedTokens, totalTokens } = calculateKeywordMatchScore(
+        importedTokens,
+        catalogTokens,
+        importedMeasurements,
+        catalogMeasurements,
+        importedUnit,
+        m.unit,
+        importedCategory,
+        m.category || undefined
+      );
+      
+      // Score mínimo de 30 para considerar (pelo menos 1 token em comum)
+      if (score >= 30) {
+        keywordCandidates.push({ material: m, score, matchedTokens, totalTokens });
       }
-
-      // Verifica se o nome do material cadastrado contém as keywords importadas
-      const normalizedMatName = normalizeText(m.name);
-      if (importedKeywords && importedKeywords.length > 0) {
-        for (const importedKw of importedKeywords.map((k) => normalizeText(k))) {
-          if (importedKw.length > 3 && normalizedMatName.includes(importedKw)) {
-            return true;
-          }
-        }
+    }
+    
+    // Ordena por score decrescente
+    keywordCandidates.sort((a, b) => b.score - a.score);
+    
+    if (keywordCandidates.length > 0) {
+      const best = keywordCandidates[0];
+      
+      // Score >= 80: "Mesmo material" (alta confiança)
+      // Score >= 60: "Material possivelmente igual" (média confiança)
+      // Score >= 30: "Palavra-chave similar" (baixa confiança)
+      
+      if (best.score >= 80) {
+        return {
+          material: best.material,
+          similarity: Math.min(95, 70 + best.matchedTokens * 5),
+          matchType: `Palavras-chave (${best.matchedTokens} tokens)`,
+          isExactDuplicate: false,
+          hasPriceChange: false,
+          matchScore: best.score,
+          matchedTokens: best.matchedTokens,
+        };
+      } else if (best.score >= 60) {
+        return {
+          material: best.material,
+          similarity: Math.min(85, 60 + best.matchedTokens * 5),
+          matchType: `Possivelmente igual (${best.matchedTokens} tokens)`,
+          isExactDuplicate: false,
+          hasPriceChange: false,
+          matchScore: best.score,
+          matchedTokens: best.matchedTokens,
+        };
+      } else if (best.score >= 30) {
+        return {
+          material: best.material,
+          similarity: Math.min(70, 40 + best.matchedTokens * 10),
+          matchType: `Palavra-chave similar`,
+          isExactDuplicate: false,
+          hasPriceChange: false,
+          matchScore: best.score,
+          matchedTokens: best.matchedTokens,
+        };
       }
-
-      return false;
-    });
-
-    if (keywordMatch) {
-      return {
-        material: keywordMatch,
-        similarity: 90,
-        matchType: "Palavra-chave",
-        isExactDuplicate: false,
-        hasPriceChange: false,
-      };
     }
 
-    // Busca parcial
+    // ========== 5. BUSCA PARCIAL (fallback) ==========
     const partialMatch = catalog.find((m) => {
       const normalizedMat = normalizeText(m.name);
       return normalizedName.includes(normalizedMat) || normalizedMat.includes(normalizedName);
     });
-    if (partialMatch) return { material: partialMatch, similarity: 85, matchType: "Parcial" };
+    if (partialMatch) {
+      return { 
+        material: partialMatch, 
+        similarity: 85, 
+        matchType: "Parcial",
+        matchScore: 50,
+      };
+    }
 
-    // Busca por similaridade
+    // ========== 6. BUSCA POR SIMILARIDADE LEVENSHTEIN (fallback) ==========
     let bestMatch: { material: any; similarity: number } | null = null;
     catalog.forEach((m) => {
       const similarity = calculateSimilarity(name, m.name);
@@ -408,6 +553,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         material: bestMatch.material,
         similarity: bestMatch.similarity,
         matchType: "Similaridade",
+        matchScore: Math.round(bestMatch.similarity * 0.5),
       };
     }
 
@@ -507,7 +653,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         importedMaterialPrice,
         importedLaborPrice,
         m.unit,
-        m.keywords
+        m.keywords,
+        m.category
       );
 
       if (!normalizedMatch) {
@@ -1284,7 +1431,7 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
             <DialogDescription>
               {currentPending.isExactDuplicate && currentPending.hasPriceChange
                 ? "Este material já existe na sua base de dados, mas com um preço diferente. Deseja atualizar o preço?"
-                : "Encontramos um material similar. Confirme se deseja usar o existente ou cadastrar novo."}
+                : "Encontramos um material com palavras-chave semelhantes. É o mesmo produto?"}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -1381,6 +1528,15 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                     {currentPending.unit && <span>Unidade: <strong>{currentPending.unit}</strong></span>}
                     {currentPending.quantity && <span>Quantidade: <strong>{currentPending.quantity}</strong></span>}
                   </div>
+                  {/* Mostrar tokens identificados no nome importado */}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="text-xs text-muted-foreground">Tokens identificados:</span>
+                    {tokenizeKeywords(currentPending.name).slice(0, 8).map((token, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">
+                        {token}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-center">
@@ -1389,12 +1545,34 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
                 <div className="p-4 border rounded-lg border-primary/50 bg-primary/5">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-muted-foreground">Material existente encontrado:</p>
-                    <Badge variant={currentPending.matchType === 'Parcial' ? 'secondary' : 'outline'}>
-                      {currentPending.similarity?.toFixed(0)}% similar
-                    </Badge>
+                    <p className="text-sm text-muted-foreground">Material possivelmente igual encontrado:</p>
+                    <div className="flex gap-2">
+                      <Badge variant={currentPending.matchType?.includes('Palavras-chave') ? 'default' : 'secondary'}>
+                        {currentPending.matchType || 'Similar'}
+                      </Badge>
+                      <Badge variant="outline">
+                        {currentPending.similarity?.toFixed(0)}% confiança
+                      </Badge>
+                    </div>
                   </div>
                   <p className="font-semibold text-lg">{currentPending.existingMaterial?.name}</p>
+                  
+                  {/* Mostrar tokens em comum se disponível */}
+                  {currentPending.existingMaterial?.keywords_norm && currentPending.existingMaterial.keywords_norm.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <span className="text-xs text-muted-foreground">Palavras-chave:</span>
+                      {currentPending.existingMaterial.keywords_norm.slice(0, 8).map((kw: string, i: number) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {kw}
+                        </Badge>
+                      ))}
+                      {currentPending.existingMaterial.keywords_norm.length > 8 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{currentPending.existingMaterial.keywords_norm.length - 8}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
                     <div>
@@ -1440,11 +1618,11 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                   </Button>
                   <Button variant="secondary" onClick={() => handleApproval(pendingApprovalIndex, false)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Cadastrar Novo
+                    Criar Novo
                   </Button>
                   <Button onClick={() => handleApproval(pendingApprovalIndex, true)}>
                     <Check className="h-4 w-4 mr-2" />
-                    Usar Existente
+                    Vincular ao Existente
                   </Button>
                 </DialogFooter>
               </>

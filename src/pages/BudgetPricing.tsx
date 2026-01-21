@@ -261,11 +261,79 @@ const BudgetPricing = () => {
     return maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
   };
 
-  const findMatchingMaterial = async (description: string) => {
-    // Busca materiais ordenados por preços (com preços primeiro)
+  // Tokeniza texto em array de palavras-chave normalizadas
+  const tokenizeKeywords = (text: string): string[] => {
+    const normalized = normalizeText(text);
+    const tokens = normalized.split(/[\s,|;]+/);
+    return [...new Set(tokens.filter(t => t.length > 2))];
+  };
+
+  // Extrai medidas do texto (ex: "30m", "16mm", "4k")
+  const extractMeasurements = (text: string): string[] => {
+    const measurementPatterns = [
+      /\d+(?:[.,]\d+)?(?:m|mm|cm|km|kg|g|l|ml|w|v|a|pol|\"|\')(?:\s|$)/gi,
+      /\d+k\b/gi,
+    ];
+    
+    const measurements: string[] = [];
+    for (const pattern of measurementPatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        measurements.push(...matches.map(m => normalizeText(m)));
+      }
+    }
+    return [...new Set(measurements)];
+  };
+
+  // Calcula score de matching baseado em overlap de tokens
+  const calculateKeywordMatchScore = (
+    importedTokens: string[],
+    catalogTokens: string[],
+    importedMeasurements: string[],
+    catalogMeasurements: string[],
+    importedUnit?: string,
+    catalogUnit?: string
+  ): { score: number; matchedTokens: number } => {
+    let score = 0;
+    
+    const matchedTokens = importedTokens.filter(t => catalogTokens.includes(t)).length;
+    const totalTokens = Math.max(importedTokens.length, 1);
+    const overlapPercentage = matchedTokens / totalTokens;
+    
+    // +70 se overlap >= 2 tokens OU >= 60% dos tokens
+    if (matchedTokens >= 2 || overlapPercentage >= 0.6) {
+      score += 70;
+    } else if (matchedTokens >= 1) {
+      score += 30;
+    }
+    
+    // +20 se medida bater
+    if (importedMeasurements.length > 0 && catalogMeasurements.length > 0) {
+      const measurementMatch = importedMeasurements.some(m => 
+        catalogMeasurements.some(cm => m === cm || cm.includes(m) || m.includes(cm))
+      );
+      if (measurementMatch) score += 20;
+    }
+    
+    // +10 se unidade bater
+    if (importedUnit && catalogUnit) {
+      const normImportedUnit = normalizeText(importedUnit);
+      const normCatalogUnit = normalizeText(catalogUnit);
+      if (normImportedUnit === normCatalogUnit || 
+          (normImportedUnit === "und" && normCatalogUnit === "un") ||
+          (normImportedUnit === "un" && normCatalogUnit === "und")) {
+        score += 10;
+      }
+    }
+    
+    return { score, matchedTokens };
+  };
+
+  const findMatchingMaterial = async (description: string, unit?: string) => {
+    // Busca materiais com campos normalizados para matching por keywords
     const { data: materials } = await supabase
       .from('materials')
-      .select('*')
+      .select('*,keywords_norm,description_norm')
       .order('material_price', { ascending: false, nullsFirst: false })
       .order('labor_price', { ascending: false, nullsFirst: false });
     
@@ -273,6 +341,8 @@ const BudgetPricing = () => {
 
     const normalizedDescription = normalizeText(description);
     const descVariations = expandText(description);
+    const importedTokens = tokenizeKeywords(description);
+    const importedMeasurements = extractMeasurements(description);
 
     // CAMADA 1: BUSCA EXATA
     const exactMatches: any[] = [];
@@ -284,7 +354,6 @@ const BudgetPricing = () => {
     }
 
     if (exactMatches.length > 0) {
-      // Como os materiais já vêm ordenados por preço, o primeiro com preço será encontrado primeiro
       const matchWithPrice = exactMatches.find(m => {
         const matPrice = Number(m.material_price || 0);
         const labPrice = Number(m.labor_price || 0);
@@ -300,7 +369,62 @@ const BudgetPricing = () => {
       return { material: exactMatches[0], matchType: 'Exato', similarity: 100 };
     }
 
-    // CAMADA 2: BUSCA "CONTÉM"
+    // CAMADA 2: BUSCA POR KEYWORDS NORMALIZADAS (PRIORIDADE!)
+    interface KeywordCandidate {
+      material: any;
+      score: number;
+      matchedTokens: number;
+    }
+    
+    const keywordCandidates: KeywordCandidate[] = [];
+    
+    for (const m of materials) {
+      const catalogTokens = (m.keywords_norm && m.keywords_norm.length > 0) 
+        ? m.keywords_norm 
+        : tokenizeKeywords(m.name);
+      
+      const catalogMeasurements = extractMeasurements(m.name);
+      if (m.measurement) {
+        catalogMeasurements.push(normalizeText(m.measurement));
+      }
+      
+      const { score, matchedTokens } = calculateKeywordMatchScore(
+        importedTokens,
+        catalogTokens,
+        importedMeasurements,
+        catalogMeasurements,
+        unit,
+        m.unit
+      );
+      
+      if (score >= 30) {
+        keywordCandidates.push({ material: m, score, matchedTokens });
+      }
+    }
+    
+    keywordCandidates.sort((a, b) => b.score - a.score);
+    
+    if (keywordCandidates.length > 0) {
+      const best = keywordCandidates[0];
+      
+      if (best.score >= 80) {
+        console.log(`[MATCH KEYWORDS ${best.score}pts, ${best.matchedTokens} tokens] ${description} → ${best.material.name}`);
+        return {
+          material: best.material,
+          similarity: Math.min(95, 70 + best.matchedTokens * 5),
+          matchType: `Palavras-chave (${best.matchedTokens} tokens)`,
+        };
+      } else if (best.score >= 60) {
+        console.log(`[MATCH KEYWORDS PARCIAL ${best.score}pts] ${description} → ${best.material.name}`);
+        return {
+          material: best.material,
+          similarity: Math.min(85, 60 + best.matchedTokens * 5),
+          matchType: `Possivelmente igual (${best.matchedTokens} tokens)`,
+        };
+      }
+    }
+
+    // CAMADA 3: BUSCA "CONTÉM" (fallback)
     const containsMatches: any[] = [];
     for (const variation of descVariations) {
       const matches = materials.filter(m => {
@@ -338,7 +462,7 @@ const BudgetPricing = () => {
       return { material: uniqueMatches[0], matchType: 'Parcial', similarity: 85 };
     }
 
-    // CAMADA 3: BUSCA POR SIMILARIDADE
+    // CAMADA 4: BUSCA POR SIMILARIDADE LEVENSHTEIN (fallback)
     let bestMatch: { material: any; similarity: number } | null = null;
 
     materials.forEach(material => {
@@ -346,7 +470,6 @@ const BudgetPricing = () => {
       
       let maxSimilarity = 0;
       
-      // Calcula similaridade entre todas as variações
       descVariations.forEach(descVar => {
         materialVariations.forEach(matVar => {
           const similarity = calculateSimilarity(descVar, matVar);
@@ -354,7 +477,6 @@ const BudgetPricing = () => {
         });
       });
 
-      // Também calcula similaridade direta
       const directSimilarity = calculateSimilarity(description, material.name);
       maxSimilarity = Math.max(maxSimilarity, directSimilarity);
 
