@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Save, X, CheckCircle, AlertCircle, Check, SkipForward, Plus, Trash2, Settings2, DollarSign, Building2, FolderOpen, Download } from "lucide-react";
+import { Upload, Save, X, CheckCircle, AlertCircle, Check, SkipForward, Plus, Trash2, Settings2, DollarSign, Building2, FolderOpen, Download, Edit2, Tag } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -70,6 +70,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
   const [bulkPriceValue, setBulkPriceValue] = useState("");
   const [bulkSupplier, setBulkSupplier] = useState("");
   const [bulkCategory, setBulkCategory] = useState("");
+  const [isEditingKeywords, setIsEditingKeywords] = useState(false);
+  const [editingKeywordsValue, setEditingKeywordsValue] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   type MaterialRow = Record<string, any> & {
@@ -1259,6 +1261,42 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     }
   };
 
+  // Função para iniciar edição de keywords
+  const handleStartEditKeywords = () => {
+    if (pendingApprovalIndex !== null) {
+      const current = extractedMaterials[pendingApprovalIndex];
+      setEditingKeywordsValue((current.keywords || []).join(', '));
+      setIsEditingKeywords(true);
+    }
+  };
+
+  // Função para salvar keywords editadas e re-processar matching
+  const handleSaveKeywords = () => {
+    if (pendingApprovalIndex === null) return;
+    
+    const newKeywords = editingKeywordsValue
+      .split(/[,;|]/)
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+    
+    setExtractedMaterials(prev => {
+      const updated = [...prev];
+      updated[pendingApprovalIndex] = {
+        ...updated[pendingApprovalIndex],
+        keywords: newKeywords,
+      };
+      return updated;
+    });
+    
+    setIsEditingKeywords(false);
+    setEditingKeywordsValue("");
+    
+    toast({
+      title: "Palavras-chave atualizadas",
+      description: "As keywords foram salvas. O matching será recalculado na próxima importação.",
+    });
+  };
+
   const handleImport = async () => {
     await importMutation.mutateAsync(extractedMaterials);
   };
@@ -1268,6 +1306,8 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     setExtractedMaterials([]);
     setShowReview(false);
     setPendingApprovalIndex(null);
+    setIsEditingKeywords(false);
+    setEditingKeywordsValue("");
     onOpenChange(false);
   };
 
@@ -1611,11 +1651,45 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
                   )}
                 </div>
 
+                {/* Formulário de edição de keywords */}
+                {isEditingKeywords && (
+                  <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-primary" />
+                      <Label className="font-medium">Editar Palavras-chave</Label>
+                    </div>
+                    <Input 
+                      value={editingKeywordsValue}
+                      onChange={(e) => setEditingKeywordsValue(e.target.value)}
+                      placeholder="cabo, hdmi, 4k, 30m (separadas por vírgula)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Adicione palavras-chave que ajudam a identificar este material. Separe por vírgula.
+                    </p>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => setIsEditingKeywords(false)}>
+                        Cancelar
+                      </Button>
+                      <Button size="sm" onClick={handleSaveKeywords}>
+                        Salvar Keywords
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <DialogFooter className="flex-col sm:flex-row gap-2">
-                  <Button variant="outline" onClick={() => handleSkipApproval(pendingApprovalIndex)} className="sm:mr-auto">
-                    <SkipForward className="h-4 w-4 mr-2" />
-                    Pular
-                  </Button>
+                  <div className="flex gap-2 sm:mr-auto">
+                    <Button variant="outline" onClick={() => handleSkipApproval(pendingApprovalIndex)}>
+                      <SkipForward className="h-4 w-4 mr-2" />
+                      Pular
+                    </Button>
+                    {!isEditingKeywords && (
+                      <Button variant="ghost" onClick={handleStartEditKeywords}>
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Editar Keywords
+                      </Button>
+                    )}
+                  </div>
                   <Button variant="secondary" onClick={() => handleApproval(pendingApprovalIndex, false)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Criar Novo
