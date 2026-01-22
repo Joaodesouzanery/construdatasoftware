@@ -59,6 +59,7 @@ import ControleDeObra from "./pages/features/ControleDeObra";
 import MateriaisAlmoxarifado from "./pages/features/MateriaisAlmoxarifado";
 import ExecucaoEquipes from "./pages/features/ExecucaoEquipes";
 import ManutencaoPredial from "./pages/features/ManutencaoPredial";
+import PersonalRH from "./pages/PersonalRH";
 import Approvals from "./pages/Approvals";
 import UserMetrics from "./pages/UserMetrics";
 import CustomDashboard from "./pages/CustomDashboard";
@@ -108,6 +109,7 @@ const AppContent = () => {
         <Route path="/maintenance-qr-codes" element={<MaintenanceQRCodes />} />
         <Route path="/maintenance-request/:qrCodeId" element={<MaintenanceRequest />} />
         <Route path="/maintenance-requests" element={<MaintenanceRequests />} />
+        <Route path="/personal-rh" element={<PersonalRH />} />
           <Route path="/materials" element={<Materials />} />
           <Route path="/materials/dashboard" element={<MaterialsDashboard />} />
           <Route path="/budgets" element={<Budgets />} />

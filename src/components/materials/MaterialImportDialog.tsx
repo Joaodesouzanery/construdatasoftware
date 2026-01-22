@@ -789,6 +789,59 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
     },
   });
 
+  // Função para verificar duplicados potenciais após importação
+  const checkForPotentialDuplicates = async (insertedCount: number) => {
+    if (insertedCount === 0) return;
+
+    try {
+      // Busca materiais com keywords_norm para análise
+      const { data: materials } = await supabase
+        .from('materials')
+        .select('id, name, keywords_norm')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (!materials || materials.length < 2) return;
+
+      // Análise rápida de duplicados potenciais
+      let duplicateCount = 0;
+      const processedIds = new Set<string>();
+
+      for (let i = 0; i < Math.min(materials.length, 50); i++) {
+        const material = materials[i];
+        if (processedIds.has(material.id)) continue;
+        
+        const materialTokens = material.keywords_norm || [];
+        if (materialTokens.length === 0) continue;
+
+        for (let j = i + 1; j < materials.length; j++) {
+          const candidate = materials[j];
+          if (processedIds.has(candidate.id)) continue;
+          
+          const candidateTokens = candidate.keywords_norm || [];
+          if (candidateTokens.length === 0) continue;
+
+          const commonTokens = materialTokens.filter((t: string) => candidateTokens.includes(t));
+          if (commonTokens.length >= 2) {
+            duplicateCount++;
+            processedIds.add(candidate.id);
+            break;
+          }
+        }
+      }
+
+      if (duplicateCount > 0) {
+        toast({
+          title: "Duplicados detectados",
+          description: `Foram detectados ${duplicateCount} possíveis materiais duplicados. Acesse Materiais > Duplicados para revisar.`,
+          duration: 8000,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao verificar duplicados:', error);
+    }
+  };
+
   const importMutation = useMutation({
     mutationFn: async (materials: ExtractedMaterial[]) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -825,14 +878,21 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
 
       return materialsToInsert.length;
     },
-    onSuccess: (count) => {
+    onSuccess: async (count) => {
       queryClient.invalidateQueries({ queryKey: ['materials-prices'] });
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       queryClient.invalidateQueries({ queryKey: ['materials-for-import'] });
+      queryClient.invalidateQueries({ queryKey: ['materials-duplicates-analysis'] });
       toast({
         title: "Sucesso",
         description: `${count} ${count === 1 ? 'material adicionado' : 'materiais adicionados'} com sucesso!`,
       });
+      
+      // Verifica duplicados potenciais após importação
+      setTimeout(() => {
+        checkForPotentialDuplicates(count);
+      }, 1500);
+      
       handleClose();
     },
     onError: (error) => {
