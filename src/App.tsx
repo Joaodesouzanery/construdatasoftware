@@ -110,11 +110,11 @@ const AppContent = () => {
         <Route path="/maintenance-request/:qrCodeId" element={<MaintenanceRequest />} />
         <Route path="/maintenance-requests" element={<MaintenanceRequests />} />
         <Route path="/personal-rh" element={<PersonalRH />} />
-          <Route path="/materials" element={<Materials />} />
-          <Route path="/materials/dashboard" element={<MaterialsDashboard />} />
-          <Route path="/budgets" element={<Budgets />} />
-          <Route path="/budget-pricing" element={<BudgetPricing />} />
-          <Route path="/prices" element={<Prices />} />
+        <Route path="/materials" element={<Materials />} />
+        <Route path="/materials/dashboard" element={<MaterialsDashboard />} />
+        <Route path="/budgets" element={<Budgets />} />
+        <Route path="/budget-pricing" element={<BudgetPricing />} />
+        <Route path="/prices" element={<Prices />} />
         
         {/* Feature pages */}
         <Route path="/features/project-management" element={<ProjectManagement />} />
