@@ -44,6 +44,7 @@ const teamItems = [
   { title: "Funcionários", url: "/employees", icon: Users },
   { title: "Checklists", url: "/checklists", icon: ClipboardCheck },
   { title: "Apontamento Mão de Obra", url: "/labor-tracking", icon: Clock },
+  { title: "PersonalRH", url: "/personal-rh", icon: Users },
 ];
 
 const facilityItems = [

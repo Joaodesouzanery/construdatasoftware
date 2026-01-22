@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, AlertTriangle, Trash2, Merge, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, AlertTriangle, Trash2, Merge, RefreshCw, ChevronDown, ChevronRight, Wand2, CheckCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -22,11 +22,28 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+interface MaterialData {
+  id: string;
+  name: string;
+  unit: string;
+  keywords?: string[] | null;
+  keywords_norm?: string[] | null;
+  material_price?: number | null;
+  labor_price?: number | null;
+  current_price?: number | null;
+  category?: string | null;
+  supplier?: string | null;
+  measurement?: string | null;
+  description?: string | null;
+}
 
 interface DuplicateGroup {
   id: string;
-  primaryMaterial: any;
-  duplicates: any[];
+  primaryMaterial: MaterialData;
+  duplicates: (MaterialData & { matchScore: number; matchedTokens: string[] })[];
   matchScore: number;
   matchedTokens: string[];
 }
@@ -39,19 +56,22 @@ export const DuplicateMaterialsReport = () => {
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [showSmartMergeDialog, setShowSmartMergeDialog] = useState(false);
   const [mergingGroup, setMergingGroup] = useState<DuplicateGroup | null>(null);
   const [keepMaterialId, setKeepMaterialId] = useState<string>("");
+  const [mergeStrategy, setMergeStrategy] = useState<'best_price' | 'lowest_price' | 'most_keywords' | 'custom'>('best_price');
+  const [mergePreview, setMergePreview] = useState<Partial<MaterialData> | null>(null);
 
   const { data: materials = [], isLoading, refetch } = useQuery({
     queryKey: ['materials-duplicates-analysis'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('materials')
-        .select('id, name, unit, keywords, keywords_norm, material_price, labor_price, current_price, category, supplier, measurement')
+        .select('id, name, unit, keywords, keywords_norm, material_price, labor_price, current_price, category, supplier, measurement, description')
         .order('name');
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as MaterialData[];
     }
   });
 
@@ -155,6 +175,99 @@ export const DuplicateMaterialsReport = () => {
     }
   });
 
+  // Mutation para atualizar material com dados mesclados
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<MaterialData> }) => {
+      const { error } = await supabase
+        .from('materials')
+        .update(data)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materials'] });
+      queryClient.invalidateQueries({ queryKey: ['materials-duplicates-analysis'] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao atualizar material", description: error.message, variant: "destructive" });
+    }
+  });
+
+  // Função para calcular merge inteligente
+  const calculateSmartMerge = (group: DuplicateGroup, strategy: string): Partial<MaterialData> => {
+    const allMaterials = [group.primaryMaterial, ...group.duplicates];
+    
+    // Escolhe o melhor nome (mais completo)
+    const bestName = allMaterials.reduce((best, m) => 
+      (m.name?.length || 0) > (best?.length || 0) ? m.name : best, 
+      allMaterials[0].name
+    );
+
+    // Combina todas as keywords únicas
+    const allKeywords = new Set<string>();
+    const allKeywordsNorm = new Set<string>();
+    allMaterials.forEach(m => {
+      (m.keywords || []).forEach((k: string) => allKeywords.add(k));
+      (m.keywords_norm || []).forEach((k: string) => allKeywordsNorm.add(k));
+    });
+
+    // Melhor preço baseado na estratégia
+    let bestMaterialPrice = 0;
+    let bestLaborPrice = 0;
+
+    if (strategy === 'lowest_price') {
+      // Menor preço total diferente de zero
+      const priced = allMaterials
+        .map(m => ({
+          material: m,
+          total: (m.material_price || 0) + (m.labor_price || 0)
+        }))
+        .filter(p => p.total > 0)
+        .sort((a, b) => a.total - b.total);
+      
+      if (priced.length > 0) {
+        bestMaterialPrice = priced[0].material.material_price || 0;
+        bestLaborPrice = priced[0].material.labor_price || 0;
+      }
+    } else {
+      // Maior preço (best_price) ou primeiro com preço
+      const priced = allMaterials
+        .map(m => ({
+          material: m,
+          total: (m.material_price || 0) + (m.labor_price || 0)
+        }))
+        .filter(p => p.total > 0)
+        .sort((a, b) => b.total - a.total);
+      
+      if (priced.length > 0) {
+        bestMaterialPrice = priced[0].material.material_price || 0;
+        bestLaborPrice = priced[0].material.labor_price || 0;
+      }
+    }
+
+    // Melhor categoria e fornecedor (primeiro não vazio)
+    const bestCategory = allMaterials.find(m => m.category)?.category || null;
+    const bestSupplier = allMaterials.find(m => m.supplier)?.supplier || null;
+    const bestMeasurement = allMaterials.find(m => m.measurement)?.measurement || null;
+    const bestDescription = allMaterials.reduce((best, m) => 
+      (m.description?.length || 0) > (best?.length || 0) ? m.description : best, 
+      null as string | null
+    );
+
+    return {
+      name: bestName,
+      keywords: Array.from(allKeywords),
+      keywords_norm: Array.from(allKeywordsNorm),
+      material_price: bestMaterialPrice,
+      labor_price: bestLaborPrice,
+      current_price: bestMaterialPrice + bestLaborPrice,
+      category: bestCategory,
+      supplier: bestSupplier,
+      measurement: bestMeasurement,
+      description: bestDescription,
+    };
+  };
+
   // Função para mesclar duplicados (mantém um, deleta os outros)
   const handleMerge = async () => {
     if (!mergingGroup || !keepMaterialId) return;
@@ -198,6 +311,62 @@ export const DuplicateMaterialsReport = () => {
     setMergingGroup(group);
     setKeepMaterialId(group.primaryMaterial.id);
     setShowMergeDialog(true);
+  };
+
+  const openSmartMergeDialog = (group: DuplicateGroup) => {
+    setMergingGroup(group);
+    setMergeStrategy('best_price');
+    const preview = calculateSmartMerge(group, 'best_price');
+    setMergePreview(preview);
+    setShowSmartMergeDialog(true);
+  };
+
+  const handleStrategyChange = (strategy: 'best_price' | 'lowest_price' | 'most_keywords' | 'custom') => {
+    setMergeStrategy(strategy);
+    if (mergingGroup) {
+      const preview = calculateSmartMerge(mergingGroup, strategy);
+      setMergePreview(preview);
+    }
+  };
+
+  const handleSmartMerge = async () => {
+    if (!mergingGroup || !mergePreview) return;
+
+    try {
+      // Atualiza o material principal com os dados mesclados
+      const keepId = mergingGroup.primaryMaterial.id;
+      await updateMutation.mutateAsync({ 
+        id: keepId, 
+        data: {
+          name: mergePreview.name,
+          keywords: mergePreview.keywords,
+          material_price: mergePreview.material_price,
+          labor_price: mergePreview.labor_price,
+          current_price: mergePreview.current_price,
+          category: mergePreview.category,
+          supplier: mergePreview.supplier,
+          measurement: mergePreview.measurement,
+          description: mergePreview.description,
+        } 
+      });
+
+      // Remove os duplicados
+      const idsToDelete = mergingGroup.duplicates.map(d => d.id);
+      if (idsToDelete.length > 0) {
+        await deleteMutation.mutateAsync(idsToDelete);
+      }
+
+      toast({ 
+        title: "Merge inteligente concluído", 
+        description: `Material atualizado com os melhores dados de ${1 + idsToDelete.length} materiais.` 
+      });
+
+      setShowSmartMergeDialog(false);
+      setMergingGroup(null);
+      setMergePreview(null);
+    } catch (error) {
+      console.error('Erro no smart merge:', error);
+    }
   };
 
   const totalDuplicates = duplicateGroups.reduce((acc, g) => acc + g.duplicates.length, 0);
@@ -310,17 +479,30 @@ export const DuplicateMaterialsReport = () => {
                             )}
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openMergeDialog(group);
-                          }}
-                        >
-                          <Merge className="h-4 w-4 mr-2" />
-                          Mesclar
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSmartMergeDialog(group);
+                            }}
+                          >
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            Merge Inteligente
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openMergeDialog(group);
+                            }}
+                          >
+                            <Merge className="h-4 w-4 mr-2" />
+                            Manual
+                          </Button>
+                        </div>
                       </div>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -471,6 +653,129 @@ export const DuplicateMaterialsReport = () => {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               {deleteMutation.isPending ? 'Removendo...' : `Remover ${mergingGroup ? mergingGroup.duplicates.length : 0} Duplicado(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Smart Merge Dialog */}
+      <Dialog open={showSmartMergeDialog} onOpenChange={setShowSmartMergeDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5 text-primary" />
+              Merge Inteligente
+            </DialogTitle>
+            <DialogDescription>
+              O sistema combina automaticamente os melhores dados de cada material duplicado.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {mergingGroup && mergePreview && (
+            <div className="space-y-6 py-4">
+              <div>
+                <Label className="text-base font-medium">Estratégia de Merge</Label>
+                <RadioGroup 
+                  value={mergeStrategy} 
+                  onValueChange={(v) => handleStrategyChange(v as typeof mergeStrategy)}
+                  className="grid grid-cols-2 gap-4 mt-3"
+                >
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <RadioGroupItem value="best_price" id="best_price" />
+                    <Label htmlFor="best_price" className="cursor-pointer flex-1">
+                      <span className="font-medium">Melhor Preço</span>
+                      <span className="block text-xs text-muted-foreground">Mantém o maior preço cadastrado</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <RadioGroupItem value="lowest_price" id="lowest_price" />
+                    <Label htmlFor="lowest_price" className="cursor-pointer flex-1">
+                      <span className="font-medium">Menor Preço</span>
+                      <span className="block text-xs text-muted-foreground">Mantém o menor preço cadastrado</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <RadioGroupItem value="most_keywords" id="most_keywords" />
+                    <Label htmlFor="most_keywords" className="cursor-pointer flex-1">
+                      <span className="font-medium">Mais Completo</span>
+                      <span className="block text-xs text-muted-foreground">Combina todas as informações</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Resultado do Merge
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-muted-foreground">Nome:</span>
+                      <p className="font-medium">{mergePreview.name}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Preço Total:</span>
+                      <p className="font-medium text-green-600">
+                        R$ {((mergePreview.material_price || 0) + (mergePreview.labor_price || 0)).toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Preço Material:</span>
+                      <p className="font-medium">R$ {(mergePreview.material_price || 0).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Preço Mão de Obra:</span>
+                      <p className="font-medium">R$ {(mergePreview.labor_price || 0).toFixed(2)}</p>
+                    </div>
+                    {mergePreview.category && (
+                      <div>
+                        <span className="text-muted-foreground">Categoria:</span>
+                        <p className="font-medium">{mergePreview.category}</p>
+                      </div>
+                    )}
+                    {mergePreview.supplier && (
+                      <div>
+                        <span className="text-muted-foreground">Fornecedor:</span>
+                        <p className="font-medium">{mergePreview.supplier}</p>
+                      </div>
+                    )}
+                  </div>
+                  {mergePreview.keywords && mergePreview.keywords.length > 0 && (
+                    <div className="mt-3">
+                      <span className="text-muted-foreground">Keywords combinadas:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {(mergePreview.keywords as string[]).slice(0, 10).map((kw, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">{kw}</Badge>
+                        ))}
+                        {(mergePreview.keywords as string[]).length > 10 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{(mergePreview.keywords as string[]).length - 10} mais
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-sm text-muted-foreground bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                <strong>Ação:</strong> O material "{mergingGroup.primaryMaterial.name}" será atualizado com os dados acima e {mergingGroup.duplicates.length} duplicado(s) será(ão) removido(s).
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSmartMergeDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSmartMerge}
+              disabled={updateMutation.isPending || deleteMutation.isPending}
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              {updateMutation.isPending || deleteMutation.isPending ? 'Processando...' : 'Aplicar Merge Inteligente'}
             </Button>
           </DialogFooter>
         </DialogContent>
