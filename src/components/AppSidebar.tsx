@@ -66,13 +66,13 @@ const budgetItems = [
 const settingsItems = [
   { title: "Backup", url: "/backup", icon: Archive },
   { title: "Suporte", url: "/support", icon: HeadphonesIcon },
-  { title: "Pesquisa de Satisfação", url: "/satisfaction-survey", icon: ClipboardCheck },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
 const adminItems = [
   { title: "Painel Admin", url: "/admin", icon: Shield },
   { title: "Métricas de Usuários", url: "/admin/metrics", icon: BarChart3 },
+  { title: "Pesquisa de Satisfação", url: "/satisfaction-survey", icon: ClipboardCheck },
 ];
 
 export function AppSidebar() {
