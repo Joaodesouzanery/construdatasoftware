@@ -1,14 +1,11 @@
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist/build/pdf.mjs";
+import * as pdfjsLib from "pdfjs-dist";
 
 let workerConfigured = false;
 
 const ensureWorker = () => {
   if (workerConfigured) return;
-  // Vite will bundle and serve the worker from this URL.
-  GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.mjs",
-    import.meta.url,
-  ).toString();
+  // Use the bundled worker from pdfjs-dist
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
   workerConfigured = true;
 };
 
@@ -16,7 +13,7 @@ export async function extractPdfText(file: File): Promise<string> {
   ensureWorker();
 
   const data = new Uint8Array(await file.arrayBuffer());
-  const pdf = await getDocument({ data }).promise;
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
 
   const pages: string[] = [];
 

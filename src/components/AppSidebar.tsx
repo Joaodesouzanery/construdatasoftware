@@ -66,6 +66,7 @@ const budgetItems = [
 const settingsItems = [
   { title: "Backup", url: "/backup", icon: Archive },
   { title: "Suporte", url: "/support", icon: HeadphonesIcon },
+  { title: "Pesquisa de Satisfação", url: "/satisfaction-survey", icon: ClipboardCheck },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 

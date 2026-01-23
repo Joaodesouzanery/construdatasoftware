@@ -63,6 +63,7 @@ import PersonalRH from "./pages/PersonalRH";
 import Approvals from "./pages/Approvals";
 import UserMetrics from "./pages/UserMetrics";
 import CustomDashboard from "./pages/CustomDashboard";
+import SatisfactionSurvey from "./pages/SatisfactionSurvey";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -137,6 +138,7 @@ const AppContent = () => {
         <Route path="/admin/metrics" element={<UserMetrics />} />
         <Route path="/backup" element={<Backup />} />
         <Route path="/support" element={<Support />} />
+        <Route path="/satisfaction-survey" element={<SatisfactionSurvey />} />
         
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />

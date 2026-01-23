@@ -2376,6 +2376,126 @@ export type Database = {
           },
         ]
       }
+      satisfaction_surveys: {
+        Row: {
+          created_at: string
+          data_trust_level: string
+          desired_features: string[] | null
+          dismissed_at: string | null
+          ease_of_start: string
+          general_satisfaction: string
+          generated_results: string
+          help_areas: string[] | null
+          hours_saved_per_week: number | null
+          id: string
+          indispensable_feature: string | null
+          initial_difficulty: string
+          initial_difficulty_other: string | null
+          monthly_savings: number | null
+          most_used_features: string[] | null
+          next_available_at: string | null
+          nps_justification: string | null
+          nps_score: number
+          one_improvement: string | null
+          one_sentence_summary: string | null
+          operation_type: string
+          operation_type_other: string | null
+          preferred_support_format: string
+          referral_target: string | null
+          solution_expectation: string | null
+          stop_reason: string | null
+          support_resolution: string
+          trust_issues: string[] | null
+          trust_issues_other: string | null
+          urgent_improvement: string
+          urgent_improvement_other: string | null
+          user_id: string | null
+          user_profile: string
+          user_profile_other: string | null
+          users_count: string
+          would_recommend: string
+          would_stop_using: string
+        }
+        Insert: {
+          created_at?: string
+          data_trust_level: string
+          desired_features?: string[] | null
+          dismissed_at?: string | null
+          ease_of_start: string
+          general_satisfaction: string
+          generated_results: string
+          help_areas?: string[] | null
+          hours_saved_per_week?: number | null
+          id?: string
+          indispensable_feature?: string | null
+          initial_difficulty: string
+          initial_difficulty_other?: string | null
+          monthly_savings?: number | null
+          most_used_features?: string[] | null
+          next_available_at?: string | null
+          nps_justification?: string | null
+          nps_score: number
+          one_improvement?: string | null
+          one_sentence_summary?: string | null
+          operation_type: string
+          operation_type_other?: string | null
+          preferred_support_format: string
+          referral_target?: string | null
+          solution_expectation?: string | null
+          stop_reason?: string | null
+          support_resolution: string
+          trust_issues?: string[] | null
+          trust_issues_other?: string | null
+          urgent_improvement: string
+          urgent_improvement_other?: string | null
+          user_id?: string | null
+          user_profile: string
+          user_profile_other?: string | null
+          users_count: string
+          would_recommend: string
+          would_stop_using: string
+        }
+        Update: {
+          created_at?: string
+          data_trust_level?: string
+          desired_features?: string[] | null
+          dismissed_at?: string | null
+          ease_of_start?: string
+          general_satisfaction?: string
+          generated_results?: string
+          help_areas?: string[] | null
+          hours_saved_per_week?: number | null
+          id?: string
+          indispensable_feature?: string | null
+          initial_difficulty?: string
+          initial_difficulty_other?: string | null
+          monthly_savings?: number | null
+          most_used_features?: string[] | null
+          next_available_at?: string | null
+          nps_justification?: string | null
+          nps_score?: number
+          one_improvement?: string | null
+          one_sentence_summary?: string | null
+          operation_type?: string
+          operation_type_other?: string | null
+          preferred_support_format?: string
+          referral_target?: string | null
+          solution_expectation?: string | null
+          stop_reason?: string | null
+          support_resolution?: string
+          trust_issues?: string[] | null
+          trust_issues_other?: string | null
+          urgent_improvement?: string
+          urgent_improvement_other?: string | null
+          user_id?: string | null
+          user_profile?: string
+          user_profile_other?: string | null
+          users_count?: string
+          would_recommend?: string
+          would_stop_using?: string
+        }
+        Relationships: []
+      }
       service_fronts: {
         Row: {
           created_at: string | null
