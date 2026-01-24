@@ -481,7 +481,8 @@ REGRAS CRÍTICAS:
 
     const callAi = async (model: string, payload: Payload) => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 55_000);
+      // Increased timeout to 120 seconds for large PDFs
+      const timeout = setTimeout(() => controller.abort(), 120_000);
 
       try {
         const messages = [
@@ -497,6 +498,8 @@ REGRAS CRÍTICAS:
             ],
           },
         ];
+
+        console.log(`Calling AI model: ${model} with ${Math.round(payload.pdfBase64.length / 1024)}KB PDF`);
 
         const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -527,7 +530,14 @@ REGRAS CRÍTICAS:
         const extractedText = data?.choices?.[0]?.message?.content;
         if (!extractedText || typeof extractedText !== "string") throw new Error("AI response missing content");
 
+        console.log(`AI response received: ${extractedText.length} chars`);
         return extractedText;
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.error(`AI call timed out after 120s for model: ${model}`);
+          throw new Error(`Timeout: AI processing took too long. Try a smaller PDF file.`);
+        }
+        throw err;
       } finally {
         clearTimeout(timeout);
       }

@@ -2382,6 +2382,7 @@ export type Database = {
           data_trust_level: string
           desired_features: string[] | null
           dismissed_at: string | null
+          dispatch_id: string | null
           ease_of_start: string
           general_satisfaction: string
           generated_results: string
@@ -2421,6 +2422,7 @@ export type Database = {
           data_trust_level: string
           desired_features?: string[] | null
           dismissed_at?: string | null
+          dispatch_id?: string | null
           ease_of_start: string
           general_satisfaction: string
           generated_results: string
@@ -2460,6 +2462,7 @@ export type Database = {
           data_trust_level?: string
           desired_features?: string[] | null
           dismissed_at?: string | null
+          dispatch_id?: string | null
           ease_of_start?: string
           general_satisfaction?: string
           generated_results?: string
@@ -2494,7 +2497,15 @@ export type Database = {
           would_recommend?: string
           would_stop_using?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "satisfaction_surveys_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "survey_dispatches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_fronts: {
         Row: {
@@ -2623,6 +2634,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      survey_dispatches: {
+        Row: {
+          created_at: string
+          dismissed_at: string | null
+          dispatched_at: string
+          dispatched_by: string
+          expires_at: string | null
+          id: string
+          is_dismissed: boolean
+          responded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_at?: string | null
+          dispatched_at?: string
+          dispatched_by: string
+          expires_at?: string | null
+          id?: string
+          is_dismissed?: boolean
+          responded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_at?: string | null
+          dispatched_at?: string
+          dispatched_by?: string
+          expires_at?: string | null
+          id?: string
+          is_dismissed?: boolean
+          responded_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       task_checklist_items: {
         Row: {
