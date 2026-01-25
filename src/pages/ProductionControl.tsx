@@ -15,6 +15,7 @@ import { ConsolidatedReportsView } from "@/components/production/ConsolidatedRep
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 interface ProductionData {
   service_name: string;
@@ -299,6 +300,7 @@ const ProductionControl = () => {
             <h1 className="text-xl font-semibold">Controle de Produção</h1>
             </div>
             <div className="flex gap-2">
+              <PageTutorialButton pageKey="production-control" />
               <Button variant="outline" onClick={() => setShowReportDialog(true)}>
                 <Mail className="w-4 h-4 mr-2" />
                 Relatórios Automáticos

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImportDataDialog } from "@/components/projects/ImportDataDialog";
 import { TutorialDialog } from "@/components/shared/TutorialDialog";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -334,6 +335,7 @@ const Projects = () => {
               <h1 className="text-xl font-semibold">Gerenciar Projetos</h1>
             </div>
             <div className="flex gap-2">
+              <PageTutorialButton pageKey="projects" />
               <Button variant="outline" onClick={() => setShowImportDialog(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Importar Dados

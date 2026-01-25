@@ -11,6 +11,7 @@ import { Building2, Bell, Plus, Trash2, Mail, Eye, History, ArrowLeft } from "lu
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { AlertHistoryDialog } from "@/components/alerts/AlertHistoryDialog";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 interface Alert {
   id: string;
@@ -196,6 +197,7 @@ const Alerts = () => {
               <h1 className="text-xl font-semibold">Alertas e Notificações</h1>
             </div>
             <div className="flex gap-2">
+              <PageTutorialButton pageKey="alerts" />
               <Button variant="outline" onClick={() => setShowHistoryDialog(true)}>
                 <History className="w-4 h-4 mr-2" />
                 Histórico

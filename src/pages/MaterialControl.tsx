@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AddMaterialControlDialog } from "@/components/materials/AddMaterialControlDialog";
 import { MaterialComparisonDashboard } from "@/components/materials/MaterialComparisonDashboard";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 interface MaterialControl {
   id: string;
@@ -142,10 +143,13 @@ export default function MaterialControl() {
             <h2 className="text-2xl font-bold">Registre e monitore o consumo de materiais</h2>
             <p className="text-muted-foreground">Acompanhe o uso de materiais</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Registrar Consumo
-          </Button>
+          <div className="flex gap-2">
+            <PageTutorialButton pageKey="material-control" />
+            <Button onClick={() => setShowAddDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Registrar Consumo
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="records" className="w-full">

@@ -10,9 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Shield, Users, Database, UserPlus } from "lucide-react";
+import { ArrowLeft, Shield, Users, Database, UserPlus, ClipboardCheck, BarChart3, Send } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { z } from "zod";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SurveyDispatchDialog } from "@/components/admin/SurveyDispatchDialog";
+import { SurveyResponsesPanel } from "@/components/admin/SurveyResponsesPanel";
 
 interface UserRole {
   id: string;
@@ -38,6 +41,7 @@ export default function Admin() {
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [addUserOpen, setAddUserOpen] = useState(false);
+  const [surveyDispatchOpen, setSurveyDispatchOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
@@ -274,190 +278,235 @@ export default function Admin() {
                 Painel Administrativo
               </h1>
               <p className="text-muted-foreground">
-                Gerencie usuários e permissões do sistema
+                Gerencie usuários, permissões e pesquisas de satisfação
               </p>
             </div>
           </div>
-          <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Adicionar Usuário
+        </div>
+
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Usuários
+            </TabsTrigger>
+            <TabsTrigger value="surveys" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Pesquisas de Satisfação
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab: Usuários */}
+          <TabsContent value="users" className="space-y-6">
+            <div className="flex justify-end">
+              <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Adicionar Usuário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Adicionar Novo Usuário</DialogTitle>
+                    <DialogDescription>
+                      Crie um novo usuário com acesso ao sistema
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">E-mail</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="usuario@exemplo.com"
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Senha segura"
+                        value={newUserPassword}
+                        onChange={(e) => setNewUserPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="role">Função</Label>
+                      <Select value={newUserRole} onValueChange={(value: 'admin' | 'user') => setNewUserRole(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                          <SelectItem value="user">Colaborador</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="maxProjects">Limite de Projetos</Label>
+                      <Input
+                        id="maxProjects"
+                        type="number"
+                        min="1"
+                        value={maxProjects}
+                        onChange={(e) => setMaxProjects(parseInt(e.target.value) || 3)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="maxEmployees">Limite de Funcionários</Label>
+                      <Input
+                        id="maxEmployees"
+                        type="number"
+                        min="1"
+                        value={maxEmployees}
+                        onChange={(e) => setMaxEmployees(parseInt(e.target.value) || 50)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAddUserOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={addNewUser}>
+                      Criar Usuário
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{userRoles.length}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Administradores</CardTitle>
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {userRoles.filter(r => r.role === 'admin').length}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
+                  <Database className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{projects.length}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Funções de Usuários</CardTitle>
+                <CardDescription>
+                  Visualize e altere as permissões dos usuários nos projetos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Projeto</TableHead>
+                      <TableHead>Função</TableHead>
+                      <TableHead>Data de Criação</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {userRoles.map((role: any) => (
+                      <TableRow key={role.user_id}>
+                        <TableCell className="font-medium">
+                          {role.email}
+                        </TableCell>
+                        <TableCell>
+                          {role.projects?.name || "Sem projeto"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={role.role === 'admin' ? 'default' : 'secondary'}>
+                            {role.role === 'admin' ? 'Administrador' : 'Colaborador'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(role.created_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Select
+                              value={role.role}
+                              onValueChange={(value: 'admin' | 'user') =>
+                                updateUserRole(role.id, value)
+                              }
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="user">Colaborador</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteUserRole(role.id)}
+                            >
+                              Remover
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab: Pesquisas de Satisfação */}
+          <TabsContent value="surveys" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <BarChart3 className="h-6 w-6" />
+                  Pesquisas de Satisfação
+                </h2>
+                <p className="text-muted-foreground">
+                  Dispare pesquisas e visualize respostas dos usuários
+                </p>
+              </div>
+              <Button onClick={() => setSurveyDispatchOpen(true)}>
+                <Send className="h-4 w-4 mr-2" />
+                Disparar Pesquisa
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Adicionar Novo Usuário</DialogTitle>
-                <DialogDescription>
-                  Crie um novo usuário com acesso ao sistema
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="usuario@exemplo.com"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Senha segura"
-                    value={newUserPassword}
-                    onChange={(e) => setNewUserPassword(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="role">Função</Label>
-                  <Select value={newUserRole} onValueChange={(value: 'admin' | 'user') => setNewUserRole(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="user">Colaborador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="maxProjects">Limite de Projetos</Label>
-                  <Input
-                    id="maxProjects"
-                    type="number"
-                    min="1"
-                    value={maxProjects}
-                    onChange={(e) => setMaxProjects(parseInt(e.target.value) || 3)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="maxEmployees">Limite de Funcionários</Label>
-                  <Input
-                    id="maxEmployees"
-                    type="number"
-                    min="1"
-                    value={maxEmployees}
-                    onChange={(e) => setMaxEmployees(parseInt(e.target.value) || 50)}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAddUserOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={addNewUser}>
-                  Criar Usuário
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{userRoles.length}</div>
-            </CardContent>
-          </Card>
+            <SurveyDispatchDialog 
+              open={surveyDispatchOpen} 
+              onOpenChange={setSurveyDispatchOpen} 
+            />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Administradores</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {userRoles.filter(r => r.role === 'admin').length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{projects.length}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Gerenciar Funções de Usuários</CardTitle>
-            <CardDescription>
-              Visualize e altere as permissões dos usuários nos projetos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Projeto</TableHead>
-                  <TableHead>Função</TableHead>
-                  <TableHead>Data de Criação</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {userRoles.map((role: any) => (
-                  <TableRow key={role.user_id}>
-                    <TableCell className="font-medium">
-                      {role.email}
-                    </TableCell>
-                    <TableCell>
-                      {role.projects?.name || "Sem projeto"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={role.role === 'admin' ? 'default' : 'secondary'}>
-                        {role.role === 'admin' ? 'Administrador' : 'Colaborador'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(role.created_at).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Select
-                          value={role.role}
-                          onValueChange={(value: 'admin' | 'user') =>
-                            updateUserRole(role.id, value)
-                          }
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="user">Colaborador</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteUserRole(role.id)}
-                        >
-                          Remover
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            <SurveyResponsesPanel />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
