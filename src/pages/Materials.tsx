@@ -18,6 +18,7 @@ import { PriceHistoryDialog } from "@/components/materials/PriceHistoryDialog";
 import { IntelligentSpreadsheetDialog } from "@/components/materials/IntelligentSpreadsheetDialog";
 import { DuplicateMaterialsReport } from "@/components/materials/DuplicateMaterialsReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 const Materials = () => {
   const { toast } = useToast();
@@ -156,6 +157,7 @@ const Materials = () => {
                 Editar {selectedMaterials.length} selecionados
               </Button>
             )}
+            <PageTutorialButton pageKey="budget-pricing" />
             <Button onClick={() => navigate('/materials/dashboard')} variant="outline">
               <BarChart3 className="h-4 w-4 mr-2" />
               Dashboard

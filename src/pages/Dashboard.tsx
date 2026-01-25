@@ -9,6 +9,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SurveyNotification } from "@/components/shared/SurveyNotification";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -284,6 +285,9 @@ const Dashboard = () => {
 
           {/* Main Content */}
           <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 flex-1">
+        {/* Survey Notification */}
+        <SurveyNotification />
+
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Bem-vindo ao ConstruData</h1>
           <p className="text-sm sm:text-base text-muted-foreground">

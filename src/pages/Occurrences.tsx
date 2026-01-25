@@ -10,6 +10,7 @@ import { Plus, AlertCircle, Clock, CheckCircle2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { AddOccurrenceDialog } from "@/components/occurrences/AddOccurrenceDialog";
 import { OccurrenceDetailsDialog } from "@/components/occurrences/OccurrenceDetailsDialog";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 export default function Occurrences() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -121,10 +122,13 @@ export default function Occurrences() {
                 Registro e acompanhamento de problemas identificados
               </p>
             </div>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Ocorrência
-            </Button>
+            <div className="flex gap-2">
+              <PageTutorialButton pageKey="occurrences" />
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Ocorrência
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-4">
