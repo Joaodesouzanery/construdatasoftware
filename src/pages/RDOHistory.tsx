@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, LogOut, ArrowLeft, History } from "lucide-react";
 import { toast } from "sonner";
 import { RDOHistoryView } from "@/components/rdo/RDOHistoryView";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 const RDOHistory = () => {
   const navigate = useNavigate();
@@ -96,6 +97,7 @@ const RDOHistory = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <PageTutorialButton pageKey="rdo-history" />
             <span className="text-sm text-muted-foreground hidden sm:inline">
               {user?.user_metadata?.name || user?.email}
             </span>

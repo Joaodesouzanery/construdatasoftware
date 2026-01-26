@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { SimilarMaterialApprovalDialog } from "@/components/materials/SimilarMaterialApprovalDialog";
 import { AddMaterialDialog } from "@/components/materials/AddMaterialDialog";
-import { TutorialDialog } from "@/components/shared/TutorialDialog";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 
 interface ProcessedItem {
   description: string;
@@ -1068,12 +1068,7 @@ const BudgetPricing = () => {
               </Button>
             </div>
 
-            <TutorialDialog
-              open={showTutorial}
-              onOpenChange={setShowTutorial}
-              title="Tutorial: Precificação"
-              steps={tutorialSteps}
-            />
+            <PageTutorialButton pageKey="budget-pricing" />
           </div>
         ) : (
           <div className="space-y-6">

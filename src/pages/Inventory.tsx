@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Search, Package, AlertTriangle, TrendingUp, TrendingDown, Edit, Trash2, ArrowUpDown, HelpCircle, ArrowLeft, FileDown, FileSpreadsheet, X, Filter } from "lucide-react";
+import { Building2, Plus, Search, Package, AlertTriangle, TrendingUp, TrendingDown, Edit, Trash2, ArrowUpDown, ArrowLeft, FileDown, FileSpreadsheet, X, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { AddInventoryItemDialog } from "@/components/inventory/AddInventoryItemDialog";
 import { InventoryMovementDialog } from "@/components/inventory/InventoryMovementDialog";
-import { TutorialDialog } from "@/components/shared/TutorialDialog";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -429,6 +429,7 @@ const Inventory = () => {
               <h1 className="text-xl font-semibold">Almoxarifado</h1>
             </div>
             <div className="flex gap-2">
+              <PageTutorialButton pageKey="inventory" />
               <Button variant="outline" onClick={exportToExcel}>
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 Excel

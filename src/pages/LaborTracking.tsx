@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Users, Clock, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { AddLaborTrackingDialog } from "@/components/labor/AddLaborTrackingDialog";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 import {
   Table,
   TableBody,
@@ -94,10 +95,13 @@ export default function LaborTracking() {
                 Controle de horas trabalhadas e custos de mão de obra
               </p>
             </div>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Apontamento
-            </Button>
+            <div className="flex gap-2">
+              <PageTutorialButton pageKey="labor-tracking" />
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Apontamento
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3 mb-6">

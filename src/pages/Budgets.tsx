@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { BudgetsTable } from "@/components/budgets/BudgetsTable";
 import { CreateBudgetDialog } from "@/components/budgets/CreateBudgetDialog";
 import { SpreadsheetUploadDialog } from "@/components/budgets/SpreadsheetUploadDialog";
+import { PageTutorialButton } from "@/components/shared/PageTutorialButton";
 import {
   Select,
   SelectContent,
@@ -66,6 +67,7 @@ const Budgets = () => {
           </div>
         </div>
           <div className="flex gap-2">
+            <PageTutorialButton pageKey="budgets" />
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Orçamento
