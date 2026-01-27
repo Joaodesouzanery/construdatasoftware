@@ -1,4 +1,4 @@
-import { Shield, Mail, Phone } from "lucide-react";
+import { Shield, MessageCircle } from "lucide-react";
 
 const MaintenanceOverlay = () => {
   // Para remover o overlay, basta mudar esta variável para false ou deletar este componente
@@ -26,15 +26,17 @@ const MaintenanceOverlay = () => {
         
         <div className="bg-white/10 rounded-lg p-6 mb-6">
           <p className="text-gray-200 mb-4">
-            Entre em contato com o suporte para qualquer dúvida:
+            Entre em contato no nosso WhatsApp para qualquer dúvida.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <a 
-              href="mailto:suporte@construdata.com" 
-              className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
+              href="https://wa.me/5500000000000" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-lg transition-colors font-medium"
             >
-              <Mail className="h-5 w-5" />
-              suporte@construdata.com
+              <MessageCircle className="h-5 w-5" />
+              WhatsApp
             </a>
           </div>
         </div>
