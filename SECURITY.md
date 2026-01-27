@@ -129,6 +129,19 @@ Se você descobrir uma vulnerabilidade de segurança, por favor:
 
 ## 📝 Histórico de Atualizações
 
+### 2026-01-27 - Hardening de Segurança v4
+- ✅ **Políticas RLS Verificadas e Endurecidas**:
+  - `employees`: Acesso restrito via `created_by_user_id` ou `is_project_manager()` - protege dados pessoais (email, telefone)
+  - `labor_tracking`: Acesso restrito via `created_by_user_id` ou `is_project_manager()` - protege dados financeiros (salários)
+  - `budgets` e `budget_items`: Acesso exclusivo via `created_by_user_id` - protege informações de precificação
+  - `materials` e `price_history`: Acesso exclusivo via `created_by_user_id` - protege dados de preços
+  - `maintenance_requests`: Acesso restrito a gerentes de projeto via `is_project_manager()`
+- ✅ **Funções Security Definer**: `has_project_access()`, `is_project_manager()`, `has_qrcode_access()`, `has_role()`, `is_admin()` previnem recursão infinita em RLS
+- ✅ **Edge Functions com JWT**: Todas as funções sensíveis validam tokens JWT via `getClaims()`
+- ✅ **Rate Limiting**: Implementado em `maintenance-request-upload` (5 req/IP/hora, 10 req/QR/hora)
+- ✅ **Sanitização de Inputs**: Proteção contra XSS em formulários públicos
+- ✅ **URLs Assinadas**: Uploads de fotos usam URLs temporárias (5 min expiry)
+
 ### 2026-01-20 - Hardening de Segurança v3
 - ✅ **Rate Limiting**: Edge function `maintenance-request-upload` implementada com:
   - Limite de 5 requisições por IP por hora
@@ -152,9 +165,20 @@ Se você descobrir uma vulnerabilidade de segurança, por favor:
 
 ---
 
-**Última atualização**: 20 de Janeiro de 2026  
-**Versão de Segurança**: 3.0 - Enterprise Hardened
+**Última atualização**: 27 de Janeiro de 2026  
+**Versão de Segurança**: 4.0 - Enterprise Hardened
 
-Para mais informações sobre as funcionalidades do sistema, consulte [FUNCIONALIDADES.md](./FUNCIONALIDADES.md)
+## 🔒 Resumo de Proteções por Tabela
+
+| Tabela | Dados Sensíveis | Proteção RLS |
+|--------|-----------------|--------------|
+| `employees` | Email, Telefone | `created_by_user_id` OR `is_project_manager()` |
+| `labor_tracking` | Salários, Custos | `created_by_user_id` OR `is_project_manager()` |
+| `budgets` | Preços, Clientes | `created_by_user_id` apenas |
+| `budget_items` | Valores unitários | Validação via JOIN com `budgets` |
+| `materials` | Preços de materiais | `created_by_user_id` apenas |
+| `price_history` | Histórico de preços | Validação via JOIN com `materials` |
+| `maintenance_requests` | Contato solicitante | `is_project_manager()` apenas |
+| `purchase_orders` | Valores de compra | `is_project_manager()` apenas |
 
 Para mais informações sobre as funcionalidades do sistema, consulte [FUNCIONALIDADES.md](./FUNCIONALIDADES.md)
