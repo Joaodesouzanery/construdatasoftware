@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAlertNotifications } from "@/hooks/useAlertNotifications";
 import { useProductionUpdates } from "@/hooks/useProductionUpdates";
+import MaintenanceOverlay from "@/components/MaintenanceOverlay";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -150,6 +151,7 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <MaintenanceOverlay />
       <Toaster />
       <Sonner />
       <AppContent />
