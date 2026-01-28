@@ -66,6 +66,7 @@ import UserMetrics from "./pages/UserMetrics";
 import CustomDashboard from "./pages/CustomDashboard";
 import SatisfactionSurvey from "./pages/SatisfactionSurvey";
 import NotFound from "./pages/NotFound";
+import ProjectHistory from "./pages/ProjectHistory";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,7 @@ const AppContent = () => {
         <Route path="/dashboard-360" element={<Dashboard360 />} />
         <Route path="/custom-dashboard" element={<CustomDashboard />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:projectId/history" element={<ProjectHistory />} />
         <Route path="/production" element={<Production />} />
         <Route path="/production-control" element={<ProductionControl />} />
         <Route path="/material-requests" element={<MaterialRequests />} />
