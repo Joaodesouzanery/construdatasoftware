@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X, HelpCircle, ArrowLeft } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, Upload, MapPin, Search, X, HelpCircle, ArrowLeft, Clock, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImportDataDialog } from "@/components/projects/ImportDataDialog";
@@ -393,25 +393,36 @@ const Projects = () => {
                       Status: Em andamento
                     </CardDescription>
                   )}
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
                   <Button
-                    variant="outline"
+                    variant="default"
                     size="sm"
-                    onClick={() => handleEdit(project)}
-                    className="flex-1"
+                    onClick={() => navigate(`/projects/${project.id}/history`)}
+                    className="w-full"
                   >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Editar
+                    <Clock className="w-4 h-4 mr-1" />
+                    Histórico da Obra
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(project.id)}
-                    className="flex-1 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Excluir
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(project)}
+                      className="flex-1"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(project.id)}
+                      className="flex-1 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Excluir
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
