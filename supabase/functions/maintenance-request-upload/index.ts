@@ -5,9 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Rate limiting configuration
-const RATE_LIMIT_WINDOW_HOURS = 1;
-const MAX_REQUESTS_PER_IP = 5;
+// Rate limiting configuration – 24h window, 10 requests max per IP or per QR Code
+const RATE_LIMIT_WINDOW_HOURS = 24;
+const MAX_REQUESTS_PER_IP = 10;
 const MAX_REQUESTS_PER_QR_CODE = 10;
 const SIGNED_URL_EXPIRY_SECONDS = 300; // 5 minutes
 
