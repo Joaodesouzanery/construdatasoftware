@@ -59,7 +59,6 @@ const facilityItems = [
 const budgetItems = [
   { title: "Orçamentos", url: "/budgets", icon: DollarSign },
   { title: "Precificação Privada", url: "/budget-pricing", icon: FileSpreadsheet },
-  { title: "Precificação Pública", url: "/budget-pricing-public", icon: Calculator },
   { title: "Preços", url: "/prices", icon: Calculator },
 ];
 
