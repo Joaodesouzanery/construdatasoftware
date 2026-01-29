@@ -129,6 +129,12 @@ Se você descobrir uma vulnerabilidade de segurança, por favor:
 
 ## 📝 Histórico de Atualizações
 
+### 2026-01-29 - Hardening de Segurança v5
+- ✅ **weather-data JWT Enforcement**: Implementada verificação JWT completa na edge function usando `getClaims()`, alinhando implementação com config.toml
+- ✅ **Rate Limits RLS Hardening**: Removidas políticas permissivas de service_role. Mantida apenas INSERT para edge function e DELETE para limpeza automática
+- ✅ **Supply Chain Mitigations Documented**: Vulnerabilidades em html2pdf.js, jspdf e xlsx documentadas com justificativas de mitigação
+- ✅ **Data Access Findings Reviewed**: Todas as tabelas com dados sensíveis verificadas - RLS já implementado conforme v4
+
 ### 2026-01-27 - Hardening de Segurança v4
 - ✅ **Políticas RLS Verificadas e Endurecidas**:
   - `employees`: Acesso restrito via `created_by_user_id` ou `is_project_manager()` - protege dados pessoais (email, telefone)
@@ -165,8 +171,8 @@ Se você descobrir uma vulnerabilidade de segurança, por favor:
 
 ---
 
-**Última atualização**: 27 de Janeiro de 2026  
-**Versão de Segurança**: 4.0 - Enterprise Hardened
+**Última atualização**: 29 de Janeiro de 2026  
+**Versão de Segurança**: 5.0 - Enterprise Hardened
 
 ## 🔒 Resumo de Proteções por Tabela
 
