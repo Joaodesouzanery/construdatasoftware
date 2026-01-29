@@ -435,12 +435,12 @@ export default function ProjectHistory() {
                     </div>
                     <div className="space-y-2">
                       <Label>Frente de Serviço</Label>
-                      <Select value={selectedFront} onValueChange={setSelectedFront}>
+                      <Select value={selectedFront} onValueChange={(val) => setSelectedFront(val === "all" ? "" : val)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Todas" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todas</SelectItem>
+                          <SelectItem value="all">Todas</SelectItem>
                           {serviceFronts.map(front => (
                             <SelectItem key={front.id} value={front.id}>{front.name}</SelectItem>
                           ))}
@@ -449,12 +449,12 @@ export default function ProjectHistory() {
                     </div>
                     <div className="space-y-2">
                       <Label>Responsável</Label>
-                      <Select value={selectedResponsible} onValueChange={setSelectedResponsible}>
+                      <Select value={selectedResponsible} onValueChange={(val) => setSelectedResponsible(val === "all" ? "" : val)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Todos" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos</SelectItem>
+                          <SelectItem value="all">Todos</SelectItem>
                           {employees.map(emp => (
                             <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                           ))}
