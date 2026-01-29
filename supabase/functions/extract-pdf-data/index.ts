@@ -479,10 +479,10 @@ REGRAS CRÍTICAS:
 
     type Payload = { mode: "pdf"; pdfBase64: string };
 
-    const callAi = async (model: string, payload: Payload) => {
+    const callAi = async (model: string, payload: Payload, timeoutMs = 180_000) => {
       const controller = new AbortController();
-      // Increased timeout to 120 seconds for large PDFs
-      const timeout = setTimeout(() => controller.abort(), 120_000);
+      // Increased timeout to 180 seconds for large PDFs
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         const messages = [
@@ -534,8 +534,8 @@ REGRAS CRÍTICAS:
         return extractedText;
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') {
-          console.error(`AI call timed out after 120s for model: ${model}`);
-          throw new Error(`Timeout: AI processing took too long. Try a smaller PDF file.`);
+          console.error(`AI call timed out for model: ${model}`);
+          throw new Error(`Timeout: processamento demorou demais. Tente um PDF menor.`);
         }
         throw err;
       } finally {
@@ -543,7 +543,7 @@ REGRAS CRÍTICAS:
       }
     };
 
-    const modelsToTry = ["google/gemini-3-flash-preview", "google/gemini-2.5-flash", "google/gemini-2.5-pro"];
+    const modelsToTry = ["google/gemini-2.5-flash", "google/gemini-3-flash-preview", "google/gemini-2.5-pro"];
 
     const runAiWithFallbacks = async (payload: Payload): Promise<string> => {
       let extractedText: string | null = null;

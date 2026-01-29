@@ -99,7 +99,12 @@ export function ExportProjectDialog({
       let currentY = margin;
 
       // Filter timeline based on selected sections and date range
-      let filteredData = timeline.filter(item => selectedSections.includes(item.type));
+      let filteredData = timeline.filter(item => {
+        if (!selectedSections.includes(item.type)) return false;
+        // Ensure item.date is a valid Date object
+        if (!(item.date instanceof Date) || isNaN(item.date.getTime())) return false;
+        return true;
+      });
       
       if (periodType === 'custom' && startDate && endDate) {
         const start = new Date(startDate);
@@ -127,13 +132,19 @@ export function ExportProjectDialog({
       doc.text("DOCUMENTAÇÃO DA OBRA", pageWidth / 2, 130, { align: 'center' });
       
       doc.setFontSize(20);
-      doc.text(projectName, pageWidth / 2, 150, { align: 'center' });
+      const safeProjectName = projectName || 'Projeto';
+      doc.text(safeProjectName, pageWidth / 2, 150, { align: 'center' });
 
       // Period
       doc.setFontSize(12);
-      const periodText = periodType === 'all' 
-        ? 'Todo o período'
-        : `${format(new Date(startDate), 'dd/MM/yyyy')} a ${format(new Date(endDate), 'dd/MM/yyyy')}`;
+      let periodText = 'Todo o período';
+      if (periodType === 'custom' && startDate && endDate) {
+        try {
+          periodText = `${format(new Date(startDate), 'dd/MM/yyyy')} a ${format(new Date(endDate), 'dd/MM/yyyy')}`;
+        } catch {
+          periodText = 'Período personalizado';
+        }
+      }
       doc.text(`Período: ${periodText}`, pageWidth / 2, 175, { align: 'center' });
       
       // Export date
@@ -197,14 +208,24 @@ export function ExportProjectDialog({
         doc.setFontSize(10);
         doc.text(`${sectionData.length} registros`, pageWidth - margin, 28, { align: 'right' });
 
-        // Table with records
-        const tableData = sectionData.map(item => [
-          format(item.date, 'dd/MM/yyyy HH:mm', { locale: ptBR }),
-          item.title,
-          item.description?.substring(0, 50) + (item.description?.length > 50 ? '...' : '') || '-',
-          item.location || '-',
-          item.hasPhoto ? '✓ Foto' : '-'
-        ]);
+        // Table with records - safely format dates
+        const tableData = sectionData.map(item => {
+          let dateStr = '-';
+          try {
+            if (item.date instanceof Date && !isNaN(item.date.getTime())) {
+              dateStr = format(item.date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+            }
+          } catch {
+            dateStr = '-';
+          }
+          return [
+            dateStr,
+            item.title || '-',
+            item.description?.substring(0, 50) + (item.description?.length > 50 ? '...' : '') || '-',
+            item.location || '-',
+            item.hasPhoto ? '✓ Foto' : '-'
+          ];
+        });
 
         (doc as any).autoTable({
           startY: 50,

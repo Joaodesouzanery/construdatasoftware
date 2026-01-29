@@ -51,7 +51,7 @@ import Budgets from "./pages/Budgets";
 import BudgetPricing from "./pages/BudgetPricing";
 import Prices from "./pages/Prices";
 import Occurrences from "./pages/Occurrences";
-import BudgetPricingPublic from "./pages/BudgetPricingPublic";
+
 import LaborTracking from "./pages/LaborTracking";
 import InteractiveMap from "./pages/InteractiveMap";
 import MapEmbed from "./pages/MapEmbed";
@@ -108,7 +108,7 @@ const AppContent = () => {
         <Route path="/facility-reports" element={<FacilityReports />} />
         <Route path="/connection-reports" element={<ConnectionReports />} />
         <Route path="/occurrences" element={<Occurrences />} />
-        <Route path="/budget-pricing-public" element={<BudgetPricingPublic />} />
+        
         <Route path="/labor-tracking" element={<LaborTracking />} />
         <Route path="/maintenance-qr-codes" element={<MaintenanceQRCodes />} />
         <Route path="/maintenance-request/:qrCodeId" element={<MaintenanceRequest />} />
