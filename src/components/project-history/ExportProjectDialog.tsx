@@ -98,6 +98,8 @@ export function ExportProjectDialog({
       const margin = 20;
       let currentY = margin;
 
+      const normalizedProjectName = (projectName || "Projeto").toString().trim() || "Projeto";
+
       // Filter timeline based on selected sections and date range
       let filteredData = timeline.filter(item => {
         if (!selectedSections.includes(item.type)) return false;
@@ -132,8 +134,7 @@ export function ExportProjectDialog({
       doc.text("DOCUMENTAÇÃO DA OBRA", pageWidth / 2, 130, { align: 'center' });
       
       doc.setFontSize(20);
-      const safeProjectName = projectName || 'Projeto';
-      doc.text(safeProjectName, pageWidth / 2, 150, { align: 'center' });
+       doc.text(normalizedProjectName, pageWidth / 2, 150, { align: 'center' });
 
       // Period
       doc.setFontSize(12);
@@ -240,7 +241,7 @@ export function ExportProjectDialog({
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
             doc.text(
-              `${projectName} | ${format(new Date(), 'dd/MM/yyyy HH:mm')} | ConstruData`,
+              `${normalizedProjectName} | ${format(new Date(), 'dd/MM/yyyy HH:mm')} | ConstruData`,
               pageWidth / 2, pageHeight - 10,
               { align: 'center' }
             );
@@ -253,7 +254,7 @@ export function ExportProjectDialog({
       setProgress(95);
 
       // Save PDF
-      const fileName = `${projectName.replace(/[^a-z0-9]/gi, '_')}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
+      const fileName = `${normalizedProjectName.replace(/[^a-z0-9]/gi, '_')}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`;
       doc.save(fileName);
 
       setProgress(100);

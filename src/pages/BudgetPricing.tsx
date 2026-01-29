@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as XLSX from 'xlsx';
+import { extractPdfText } from "@/lib/pdfTextExtractor";
 import {
   Table,
   TableBody,
@@ -91,6 +92,19 @@ const BudgetPricing = () => {
       if (error) throw error;
       return data || [];
     }
+  });
+
+  const { data: materialsCatalog = [] } = useQuery({
+    queryKey: ["materials-for-budget-pricing"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("materials")
+        .select("id,name,unit,material_price,labor_price,keywords_norm,description_norm,measurement")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 60_000,
   });
 
   // Stopwords (palavras irrelevantes)
@@ -330,13 +344,8 @@ const BudgetPricing = () => {
   };
 
   const findMatchingMaterial = async (description: string, unit?: string) => {
-    // Busca materiais com campos normalizados para matching por keywords
-    const { data: materials } = await supabase
-      .from('materials')
-      .select('*,keywords_norm,description_norm')
-      .order('material_price', { ascending: false, nullsFirst: false })
-      .order('labor_price', { ascending: false, nullsFirst: false });
-    
+    // Usa catálogo já carregado (evita N consultas ao backend e deixa a tela bem mais rápida)
+    const materials = materialsCatalog as any[];
     if (!materials || materials.length === 0) return null;
 
     const normalizedDescription = normalizeText(description);
@@ -498,6 +507,22 @@ const BudgetPricing = () => {
     return null;
   };
 
+  const coerceNumberBR = (v: unknown): number => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = Number(
+        v
+          .replace(/R\$\s*/gi, "")
+          .replace(/\./g, "")
+          .replace(/,/g, ".")
+          .replace(/[^0-9.-]/g, "")
+          .trim(),
+      );
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -519,25 +544,45 @@ const BudgetPricing = () => {
       let jsonData: any[] = [];
 
       // Verifica se é PDF
-      if (file.type === 'application/pdf') {
-        console.log('Processing PDF file...');
-        
-        // Converte PDF para base64
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(
-          new Uint8Array(arrayBuffer).reduce(
-            (data, byte) => data + String.fromCharCode(byte),
-            ''
-          )
-        );
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
-        // Chama edge function para extrair dados do PDF
-        const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
-          'extract-pdf-data',
-          {
-            body: { pdfBase64: base64 }
+      if (isPdf) {
+        console.log('Processing PDF file...');
+
+        // Caminho rápido e mais preciso: extrai texto no navegador e envia para o backend
+        // (evita mandar o PDF inteiro para IA e elimina intermitência)
+        let pdfText = "";
+        try {
+          pdfText = await extractPdfText(file);
+        } catch (e) {
+          console.warn("Falha ao extrair texto do PDF no navegador; tentando fallback.", e);
+        }
+
+        let pdfData: any;
+        let pdfError: any;
+
+        if (pdfText && pdfText.trim().length > 20) {
+          ({ data: pdfData, error: pdfError } = await supabase.functions.invoke('extract-pdf-data', {
+            body: { pdfText },
+          }));
+        } else {
+          // Fallback: base64 (pode ser PDF escaneado). Mantém limite para evitar timeouts.
+          const MAX_BYTES_FALLBACK = 5 * 1024 * 1024;
+          if (file.size > MAX_BYTES_FALLBACK) {
+            throw new Error(
+              "Este PDF parece não ter texto selecionável e é grande demais para o processamento direto. Tente um PDF com texto (não escaneado) ou envie em Excel.",
+            );
           }
-        );
+
+          const arrayBuffer = await file.arrayBuffer();
+          const base64 = btoa(
+            new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''),
+          );
+
+          ({ data: pdfData, error: pdfError } = await supabase.functions.invoke('extract-pdf-data', {
+            body: { pdfBase64: base64 },
+          }));
+        }
 
         if (pdfError) {
           throw new Error(`Erro ao processar PDF: ${pdfError.message}`);
@@ -578,6 +623,8 @@ const BudgetPricing = () => {
 
       const items: ProcessedItem[] = [];
 
+      const isPdfImport = isPdf;
+
       for (let i = 0; i < jsonData.length; i++) {
         const rowData: any = jsonData[i];
         
@@ -591,11 +638,25 @@ const BudgetPricing = () => {
         const quantityStr = findColumnValue(rowData, [
           'quantidade', 'quantity', 'qtd', 'qtde'
         ]);
-        const quantity = parseFloat(quantityStr.replace(',', '.')) || 0;
+        let quantity = parseFloat(quantityStr.replace(',', '.')) || 0;
+        if (quantity <= 0 && isPdfImport) quantity = 1;
 
         const unit = findColumnValue(rowData, [
           'unidade', 'unit', 'un', 'und'
         ]) || 'UN';
+
+        // Preços (quando vierem do PDF/planilha)
+        const materialPrice = coerceNumberBR(
+          findColumnValue(rowData, ['preço material', 'preco material', 'material_price', 'preco mat', 'mat'])
+        );
+        const laborPrice = coerceNumberBR(
+          findColumnValue(rowData, ['preço m.o.', 'preco m.o.', 'preço mo', 'preco mo', 'labor_price', 'mdo', 'mao de obra'])
+        );
+        const totalPrice = coerceNumberBR(
+          findColumnValue(rowData, ['preço total', 'preco total', 'total', 'price', 'preco'])
+        );
+
+        const extractedUnitPrice = totalPrice || (materialPrice + laborPrice) || 0;
 
         if (!rawDescription || rawDescription.length < 2 || quantity <= 0) {
           continue;
@@ -607,15 +668,15 @@ const BudgetPricing = () => {
           cleanedDescription: cleanedDesc,
           quantity,
           unit,
-          unit_price: 0,
-          unit_price_material: 0,
-          unit_price_labor: 0,
-          total: 0,
+          unit_price: extractedUnitPrice,
+          unit_price_material: materialPrice,
+          unit_price_labor: laborPrice,
+          total: extractedUnitPrice > 0 ? quantity * extractedUnitPrice : 0,
           material_id: null,
-          matched: false,
+          matched: extractedUnitPrice > 0,
           needsApproval: false,
           approved: false,
-          match_type: 'Aguardando precificação',
+          match_type: extractedUnitPrice > 0 ? 'Preço do arquivo' : 'Aguardando precificação',
           originalRow: rowData
         });
       }
@@ -657,6 +718,38 @@ const BudgetPricing = () => {
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+
+        const hasImportedPrice =
+          (item.unit_price_material || 0) > 0 ||
+          (item.unit_price_labor || 0) > 0 ||
+          (item.unit_price || 0) > 0;
+
+        // Se já veio com preço do arquivo, a gente só tenta identificar o material (sem sobrescrever preços)
+        if (hasImportedPrice) {
+          const searchDesc = item.cleanedDescription || item.description;
+          const match = await findMatchingMaterial(searchDesc, item.unit);
+
+          if (match) {
+            updatedItems.push({
+              ...item,
+              material_id: match.material.id,
+              material_name: match.material.name,
+              matched: true,
+              match_type: 'Preço do arquivo (identificado)',
+              total: item.quantity * (item.unit_price || ((item.unit_price_material || 0) + (item.unit_price_labor || 0))),
+            });
+          } else {
+            updatedItems.push({
+              ...item,
+              matched: true,
+              match_type: 'Preço do arquivo',
+              total: item.quantity * (item.unit_price || ((item.unit_price_material || 0) + (item.unit_price_labor || 0))),
+            });
+          }
+          foundCount++;
+          continue;
+        }
+
         // Usa descrição limpa para melhor matching
         const searchDesc = item.cleanedDescription || item.description;
         const match = await findMatchingMaterial(searchDesc);
