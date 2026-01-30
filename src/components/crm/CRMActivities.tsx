@@ -89,7 +89,7 @@ export const CRMActivities = () => {
         .order("due_date", { ascending: true, nullsFirst: false });
 
       if (filterStatus !== "all") {
-        query = query.eq("status", filterStatus);
+        query = query.eq("status", filterStatus as "pending" | "completed" | "cancelled");
       }
 
       const { data, error } = await query;

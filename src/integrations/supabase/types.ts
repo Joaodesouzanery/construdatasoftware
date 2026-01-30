@@ -492,6 +492,159 @@ export type Database = {
           },
         ]
       }
+      cmv_lancamentos: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          data: string
+          descricao?: string | null
+          id?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cmv_lancamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobertura_postos: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          posto_id: string
+          quantidade_alocada: number | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          posto_id: string
+          quantidade_alocada?: number | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          posto_id?: string
+          quantidade_alocada?: number | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobertura_postos_posto_id_fkey"
+            columns: ["posto_id"]
+            isOneToOne: false
+            referencedRelation: "postos_cobertura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracoes_clt: {
+        Row: {
+          created_at: string
+          descanso_entre_jornadas: number
+          dias_trabalho_antes_folga: number
+          escalas_habilitadas: string[]
+          hora_fim_noturno: string
+          hora_inicio_noturno: string
+          id: string
+          intervalo_minimo_4h: number
+          intervalo_minimo_6h: number
+          jornada_diaria_padrao: number
+          jornada_semanal_padrao: number
+          limite_horas_extras_dia: number
+          percentual_adicional_noturno: number
+          percentual_hora_extra_100: number
+          percentual_hora_extra_50: number
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          descanso_entre_jornadas?: number
+          dias_trabalho_antes_folga?: number
+          escalas_habilitadas?: string[]
+          hora_fim_noturno?: string
+          hora_inicio_noturno?: string
+          id?: string
+          intervalo_minimo_4h?: number
+          intervalo_minimo_6h?: number
+          jornada_diaria_padrao?: number
+          jornada_semanal_padrao?: number
+          limite_horas_extras_dia?: number
+          percentual_adicional_noturno?: number
+          percentual_hora_extra_100?: number
+          percentual_hora_extra_50?: number
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          descanso_entre_jornadas?: number
+          dias_trabalho_antes_folga?: number
+          escalas_habilitadas?: string[]
+          hora_fim_noturno?: string
+          hora_inicio_noturno?: string
+          id?: string
+          intervalo_minimo_4h?: number
+          intervalo_minimo_6h?: number
+          jornada_diaria_padrao?: number
+          jornada_semanal_padrao?: number
+          limite_horas_extras_dia?: number
+          percentual_adicional_noturno?: number
+          percentual_hora_extra_100?: number
+          percentual_hora_extra_50?: number
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_clt_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_reports: {
         Row: {
           address: string
@@ -1304,6 +1457,165 @@ export type Database = {
           },
         ]
       }
+      entregas_produtividade: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          observacoes: string | null
+          quantidade: number
+          receita: number | null
+          tipo_entrega: string
+          unidade_id: string | null
+          unidade_medida: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          observacoes?: string | null
+          quantidade: number
+          receita?: number | null
+          tipo_entrega: string
+          unidade_id?: string | null
+          unidade_medida: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          observacoes?: string | null
+          quantidade?: number
+          receita?: number | null
+          tipo_entrega?: string
+          unidade_id?: string | null
+          unidade_medida?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_produtividade_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escalas_clt: {
+        Row: {
+          alertas_clt: Json | null
+          created_at: string
+          custo_total: number
+          data: string
+          funcao: string | null
+          funcionario_id: string
+          hora_entrada: string
+          hora_fim_intervalo: string | null
+          hora_inicio_intervalo: string | null
+          hora_saida: string
+          horas_extras: number
+          horas_normais: number
+          horas_noturnas: number
+          id: string
+          is_domingo: boolean
+          is_feriado: boolean
+          is_folga: boolean
+          observacoes: string | null
+          status_clt: string
+          tipo_escala: string
+          turno_id: string | null
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+          valor_adicional_noturno: number
+          valor_hora_extra: number
+          valor_hora_normal: number
+        }
+        Insert: {
+          alertas_clt?: Json | null
+          created_at?: string
+          custo_total?: number
+          data: string
+          funcao?: string | null
+          funcionario_id: string
+          hora_entrada: string
+          hora_fim_intervalo?: string | null
+          hora_inicio_intervalo?: string | null
+          hora_saida: string
+          horas_extras?: number
+          horas_normais?: number
+          horas_noturnas?: number
+          id?: string
+          is_domingo?: boolean
+          is_feriado?: boolean
+          is_folga?: boolean
+          observacoes?: string | null
+          status_clt?: string
+          tipo_escala: string
+          turno_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+          valor_adicional_noturno?: number
+          valor_hora_extra?: number
+          valor_hora_normal?: number
+        }
+        Update: {
+          alertas_clt?: Json | null
+          created_at?: string
+          custo_total?: number
+          data?: string
+          funcao?: string | null
+          funcionario_id?: string
+          hora_entrada?: string
+          hora_fim_intervalo?: string | null
+          hora_inicio_intervalo?: string | null
+          hora_saida?: string
+          horas_extras?: number
+          horas_normais?: number
+          horas_noturnas?: number
+          id?: string
+          is_domingo?: boolean
+          is_feriado?: boolean
+          is_folga?: boolean
+          observacoes?: string | null
+          status_clt?: string
+          tipo_escala?: string
+          turno_id?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valor_adicional_noturno?: number
+          valor_hora_extra?: number
+          valor_hora_normal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalas_clt_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalas_clt_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "turnos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalas_clt_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       executed_services: {
         Row: {
           created_at: string | null
@@ -1361,6 +1673,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      faltas_funcionarios: {
+        Row: {
+          arquivo_url: string | null
+          created_at: string
+          data: string
+          escala_id: string | null
+          funcionario_id: string
+          horas_perdidas: number | null
+          id: string
+          impacto_custo: number | null
+          observacoes: string | null
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          arquivo_url?: string | null
+          created_at?: string
+          data: string
+          escala_id?: string | null
+          funcionario_id: string
+          horas_perdidas?: number | null
+          id?: string
+          impacto_custo?: number | null
+          observacoes?: string | null
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          arquivo_url?: string | null
+          created_at?: string
+          data?: string
+          escala_id?: string | null
+          funcionario_id?: string
+          horas_perdidas?: number | null
+          id?: string
+          impacto_custo?: number | null
+          observacoes?: string | null
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faltas_funcionarios_escala_id_fkey"
+            columns: ["escala_id"]
+            isOneToOne: false
+            referencedRelation: "escalas_clt"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "faltas_funcionarios_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feriados: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          nome: string
+          recorrente: boolean
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          nome: string
+          recorrente?: boolean
+          tipo?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          nome?: string
+          recorrente?: boolean
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       formulario_modelos: {
         Row: {
@@ -1457,6 +1856,71 @@ export type Database = {
             columns: ["obra_id"]
             isOneToOne: false
             referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funcionarios: {
+        Row: {
+          ativo: boolean
+          cargo: string | null
+          cpf: string | null
+          created_at: string
+          data_admissao: string | null
+          data_demissao: string | null
+          departamento: string | null
+          email: string | null
+          id: string
+          nome: string
+          salario_base: number | null
+          telefone: string | null
+          tipo_contrato: string | null
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_demissao?: string | null
+          departamento?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          salario_base?: number | null
+          telefone?: string | null
+          tipo_contrato?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_admissao?: string | null
+          data_demissao?: string | null
+          departamento?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          salario_base?: number | null
+          telefone?: string | null
+          tipo_contrato?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionarios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -2176,6 +2640,53 @@ export type Database = {
         }
         Relationships: []
       }
+      metas_prime_cost: {
+        Row: {
+          created_at: string
+          id: string
+          meta_cmo_percent: number
+          meta_cmv_percent: number
+          meta_prime_cost_percent: number
+          meta_produtividade: number | null
+          modo_produtividade: string
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meta_cmo_percent?: number
+          meta_cmv_percent?: number
+          meta_prime_cost_percent?: number
+          meta_produtividade?: number | null
+          modo_produtividade?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meta_cmo_percent?: number
+          meta_cmv_percent?: number
+          meta_prime_cost_percent?: number
+          meta_produtividade?: number | null
+          modo_produtividade?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_prime_cost_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metas_producao: {
         Row: {
           created_at: string | null
@@ -2379,6 +2890,62 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      postos_cobertura: {
+        Row: {
+          ativo: boolean
+          cargo: string
+          created_at: string
+          dias_semana: number[]
+          frente_obra: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          prioridade: string
+          quantidade_minima: number
+          turno_periodo: string
+          unidade_id: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo: string
+          created_at?: string
+          dias_semana?: number[]
+          frente_obra?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          prioridade?: string
+          quantidade_minima?: number
+          turno_periodo?: string
+          unidade_id?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo?: string
+          created_at?: string
+          dias_semana?: number[]
+          frente_obra?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          prioridade?: string
+          quantidade_minima?: number
+          turno_periodo?: string
+          unidade_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postos_cobertura_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_history: {
         Row: {
@@ -2955,6 +3522,80 @@ export type Database = {
         }
         Relationships: []
       }
+      substituicoes: {
+        Row: {
+          created_at: string
+          data: string
+          escala_id: string | null
+          executado_por: string | null
+          falta_id: string | null
+          funcionario_ausente_id: string
+          funcionario_substituto_id: string
+          id: string
+          impacto_custo: number | null
+          motivo: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          escala_id?: string | null
+          executado_por?: string | null
+          falta_id?: string | null
+          funcionario_ausente_id: string
+          funcionario_substituto_id: string
+          id?: string
+          impacto_custo?: number | null
+          motivo?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          escala_id?: string | null
+          executado_por?: string | null
+          falta_id?: string | null
+          funcionario_ausente_id?: string
+          funcionario_substituto_id?: string
+          id?: string
+          impacto_custo?: number | null
+          motivo?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "substituicoes_escala_id_fkey"
+            columns: ["escala_id"]
+            isOneToOne: false
+            referencedRelation: "escalas_clt"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "substituicoes_falta_id_fkey"
+            columns: ["falta_id"]
+            isOneToOne: false
+            referencedRelation: "faltas_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "substituicoes_funcionario_ausente_id_fkey"
+            columns: ["funcionario_ausente_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "substituicoes_funcionario_substituto_id_fkey"
+            columns: ["funcionario_substituto_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_quotes: {
         Row: {
           created_at: string | null
@@ -3130,6 +3771,75 @@ export type Database = {
           },
         ]
       }
+      turnos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          intervalo_minutos: number | null
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          hora_fim: string
+          hora_inicio: string
+          id?: string
+          intervalo_minutos?: number | null
+          nome: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          intervalo_minutos?: number | null
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      unidades: {
+        Row: {
+          ativo: boolean
+          cidade: string | null
+          created_at: string
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cidade?: string | null
+          created_at?: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cidade?: string | null
+          created_at?: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_quotas: {
         Row: {
           created_at: string | null
@@ -3191,6 +3901,60 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      validacoes_clt: {
+        Row: {
+          created_at: string
+          detalhes: Json | null
+          escala_id: string | null
+          funcionario_id: string | null
+          id: string
+          mensagem: string
+          nivel: string
+          resolvido: boolean
+          tipo_validacao: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detalhes?: Json | null
+          escala_id?: string | null
+          funcionario_id?: string | null
+          id?: string
+          mensagem: string
+          nivel: string
+          resolvido?: boolean
+          tipo_validacao: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detalhes?: Json | null
+          escala_id?: string | null
+          funcionario_id?: string | null
+          id?: string
+          mensagem?: string
+          nivel?: string
+          resolvido?: boolean
+          tipo_validacao?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "validacoes_clt_escala_id_fkey"
+            columns: ["escala_id"]
+            isOneToOne: false
+            referencedRelation: "escalas_clt"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "validacoes_clt_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
             referencedColumns: ["id"]
           },
         ]
