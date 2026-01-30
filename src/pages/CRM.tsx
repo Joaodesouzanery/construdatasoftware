@@ -27,47 +27,50 @@ const CRM = () => {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <div className="p-4 md:p-6 space-y-6">
-            <div className="flex flex-col gap-2">
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+            <div className="flex flex-col gap-1 sm:gap-2">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                 CRM ConstruData
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Gestão completa de relacionamento com clientes
               </p>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-                <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span className="hidden sm:inline">Dashboard</span>
-                </TabsTrigger>
-                <TabsTrigger value="contacts" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span className="hidden sm:inline">Contatos</span>
-                </TabsTrigger>
-                <TabsTrigger value="accounts" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Empresas</span>
-                </TabsTrigger>
-                <TabsTrigger value="pipeline" className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  <span className="hidden sm:inline">Pipeline</span>
-                </TabsTrigger>
-                <TabsTrigger value="activities" className="flex items-center gap-2">
-                  <CheckSquare className="h-4 w-4" />
-                  <span className="hidden sm:inline">Atividades</span>
-                </TabsTrigger>
-                <TabsTrigger value="calendar" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="hidden sm:inline">Agenda</span>
-                </TabsTrigger>
-                <TabsTrigger value="reports" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Relatórios</span>
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+              {/* Mobile-friendly tabs with horizontal scroll */}
+              <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+                <TabsList className="inline-flex h-auto gap-1 bg-muted/50 p-1 min-w-max">
+                  <TabsTrigger value="dashboard" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Dashboard</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="contacts" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Contatos</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="accounts" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Empresas</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pipeline" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Pipeline</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="activities" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <CheckSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Atividades</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Agenda</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="reports" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Relatórios</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="dashboard" className="mt-0">
                 <CRMDashboard />
