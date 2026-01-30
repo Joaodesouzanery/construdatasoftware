@@ -2,18 +2,36 @@ import * as pdfjsLib from "pdfjs-dist";
 
 let workerConfigured = false;
 
-const ensureWorker = () => {
+const ensureWorker = async () => {
   if (workerConfigured) return;
-  // Use the bundled worker from pdfjs-dist
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  
+  try {
+    // Import the worker from the package directly - this works with Vite bundler
+    const workerUrl = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+  } catch {
+    // Fallback: disable worker and use main thread (slower but works)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+  }
+  
   workerConfigured = true;
 };
 
 export async function extractPdfText(file: File): Promise<string> {
-  ensureWorker();
+  await ensureWorker();
 
   const data = new Uint8Array(await file.arrayBuffer());
-  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  
+  // Disable worker if it fails to load - use main thread instead
+  const pdf = await pdfjsLib.getDocument({ 
+    data,
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    useSystemFonts: true,
+  }).promise;
 
   const pages: string[] = [];
 
@@ -22,7 +40,7 @@ export async function extractPdfText(file: File): Promise<string> {
     const content = await page.getTextContent();
 
     // pdfjs returns positioned text chunks; to preserve table rows we must rebuild lines
-    // using the Y coordinate (otherwise everything vira uma “linha gigante”).
+    // using the Y coordinate (otherwise everything vira uma "linha gigante").
     const rawItems = (content.items as any[])
       .map((it) => {
         const str = typeof it?.str === "string" ? it.str : "";

@@ -29,7 +29,10 @@ import {
   RefreshCw,
   Link,
   Globe,
+  AlertTriangle,
+  X,
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +82,9 @@ export default function InteractiveMap() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  // Development notice state
+  const [showDevNotice, setShowDevNotice] = useState(true);
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -554,6 +560,27 @@ export default function InteractiveMap() {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <main className="flex-1 p-6">
+          {/* Development Notice Banner */}
+          {showDevNotice && (
+            <Alert className="mb-6 border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800 dark:text-amber-200 flex items-center justify-between">
+                <span>Funcionalidade em Desenvolvimento</span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={() => setShowDevNotice(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-300">
+                O Mapa Interativo está em fase de desenvolvimento. Algumas funcionalidades podem não estar disponíveis ou funcionar de forma limitada. Agradecemos sua paciência!
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="mb-6">
             <Button variant="ghost" onClick={() => navigate("/projects")} className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />

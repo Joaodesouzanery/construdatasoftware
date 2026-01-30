@@ -266,8 +266,71 @@ export const EscalasCLT = () => {
     return addDays(start, i);
   });
 
+  // Calculate summary stats
+  const totalCusto = escalas.reduce((sum, e: any) => sum + Number(e.custo_total || 0), 0);
+  const totalHoras = escalas.reduce((sum, e: any) => sum + Number(e.horas_normais || 0) + Number(e.horas_extras || 0), 0);
+  const totalExtras = escalas.reduce((sum, e: any) => sum + Number(e.horas_extras || 0), 0);
+  const alertasCount = escalas.filter((e: any) => e.alertas_clt && (e.alertas_clt as any[]).length > 0).length;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-blue-500/10">
+                <Clock className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{totalHoras.toFixed(0)}h</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">Total de Horas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-amber-500/10">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{totalExtras.toFixed(1)}h</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">Horas Extras</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 border-green-200 dark:border-green-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-green-500/10">
+                <Download className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatarMoeda(totalCusto)}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Custo Total</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className={`bg-gradient-to-br ${alertasCount > 0 ? 'from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30 border-red-200 dark:border-red-800' : 'from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/30 border-gray-200 dark:border-gray-800'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${alertasCount > 0 ? 'bg-red-500/10' : 'bg-gray-500/10'}`}>
+                <AlertTriangle className={`h-5 w-5 ${alertasCount > 0 ? 'text-red-600' : 'text-gray-600'}`} />
+              </div>
+              <div>
+                <p className={`text-2xl font-bold ${alertasCount > 0 ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300'}`}>{alertasCount}</p>
+                <p className={`text-xs ${alertasCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>Alertas CLT</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap items-center">
           <Input
@@ -291,7 +354,7 @@ export const EscalasCLT = () => {
             <Calendar className="h-4 w-4 mr-2" />
             Gerar Escala
           </Button>
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={() => setIsDialogOpen(true)} className="shadow-md">
             <Plus className="h-4 w-4 mr-2" />
             Adicionar
           </Button>
