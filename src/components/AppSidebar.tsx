@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3, Map, Palette, BookOpen } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3, Map, Palette, BookOpen, Target, UserCheck, CalendarDays, PieChart } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -23,6 +23,8 @@ const menuItems = [
   { title: "Mapa Interativo", url: "/interactive-map", icon: Map },
   { title: "Projetos", url: "/projects", icon: Building2 },
   { title: "Alertas", url: "/alerts", icon: Bell },
+  { title: "CRM ConstruData", url: "/crm", icon: Target },
+  { title: "RH ConstruData", url: "/rh-construdata", icon: UserCheck },
 ];
 
 const rdoItems = [
@@ -44,7 +46,6 @@ const teamItems = [
   { title: "Funcionários", url: "/employees", icon: Users },
   { title: "Checklists", url: "/checklists", icon: ClipboardCheck },
   { title: "Apontamento Mão de Obra", url: "/labor-tracking", icon: Clock },
-  { title: "PersonalRH", url: "/personal-rh", icon: Users },
 ];
 
 const facilityItems = [
