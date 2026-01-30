@@ -3843,6 +3843,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          company_name: string | null
+          company_size: string | null
+          created_at: string
+          id: string
+          main_challenge: string | null
+          onboarding_completed: boolean | null
+          phone: string | null
+          role: string | null
+          segment: string | null
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          id?: string
+          main_challenge?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          role?: string | null
+          segment?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          company_size?: string | null
+          created_at?: string
+          id?: string
+          main_challenge?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          role?: string | null
+          segment?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_quotas: {
         Row: {
           created_at: string | null

@@ -68,6 +68,7 @@ import CustomDashboard from "./pages/CustomDashboard";
 import SatisfactionSurvey from "./pages/SatisfactionSurvey";
 import NotFound from "./pages/NotFound";
 import ProjectHistory from "./pages/ProjectHistory";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -79,8 +80,9 @@ const AppContent = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-          <Route path="/system-test" element={<SystemTest />} />
-          <Route path="/approvals" element={<Approvals />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/system-test" element={<SystemTest />} />
+        <Route path="/approvals" element={<Approvals />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/interactive-map" element={<InteractiveMap />} />
