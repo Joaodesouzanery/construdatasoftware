@@ -75,146 +75,104 @@ export const RHDashboard = () => {
   const alertasAlerta = validacoes.filter(v => v.nivel === 'alerta').length;
 
   return (
-    <div className="space-y-6">
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Funcionários Ativos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalFuncionarios}</div>
-            <p className="text-xs text-muted-foreground">colaboradores registrados</p>
-          </CardContent>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Cards de resumo - Mobile grid 2x2 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Funcionários</span>
+            <Users className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold">{totalFuncionarios}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">ativos</p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Mão de Obra</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatarMoeda(custoTotalMes)}</div>
-            <p className="text-xs text-muted-foreground">
-              {format(hoje, "MMMM/yyyy", { locale: ptBR })}
-            </p>
-          </CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Custo MO</span>
+            <DollarSign className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-lg sm:text-2xl font-bold truncate">{formatarMoeda(custoTotalMes)}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {format(hoje, "MMM/yy", { locale: ptBR })}
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Horas Trabalhadas</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalHorasTrabalhadas.toFixed(0)}h</div>
-            <p className="text-xs text-muted-foreground">
-              {totalHorasExtras.toFixed(0)}h extras
-            </p>
-          </CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Horas</span>
+            <Clock className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold">{totalHorasTrabalhadas.toFixed(0)}h</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {totalHorasExtras.toFixed(0)}h extras
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertas CLT</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {alertasBloqueio > 0 && (
-                <Badge variant="destructive">{alertasBloqueio} bloqueios</Badge>
-              )}
-              {alertasAlerta > 0 && (
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                  {alertasAlerta} alertas
-                </Badge>
-              )}
-              {alertasBloqueio === 0 && alertasAlerta === 0 && (
-                <Badge variant="outline" className="text-green-600">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Tudo OK
-                </Badge>
-              )}
-            </div>
-          </CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Alertas CLT</span>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            {alertasBloqueio > 0 && (
+              <Badge variant="destructive" className="text-[10px] sm:text-xs px-1.5 py-0.5">{alertasBloqueio}</Badge>
+            )}
+            {alertasAlerta > 0 && (
+              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-[10px] sm:text-xs px-1.5 py-0.5">
+                {alertasAlerta}
+              </Badge>
+            )}
+            {alertasBloqueio === 0 && alertasAlerta === 0 && (
+              <Badge variant="outline" className="text-green-600 text-[10px] sm:text-xs px-1.5 py-0.5">
+                <CheckCircle className="h-3 w-3 mr-0.5" />
+                OK
+              </Badge>
+            )}
+          </div>
         </Card>
       </div>
 
       {/* Resumo do mês */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Escalas do Mês
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Total de escalas</span>
-                <span className="font-medium">{escalas.length}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 mb-4">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+            Escalas do Mês
+          </h3>
+          <div className="space-y-3">
+            {[
+              { label: "Total de escalas", value: escalas.length },
+              { label: "Folgas programadas", value: escalas.filter(e => e.is_folga).length },
+              { label: "Domingos/Feriados", value: escalas.filter(e => e.is_domingo || e.is_feriado).length },
+              { label: "Faltas registradas", value: totalFaltas, className: "text-red-600" },
+            ].map((item, i) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className={`font-medium ${item.className || ''}`}>{item.value}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Folgas programadas</span>
-                <span className="font-medium">{escalas.filter(e => e.is_folga).length}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Domingos/Feriados</span>
-                <span className="font-medium">
-                  {escalas.filter(e => e.is_domingo || e.is_feriado).length}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Faltas registradas</span>
-                <span className="font-medium text-red-600">{totalFaltas}</span>
-              </div>
-            </div>
-          </CardContent>
+            ))}
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Indicadores CLT
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Média horas/funcionário</span>
-                <span className="font-medium">
-                  {totalFuncionarios > 0 
-                    ? (totalHorasTrabalhadas / totalFuncionarios).toFixed(1) 
-                    : 0}h
-                </span>
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2 mb-4">
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+            Indicadores CLT
+          </h3>
+          <div className="space-y-3">
+            {[
+              { label: "Média horas/func.", value: `${totalFuncionarios > 0 ? (totalHorasTrabalhadas / totalFuncionarios).toFixed(1) : 0}h` },
+              { label: "% Horas extras", value: `${totalHorasTrabalhadas > 0 ? ((totalHorasExtras / totalHorasTrabalhadas) * 100).toFixed(1) : 0}%` },
+              { label: "Custo médio/func.", value: formatarMoeda(totalFuncionarios > 0 ? custoTotalMes / totalFuncionarios : 0) },
+              { label: "Absenteísmo", value: `${escalas.length > 0 ? ((totalFaltas / escalas.length) * 100).toFixed(1) : 0}%` },
+            ].map((item, i) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="font-medium">{item.value}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">% Horas extras</span>
-                <span className="font-medium">
-                  {totalHorasTrabalhadas > 0 
-                    ? ((totalHorasExtras / totalHorasTrabalhadas) * 100).toFixed(1) 
-                    : 0}%
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Custo médio/funcionário</span>
-                <span className="font-medium">
-                  {formatarMoeda(totalFuncionarios > 0 ? custoTotalMes / totalFuncionarios : 0)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Taxa de absenteísmo</span>
-                <span className="font-medium">
-                  {escalas.length > 0 
-                    ? ((totalFaltas / escalas.length) * 100).toFixed(1) 
-                    : 0}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
+            ))}
+          </div>
         </Card>
       </div>
 

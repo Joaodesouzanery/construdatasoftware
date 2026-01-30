@@ -107,88 +107,96 @@ const Hero = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Logo size="lg" />
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => navigate('/auth')}>
+      {/* Navigation - Mobile optimized */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border safe-area-inset">
+        <div className="container mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center">
+          <Logo size="md" className="sm:scale-110" />
+          <div className="flex gap-1.5 sm:gap-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/auth')}
+              className="text-sm sm:text-base px-3 sm:px-4 h-9 sm:h-10"
+            >
               Entrar
             </Button>
-            <Button onClick={() => navigate('/system-test')} className="bg-gradient-to-r from-primary to-primary/80">
-              Teste Grátis
+            <Button 
+              onClick={() => navigate('/system-test')} 
+              className="bg-gradient-to-r from-primary to-primary/80 text-sm sm:text-base px-3 sm:px-4 h-9 sm:h-10"
+            >
+              <span className="hidden sm:inline">Teste Grátis</span>
+              <span className="sm:hidden">Testar</span>
             </Button>
           </div>
         </div>
       </nav>
 
-      {/* HERO SECTION */}
-      <section className="relative min-h-[90vh] flex items-center justify-center pt-20 overflow-hidden">
+      {/* HERO SECTION - Mobile first */}
+      <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center pt-16 sm:pt-20 pb-8 overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         
-        {/* Floating Elements */}
-        <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        {/* Floating Elements - Hidden on small mobile */}
+        <div className="hidden sm:block absolute top-1/4 left-10 w-48 md:w-72 h-48 md:h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="hidden sm:block absolute bottom-1/4 right-10 w-64 md:w-96 h-64 md:h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
 
-        <div className="container mx-auto px-4 z-10">
-          <div className="max-w-5xl mx-auto text-center space-y-8">
+        <div className="container mx-auto px-4 sm:px-6 z-10">
+          <div className="max-w-5xl mx-auto text-center space-y-5 sm:space-y-6 md:space-y-8">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary">
-              <Zap className="w-4 h-4" />
-              <span>26 módulos em uma única plataforma</span>
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-primary/10 border border-primary/20 text-xs sm:text-sm font-medium text-primary">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>26 módulos integrados</span>
             </div>
 
-            {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+            {/* Main Headline - Responsive text sizes */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-tight px-2">
               O <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Sistema Operacional</span>
               <br />
               <span className="text-foreground">da Sua Construção e Obra</span>
             </h1>
 
             {/* Subheadline */}
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Centralize <span className="text-primary font-semibold">obras, equipes, materiais, CRM e RH</span> em um único lugar — com RDO completo, QR Codes, alertas automáticos e dados em tempo real.
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed px-2">
+              Centralize <span className="text-primary font-semibold">obras, equipes, materiais, CRM e RH</span> em um único lugar — com RDO completo, QR Codes e alertas automáticos.
             </p>
 
-            {/* Value Props */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+            {/* Value Props - Mobile scroll on very small screens */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 max-w-3xl mx-auto px-2">
               {[
-                "Controle total de obras",
+                "Controle de obras",
                 "CRM integrado",
-                "RH com CLT automático",
-                "Materiais e estoque"
+                "RH automático",
+                "Estoque e materiais"
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 justify-center text-sm md:text-base">
-                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span>{item}</span>
+                <div key={i} className="flex items-center gap-1.5 sm:gap-2 justify-center text-xs sm:text-sm md:text-base bg-muted/50 rounded-lg py-2 px-2 sm:px-3">
+                  <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                  <span className="truncate">{item}</span>
                 </div>
               ))}
             </div>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            {/* CTAs - Stack on mobile */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 justify-center pt-2 sm:pt-4 px-4">
               <Button 
                 size="lg" 
-                className="text-lg px-8 py-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all bg-gradient-to-r from-primary to-primary/90"
+                className="text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all bg-gradient-to-r from-primary to-primary/90 w-full sm:w-auto touch-target"
                 onClick={() => navigate('/system-test')}
               >
                 Teste Grátis por 7 Dias
-                <ArrowRight className="ml-2 w-5 h-5" />
+                <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline"
-                className="text-lg px-8 py-6 rounded-xl"
+                className="text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl w-full sm:w-auto touch-target"
                 onClick={() => navigate('/auth')}
               >
                 Ver Demonstração
               </Button>
             </div>
 
-            <p className="text-sm text-muted-foreground">
-              Sem cartão de crédito • Implementação em até 7 dias
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Sem cartão de crédito • Implementação em 7 dias
             </p>
           </div>
         </div>
@@ -275,18 +283,18 @@ const Hero = () => {
       </section>
 
       {/* ALL FEATURES SECTION */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+      <section className="py-12 sm:py-16 md:py-20 bg-background">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
               <span className="text-primary">26 Módulos</span> Completos
             </h2>
-            <p className="text-lg text-muted-foreground">
-              Tudo que você precisa para gestão de obras, manutenção, CRM e RH
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground px-4">
+              Gestão de obras, manutenção, CRM e RH
             </p>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
             {allFeatures.map((feature, index) => (
               <FeatureCard key={index} {...feature} onClick={() => navigate(feature.route)} />
             ))}
@@ -507,7 +515,7 @@ const Hero = () => {
   );
 };
 
-// Feature Card Component
+// Feature Card Component - Mobile optimized
 const FeatureCard = ({ icon: Icon, title, description, color, onClick }: { 
   icon: React.ElementType; 
   title: string; 
@@ -516,18 +524,18 @@ const FeatureCard = ({ icon: Icon, title, description, color, onClick }: {
   onClick?: () => void;
 }) => (
   <div 
-    className="p-4 rounded-xl border border-border bg-card hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
+    className="p-3 sm:p-4 rounded-lg sm:rounded-xl border border-border bg-card hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group active:scale-[0.98] touch-feedback"
     onClick={onClick}
   >
-    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-      <Icon className="w-5 h-5 text-white" />
+    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-gradient-to-br ${color} flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform`}>
+      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
-    <h3 className="font-semibold text-sm mb-1 line-clamp-1">{title}</h3>
-    <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
+    <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 line-clamp-1">{title}</h3>
+    <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 leading-tight">{description}</p>
   </div>
 );
 
-// Pillar Card Component
+// Pillar Card Component - Mobile optimized
 const PillarCard = ({ title, icon, color, items, route }: { 
   title: string; 
   icon: React.ReactNode;
@@ -538,26 +546,26 @@ const PillarCard = ({ title, icon, color, items, route }: {
   const navigate = useNavigate();
   
   return (
-    <div className="p-6 rounded-xl border border-border bg-card hover:shadow-lg transition-all group">
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
+    <div className="p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border border-border bg-card hover:shadow-lg transition-all group active:scale-[0.99]">
+      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform`}>
         {icon}
       </div>
-      <h3 className="text-xl font-bold mb-4">{title}</h3>
-      <ul className="space-y-2 mb-4">
+      <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">{title}</h3>
+      <ul className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
         {items.map((item, i) => (
-          <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-            <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <li key={i} className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0 mt-0.5" />
             <span>{item}</span>
           </li>
         ))}
       </ul>
       <Button 
         variant="outline" 
-        className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+        className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors h-9 sm:h-10 text-sm"
         onClick={() => navigate(route)}
       >
         Saiba Mais
-        <ChevronRight className="w-4 h-4 ml-1" />
+        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1" />
       </Button>
     </div>
   );

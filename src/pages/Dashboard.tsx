@@ -295,330 +295,137 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="geral" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="geral">Dashboard Geral</TabsTrigger>
-            <TabsTrigger value="producao">Dashboard de Produção</TabsTrigger>
-            <TabsTrigger value="projeto">Por Projeto</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="geral" className="space-y-4 sm:space-y-6">
+          {/* Mobile-friendly tabs */}
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+            <TabsList className="inline-flex w-full sm:w-auto min-w-max">
+              <TabsTrigger value="geral" className="flex-1 sm:flex-none text-xs sm:text-sm px-3 sm:px-4">Dashboard Geral</TabsTrigger>
+              <TabsTrigger value="producao" className="flex-1 sm:flex-none text-xs sm:text-sm px-3 sm:px-4">Produção</TabsTrigger>
+              <TabsTrigger value="projeto" className="flex-1 sm:flex-none text-xs sm:text-sm px-3 sm:px-4">Por Projeto</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Dashboard Geral */}
           <TabsContent value="geral" className="space-y-6">
             {/* Dashboard 360º Section */}
-            <div id="dashboard-360" className="space-y-4 scroll-mt-20">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-1 bg-gradient-to-b from-gradient-start to-gradient-end rounded-full" />
-                <h2 className="text-2xl font-bold">Dashboard 360º</h2>
+            <div id="dashboard-360" className="space-y-3 sm:space-y-4 scroll-mt-20">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="h-6 sm:h-8 w-1 bg-gradient-to-b from-gradient-start to-gradient-end rounded-full" />
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Dashboard 360º</h2>
               </div>
-              <p className="text-muted-foreground ml-7">
-                Visão completa e em tempo real de todos os aspectos dos seus projetos
+              <p className="text-xs sm:text-sm text-muted-foreground ml-4 sm:ml-7">
+                Visão completa dos seus projetos em tempo real
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ml-7">
-                <Card className="border-primary/30">
-                  <CardHeader className="pb-3">
-                    <CardDescription>Projetos Ativos</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-primary">
-                      {projects.length}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Em andamento
-                    </p>
-                  </CardContent>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <Card className="border-primary/30 p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Projetos Ativos</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-primary">
+                    {projects.length}
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    Em andamento
+                  </p>
                 </Card>
-                <Card className="border-secondary/30">
-                  <CardHeader className="pb-3">
-                    <CardDescription>Atividades Recentes</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-secondary">
-                      {recentActivities.length}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Últimas ações
-                    </p>
-                  </CardContent>
+                <Card className="border-secondary/30 p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Atividades</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-secondary">
+                    {recentActivities.length}
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    Recentes
+                  </p>
                 </Card>
-                <Card className="border-accent/30">
-                  <CardHeader className="pb-3">
-                    <CardDescription>Status Geral</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-green-600">
-                      Ótimo
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Sistema operacional
-                    </p>
-                  </CardContent>
+                <Card className="border-accent/30 p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Status</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                    Ótimo
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    Operacional
+                  </p>
                 </Card>
-                <Card className="border-amber-500/30">
-                  <CardHeader className="pb-3">
-                    <CardDescription>Alertas</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-amber-600">
-                      0
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Nenhum alerta ativo
-                    </p>
-                  </CardContent>
+                <Card className="border-amber-500/30 p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Alertas</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-amber-600">
+                    0
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    Nenhum ativo
+                  </p>
                 </Card>
               </div>
             </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/projects')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group active:scale-[0.98]" onClick={() => navigate('/projects')}>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground mb-2 sm:mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Projetos</CardTitle>
-              <CardDescription className="text-sm">
+              <CardTitle className="text-sm sm:text-base md:text-lg">Projetos</CardTitle>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
                 Gerencie seus projetos
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/rdo-new')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-accent-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group active:scale-[0.98]" onClick={() => navigate('/rdo-new')}>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-accent-foreground mb-2 sm:mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Novo RDO</CardTitle>
-              <CardDescription className="text-sm">
+              <CardTitle className="text-sm sm:text-base md:text-lg">Novo RDO</CardTitle>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
                 Criar relatório diário
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/rdo-history')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <History className="w-5 h-5 sm:w-6 sm:h-6" />
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group active:scale-[0.98]" onClick={() => navigate('/rdo-history')}>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-400 flex items-center justify-center text-white mb-2 sm:mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                <History className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Histórico de RDOs</CardTitle>
-              <CardDescription className="text-sm">
-                Visualize e analise RDOs
+              <CardTitle className="text-sm sm:text-base md:text-lg">Histórico RDO</CardTitle>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
+                Visualize e analise
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/rdo-photos')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-pink-500 to-pink-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Image className="w-5 h-5 sm:w-6 sm:h-6" />
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group active:scale-[0.98]" onClick={() => navigate('/rdo-photos')}>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-pink-500 to-pink-400 flex items-center justify-center text-white mb-2 sm:mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Fotos de Validação</CardTitle>
-              <CardDescription className="text-sm">
-                Consulte fotos dos RDOs
+              <CardTitle className="text-sm sm:text-base md:text-lg">Fotos</CardTitle>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
+                Validação de RDOs
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/production-control')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center text-secondary-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Target className="w-5 h-5 sm:w-6 sm:h-6" />
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group active:scale-[0.98]" onClick={() => navigate('/production-control')}>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center text-secondary-foreground mb-2 sm:mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Controle de Produção</CardTitle>
-              <CardDescription className="text-sm">
-                Dashboards e análises
+              <CardTitle className="text-sm sm:text-base md:text-lg">Produção</CardTitle>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
+                Controle e metas
               </CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/dashboard-360')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-gradient-start to-gradient-end flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
+          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group active:scale-[0.98]" onClick={() => navigate('/dashboard-360')}>
+            <CardHeader className="p-3 sm:p-4 md:p-6">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-400 flex items-center justify-center text-white mb-2 sm:mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
               </div>
-              <CardTitle className="text-base sm:text-lg">Dashboard 360º</CardTitle>
-              <CardDescription className="text-sm">
-                Visão completa em tempo real
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/material-requests')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Pedidos de Material</CardTitle>
-              <CardDescription className="text-sm">
-                Solicite materiais
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/material-control')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-green-500 to-green-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Controle de Material</CardTitle>
-              <CardDescription className="text-sm">
-                Monitore consumo
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/inventory')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-amber-500 to-amber-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Warehouse className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Almoxarifado</CardTitle>
-              <CardDescription className="text-sm">
-                Gerencie estoque
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/alerts')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-destructive to-destructive/70 flex items-center justify-center text-destructive-foreground mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Alertas</CardTitle>
-              <CardDescription className="text-sm">
-                Configure notificações
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/employees')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Gestão de Equipe</CardTitle>
-              <CardDescription className="text-sm">
-                Gerencie funcionários
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/maintenance-qrcodes')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">QR Code Manutenção</CardTitle>
-              <CardDescription className="text-sm">
-                QR Codes para manutenção
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/maintenance-requests')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Solicitações Manutenção</CardTitle>
-              <CardDescription className="text-sm">
-                Gerenciar solicitações
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/materials')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-teal-500 to-teal-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Package2 className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Materiais</CardTitle>
-              <CardDescription className="text-sm">
-                Catálogo de materiais
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/budgets')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-violet-500 to-violet-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Orçamentos</CardTitle>
-              <CardDescription className="text-sm">
-                Gestão de orçamentos
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/consumption-control')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-sky-500 to-sky-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Droplets className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Controle de Consumo</CardTitle>
-              <CardDescription className="text-sm">
-                Monitore utilidades
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/facility-reports')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Relatórios Facility</CardTitle>
-              <CardDescription className="text-sm">
-                Análises e gráficos
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/connection-reports')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-rose-500 to-rose-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Relatório de Ligações</CardTitle>
-              <CardDescription className="text-sm">
-                Relatórios de conexões
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/assets-catalog')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-slate-500 to-slate-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Archive className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Catálogo de Ativos</CardTitle>
-              <CardDescription className="text-sm">
-                Gestão de ativos
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/maintenance-tasks')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-zinc-500 to-zinc-400 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Tarefas de Manutenção</CardTitle>
-              <CardDescription className="text-sm">
-                Gestão de tarefas
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="hover:shadow-card transition-all duration-300 border-primary/20 hover:border-primary/50 cursor-pointer group" onClick={() => navigate('/checklists')}>
-            <CardHeader>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <CardTitle className="text-base sm:text-lg">Checklists</CardTitle>
-              <CardDescription className="text-sm">
-                Listas de verificação
+              <CardTitle className="text-sm sm:text-base md:text-lg">360º</CardTitle>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
+                Dashboard completo
               </CardDescription>
             </CardHeader>
           </Card>

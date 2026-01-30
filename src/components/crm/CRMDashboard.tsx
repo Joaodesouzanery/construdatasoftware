@@ -83,61 +83,100 @@ export const CRMDashboard = () => {
     : "0.0";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* KPIs principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contatos Ativos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeContacts}</div>
-            <p className="text-xs text-muted-foreground">
-              {contacts.length} total registrados
-            </p>
-          </CardContent>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Contatos Ativos</span>
+            <Users className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold">{activeContacts}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {contacts.length} total
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Empresas</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeAccounts}</div>
-            <p className="text-xs text-muted-foreground">
-              {accounts.length} total registradas
-            </p>
-          </CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Empresas</span>
+            <Building2 className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold">{activeAccounts}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {accounts.length} registradas
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Oportunidades Abertas</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{openDeals.length}</div>
-            <p className="text-xs text-muted-foreground">
-              R$ {totalOpenValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em aberto
-            </p>
-          </CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Oportunidades</span>
+            <Target className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold">{openDeals.length}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
+            R$ {totalOpenValue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+          </p>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Ganho</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              R$ {totalWonValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {wonDeals.length} oportunidades ganhas
-            </p>
-          </CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Valor Ganho</span>
+            <DollarSign className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-green-600 truncate">
+            R$ {totalWonValue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+          </div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {wonDeals.length} ganhas
+          </p>
+        </Card>
+      </div>
+
+      {/* Métricas secundárias */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Conversão</span>
+            <TrendingUp className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold">{conversionRate}%</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {format(new Date(), "MMM", { locale: ptBR })}
+          </p>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Pendentes</span>
+            <Clock className="h-4 w-4 text-muted-foreground hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold">{pendingActivities.length}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {overdueActivities.length} atrasadas
+          </p>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Ganhas</span>
+            <CheckCircle className="h-4 w-4 text-green-600 hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-green-600">{wonDeals.length}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            {wonThisMonth.length} este mês
+          </p>
+        </Card>
+
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">Perdidas</span>
+            <AlertCircle className="h-4 w-4 text-red-600 hidden sm:block" />
+          </div>
+          <div className="text-xl sm:text-2xl font-bold text-red-600">{lostDeals.length}</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+            Total
+          </p>
         </Card>
       </div>
 
