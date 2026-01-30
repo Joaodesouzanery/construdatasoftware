@@ -120,10 +120,10 @@ const Hero = () => {
               Entrar
             </Button>
             <Button 
-              onClick={() => navigate('/system-test')} 
+              onClick={() => navigate('/auth?tab=signup')} 
               className="bg-gradient-to-r from-primary to-primary/80 text-sm sm:text-base px-3 sm:px-4 h-9 sm:h-10"
             >
-              <span className="hidden sm:inline">Teste Grátis</span>
+              <span className="hidden sm:inline">30 Dias Grátis</span>
               <span className="sm:hidden">Testar</span>
             </Button>
           </div>
@@ -180,23 +180,23 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 className="text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all bg-gradient-to-r from-primary to-primary/90 w-full sm:w-auto touch-target"
-                onClick={() => navigate('/system-test')}
+                onClick={() => navigate('/auth?tab=signup')}
               >
-                Teste Grátis por 7 Dias
+                Teste Grátis por 30 Dias
                 <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline"
                 className="text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl w-full sm:w-auto touch-target"
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate('/auth?tab=signup')}
               >
                 Ver Demonstração
               </Button>
             </div>
 
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Sem cartão de crédito • Implementação em 7 dias
+              Sem cartão de crédito • Acesso completo a 26 módulos
             </p>
           </div>
         </div>
