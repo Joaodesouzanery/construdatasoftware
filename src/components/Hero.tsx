@@ -28,17 +28,18 @@ import {
   Zap,
   Map,
   Archive,
-  Mail
+  Mail,
+  ChevronRight,
+  Check,
+  Star,
+  ArrowRight,
+  Briefcase,
+  UserCheck,
+  Target
 } from "lucide-react";
 import { ContactDialog } from "@/components/ContactDialog";
 import { FAQ } from "@/components/FAQ";
 import { Logo } from "@/components/shared/Logo";
-
-// Import landing page images
-import obraOrganizadaImg from "@/assets/landing/obra-organizada.png";
-import progressoDadosImg from "@/assets/landing/progresso-dados.png";
-import almoxarifadoImg from "@/assets/landing/almoxarifado.png";
-import manutencaoImg from "@/assets/landing/manutencao.png";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -60,132 +61,232 @@ const Hero = () => {
     }
   };
 
+  // Funcionalidades completas do sistema incluindo CRM e RH
   const allFeatures = [
-    { icon: FolderOpen, title: "Projetos", description: "Gerencie múltiplos projetos com cronogramas e orçamentos", color: "bg-blue-500", route: "/features/project-management" },
-    { icon: FileText, title: "RDO Digital", description: "Relatório Diário de Obra com fotos, GPS e clima", color: "bg-green-500", route: "/features/rdo-digital" },
-    { icon: TrendingUp, title: "Controle de Produção", description: "Metas, acompanhamento e comparativos por frente", color: "bg-purple-500", route: "/features/production-control" },
-    { icon: Users, title: "Gestão de Equipes", description: "Funcionários, empresas e alocação por obra", color: "bg-indigo-500", route: "/features/team-management" },
-    { icon: Package, title: "Materiais", description: "Catálogo completo com preços e histórico", color: "bg-orange-500", route: "/features/materiais-almoxarifado" },
-    { icon: Archive, title: "Estoque", description: "Controle de entrada, saída e saldo por obra", color: "bg-amber-500", route: "/features/materiais-almoxarifado" },
-    { icon: ClipboardList, title: "Pedidos de Material", description: "Solicitações, aprovações e rastreamento", color: "bg-teal-500", route: "/features/material-requests" },
-    { icon: DollarSign, title: "Orçamentos", description: "Criação de orçamentos com BDI e mão de obra", color: "bg-emerald-500", route: "/features/controle-de-obra" },
-    { icon: BarChart3, title: "Dashboard 360", description: "Visão completa de todas as operações", color: "bg-cyan-500", route: "/features/controle-de-obra" },
-    { icon: Bell, title: "Alertas Inteligentes", description: "Notificações automáticas de desvios e metas", color: "bg-red-500", route: "/features/intelligent-alerts" },
-    { icon: QrCode, title: "QR Codes", description: "Rastreie ativos e locais com códigos únicos", color: "bg-violet-500", route: "/features/qrcode-maintenance" },
-    { icon: Wrench, title: "Manutenção", description: "Solicitações, tarefas e histórico completo", color: "bg-rose-500", route: "/features/manutencao-predial" },
-    { icon: Building2, title: "Catálogo de Ativos", description: "Inventário de equipamentos e instalações", color: "bg-sky-500", route: "/features/manutencao-predial" },
-    { icon: Camera, title: "Registro Multimídia", description: "Fotos e vídeos organizados por data e local", color: "bg-pink-500", route: "/features/multimedia-registry" },
-    { icon: CheckSquare, title: "Checklists", description: "Listas de verificação personalizáveis", color: "bg-lime-500", route: "/features/execucao-equipes" },
-    { icon: MapPin, title: "Ocorrências", description: "Registro e acompanhamento de problemas", color: "bg-yellow-500", route: "/features/controle-de-obra" },
-    { icon: FileBarChart, title: "Relatórios de Ligação", description: "Documentação de serviços de campo", color: "bg-fuchsia-500", route: "/features/connection-reports" },
-    { icon: Clock, title: "Apontamento de Horas", description: "Controle de jornada por funcionário", color: "bg-slate-500", route: "/features/execucao-equipes" },
-    { icon: Zap, title: "Consumo", description: "Monitoramento de água, energia e recursos", color: "bg-amber-600", route: "/features/manutencao-predial" },
-    { icon: Map, title: "Mapa Interativo", description: "Visualize obras e equipes no mapa QGIS", color: "bg-green-600", route: "/features/controle-de-obra" },
-    { icon: Database, title: "Backup", description: "Exportação e recuperação de dados", color: "bg-gray-500", route: "/features/controle-de-obra" },
-    { icon: Settings, title: "Configurações", description: "Personalize o sistema para sua empresa", color: "bg-neutral-500", route: "/features/controle-de-obra" },
-    { icon: Truck, title: "Controle de Material", description: "Uso de materiais por frente de serviço", color: "bg-orange-600", route: "/features/material-control" },
-    { icon: Calendar, title: "Histórico RDO", description: "Consulta e exportação de relatórios anteriores", color: "bg-blue-600", route: "/features/rdo-digital" },
+    { icon: FolderOpen, title: "Gestão de Projetos", description: "Múltiplos projetos com cronogramas e orçamentos", color: "from-blue-500 to-blue-600", route: "/features/project-management" },
+    { icon: FileText, title: "RDO Digital", description: "Relatório Diário de Obra com fotos, GPS e clima", color: "from-green-500 to-green-600", route: "/features/rdo-digital" },
+    { icon: TrendingUp, title: "Controle de Produção", description: "Metas, acompanhamento e comparativos", color: "from-purple-500 to-purple-600", route: "/features/production-control" },
+    { icon: Users, title: "Gestão de Equipes", description: "Funcionários, empresas e alocação", color: "from-indigo-500 to-indigo-600", route: "/features/team-management" },
+    { icon: Package, title: "Catálogo de Materiais", description: "Materiais com preços e histórico", color: "from-orange-500 to-orange-600", route: "/features/materiais-almoxarifado" },
+    { icon: Archive, title: "Controle de Estoque", description: "Entrada, saída e saldo por obra", color: "from-amber-500 to-amber-600", route: "/features/materiais-almoxarifado" },
+    { icon: ClipboardList, title: "Pedidos de Material", description: "Solicitações e aprovações", color: "from-teal-500 to-teal-600", route: "/features/material-requests" },
+    { icon: DollarSign, title: "Orçamentos", description: "Orçamentos com BDI e mão de obra", color: "from-emerald-500 to-emerald-600", route: "/features/controle-de-obra" },
+    { icon: BarChart3, title: "Dashboard 360", description: "Visão completa das operações", color: "from-cyan-500 to-cyan-600", route: "/features/controle-de-obra" },
+    { icon: Bell, title: "Alertas Inteligentes", description: "Notificações automáticas", color: "from-red-500 to-red-600", route: "/features/intelligent-alerts" },
+    { icon: QrCode, title: "QR Codes", description: "Rastreie ativos e locais", color: "from-violet-500 to-violet-600", route: "/features/qrcode-maintenance" },
+    { icon: Wrench, title: "Manutenção Predial", description: "Solicitações e histórico", color: "from-rose-500 to-rose-600", route: "/features/manutencao-predial" },
+    { icon: Building2, title: "Catálogo de Ativos", description: "Inventário de equipamentos", color: "from-sky-500 to-sky-600", route: "/features/manutencao-predial" },
+    { icon: Camera, title: "Registro Multimídia", description: "Fotos e vídeos organizados", color: "from-pink-500 to-pink-600", route: "/features/multimedia-registry" },
+    { icon: CheckSquare, title: "Checklists", description: "Listas de verificação", color: "from-lime-500 to-lime-600", route: "/features/execucao-equipes" },
+    { icon: MapPin, title: "Ocorrências", description: "Registro de problemas", color: "from-yellow-500 to-yellow-600", route: "/features/controle-de-obra" },
+    { icon: FileBarChart, title: "Relatórios de Ligação", description: "Documentação de campo", color: "from-fuchsia-500 to-fuchsia-600", route: "/features/connection-reports" },
+    { icon: Clock, title: "Apontamento de Horas", description: "Controle de jornada", color: "from-slate-500 to-slate-600", route: "/features/execucao-equipes" },
+    { icon: Zap, title: "Consumo", description: "Água, energia e recursos", color: "from-amber-600 to-amber-700", route: "/features/manutencao-predial" },
+    { icon: Map, title: "Mapa Interativo", description: "Visualize obras no mapa", color: "from-green-600 to-green-700", route: "/features/controle-de-obra" },
+    { icon: Truck, title: "Controle de Material", description: "Uso por frente de serviço", color: "from-orange-600 to-orange-700", route: "/features/material-control" },
+    { icon: Calendar, title: "Histórico RDO", description: "Consulta e exportação", color: "from-blue-600 to-blue-700", route: "/features/rdo-digital" },
+    // NOVOS - CRM e RH
+    { icon: Briefcase, title: "CRM ConstruData", description: "Gestão de clientes e oportunidades", color: "from-indigo-600 to-purple-600", route: "/crm" },
+    { icon: UserCheck, title: "RH ConstruData", description: "Escala CLT e Prime Cost", color: "from-teal-600 to-cyan-600", route: "/rh-construdata" },
+    { icon: Target, title: "Pipeline de Vendas", description: "Acompanhe negociações", color: "from-pink-600 to-rose-600", route: "/crm" },
+    { icon: DollarSign, title: "Precificação Privada", description: "Análise de custos por PDF", color: "from-emerald-600 to-green-600", route: "/prices" },
+  ];
+
+  const stats = [
+    { value: "26+", label: "Módulos Integrados" },
+    { value: "100%", label: "Online e Seguro" },
+    { value: "∞", label: "Usuários Ilimitados" },
+    { value: "24/7", label: "Backup Automático" },
+  ];
+
+  const testimonials = [
+    { name: "Construtora Alpha", role: "Gerente de Obras", text: "Reduziu nosso tempo de gestão em 60%." },
+    { name: "Incorporadora Beta", role: "Diretor de Operações", text: "Finalmente temos visibilidade total." },
+    { name: "Engenharia Gamma", role: "Coordenador", text: "Eliminou planilhas e WhatsApp da operação." },
   ];
 
   return (
-    <div className="min-h-screen">
-      {/* Top Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Logo size="lg" />
-          <div className="flex gap-3">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/auth')}
-            >
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => navigate('/auth')}>
               Entrar
             </Button>
-            <Button 
-              onClick={() => navigate('/system-test')}
-            >
-              Adquirir
+            <Button onClick={() => navigate('/system-test')} className="bg-gradient-to-r from-primary to-primary/80">
+              Teste Grátis
             </Button>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section - BLOCO 1 */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-20">
-        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+      {/* HERO SECTION */}
+      <section className="relative min-h-[90vh] flex items-center justify-center pt-20 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
+        
+        {/* Floating Elements */}
+        <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+
         <div className="container mx-auto px-4 z-10">
           <div className="max-w-5xl mx-auto text-center space-y-8">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-              O <span className="text-blue-600">Sistema Operacional</span> da Sua Obra e <span className="text-blue-500">Gestão Predial</span>
-            </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-              Centralize obras, equipes, materiais e manutenção em <span className="text-blue-600 font-medium">um único lugar</span> — com RDO completo, QR Codes, alertas automáticos, dashboard e registros em tempo real.
-            </p>
-            
-            {/* Bullets */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base">Centralize operações</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base">Elimine atrasos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base">Reduza desperdícios</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base">Controle equipes e materiais</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base">Rastreie ativos com QR Code</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-sm md:text-base">Registre obra e manutenção em tempo real</span>
-              </div>
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary">
+              <Zap className="w-4 h-4" />
+              <span>26 módulos em uma única plataforma</span>
             </div>
 
-            <div className="flex flex-col items-center gap-4 pt-8">
+            {/* Main Headline */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+              O <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Sistema Operacional</span>
+              <br />
+              <span className="text-foreground">da Sua Construção e Obra</span>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Centralize <span className="text-primary font-semibold">obras, equipes, materiais, CRM e RH</span> em um único lugar — com RDO completo, QR Codes, alertas automáticos e dados em tempo real.
+            </p>
+
+            {/* Value Props */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+              {[
+                "Controle total de obras",
+                "CRM integrado",
+                "RH com CLT automático",
+                "Materiais e estoque"
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 justify-center text-sm md:text-base">
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button 
                 size="lg" 
-                className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
+                className="text-lg px-8 py-6 rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all bg-gradient-to-r from-primary to-primary/90"
                 onClick={() => navigate('/system-test')}
               >
-                Teste Grátis do Sistema
+                Teste Grátis por 7 Dias
+                <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline"
-                className="text-lg px-8 py-6 rounded-full"
+                className="text-lg px-8 py-6 rounded-xl"
                 onClick={() => navigate('/auth')}
               >
-                Quero ver o Construdata na prática
+                Ver Demonstração
               </Button>
-              <p className="text-sm text-muted-foreground">
-                Demonstração rápida e sem compromisso.
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Sem cartão de crédito • Implementação em até 7 dias
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* STATS SECTION */}
+      <section className="py-12 border-y border-border bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, i) => (
+              <div key={i} className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
+                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROBLEM SECTION */}
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Sua obra atrasa por falta de <span className="text-destructive">VISIBILIDADE</span>
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Sem controle real, tudo vira improviso e adivinhação
               </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {[
+                "Planilhas desatualizadas e dados espalhados",
+                "Comunicação perdida no WhatsApp",
+                "Equipe sem direção clara",
+                "RDO incompleto ou inexistente",
+                "Desperdício de materiais não rastreado",
+                "Chamados de manutenção que somem",
+                "Sem evidências fotográficas",
+                "Decisões baseadas em achismo"
+              ].map((problem, i) => (
+                <div key={i} className="flex items-center gap-3 p-4 rounded-lg bg-destructive/5 border border-destructive/10">
+                  <span className="text-destructive text-lg">✕</span>
+                  <span className="text-sm md:text-base">{problem}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ALL FEATURES Section - BLOCO 2 */}
-      <section className="py-24 bg-background">
+      {/* SOLUTION SECTION */}
+      <section className="py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Todas as <span className="text-blue-600">Funcionalidades</span> do Sistema
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              O <span className="text-primary">ConstruData</span> centraliza tudo
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              <span className="text-blue-500">24 módulos completos</span> para gestão de obras e manutenção predial
+            <p className="text-lg text-muted-foreground mb-12">
+              Cada obra, funcionário, material, cliente e tarefa em um painel único — com dados reais e evidências
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {[
+                "Todos os dados centralizados em tempo real",
+                "CRM completo para gestão de clientes",
+                "RH com escalas CLT automatizadas",
+                "Controle preciso de materiais e estoque",
+                "QR Codes para rastreamento de ativos",
+                "RDO digital com fotos, GPS e clima",
+                "Alertas automáticos de desvios",
+                "Relatórios profissionais em PDF"
+              ].map((benefit, i) => (
+                <div key={i} className="flex items-center gap-3 p-4 rounded-lg bg-green-500/5 border border-green-500/10">
+                  <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-sm md:text-base">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ALL FEATURES SECTION */}
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <span className="text-primary">26 Módulos</span> Completos
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Tudo que você precisa para gestão de obras, manutenção, CRM e RH
             </p>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {allFeatures.map((feature, index) => (
               <FeatureCard key={index} {...feature} onClick={() => navigate(feature.route)} />
             ))}
@@ -193,478 +294,207 @@ const Hero = () => {
         </div>
       </section>
 
-      {/* Showcase Images Section - BLOCO 2.5 */}
-      <section className="py-12 bg-muted/30">
+      {/* 4 PILLARS SECTION */}
+      <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Veja o Sistema em Ação</h2>
-            <p className="text-muted-foreground">Interfaces intuitivas para toda sua operação</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={obraOrganizadaImg} alt="Sua obra organizada em um só sistema" className="w-full h-auto max-h-64 object-contain" />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={progressoDadosImg} alt="Acompanhe o progresso da obra com dados" className="w-full h-auto max-h-64 object-contain" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Problem Section - DOR - BLOCO 3 */}
-      <section className="py-24 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              Sua obra não atrasa por falta de esforço.<br />
-              Ela atrasa por falta de <span className="text-blue-600">VISIBILIDADE</span>.
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              E você sabe disso. Sem <span className="text-blue-500">controle real</span>, tudo vira improviso e adivinhação.
-            </p>
-            
-            <div className="grid md:grid-cols-2 gap-4 text-left pt-8">
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
-                <span className="text-2xl">❌</span>
-                <span>Planilhas desatualizadas</span>
-              </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
-                <span className="text-2xl">❌</span>
-                <span>Equipe perdida</span>
-              </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
-                <span className="text-2xl">❌</span>
-                <span>Comunicação no WhatsApp</span>
-              </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
-                <span className="text-2xl">❌</span>
-                <span>Falta de fotos e evidências</span>
-              </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
-                <span className="text-2xl">❌</span>
-                <span>Desperdício que não se rastreia</span>
-              </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
-                <span className="text-2xl">❌</span>
-                <span>RDO incompleto</span>
-              </div>
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5">
-                <span className="text-2xl">❌</span>
-                <span>Chamados de manutenção que somem</span>
-              </div>
-            </div>
-
-            <p className="text-2xl font-bold pt-8">
-              Obra sem sistema vira achismo.<br />
-              E achismo custa caro.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Posicionamento - BLOCO 4 */}
-      <section className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              O <span className="text-blue-600">Construdata</span> centraliza tudo e coloca <span className="text-blue-500">ordem na operação</span>.
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Cada obra, funcionário, material, ativo e tarefa aparece em um <span className="text-blue-600 font-medium">painel único</span> — com dados reais, evidência, fotos, alertas e rastreabilidade.
-              É operação profissional, do jeito que deveria ser.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Pilares do Produto - BLOCO 5 */}
-      <section className="py-24">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-            4 Pilares Principais
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+            4 Pilares do Sistema
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Pilar 1 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
-              <h3 className="text-xl font-bold mb-4">Controle de Obra</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Dashboard de obras</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Projetos e alertas</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>RDO completo com fotos</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Controle de produção</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Histórico e relatórios</span>
-                </li>
-              </ul>
-              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/controle-de-obra')}>
-                Saiba Mais
-              </Button>
-            </div>
-
-            {/* Pilar 2 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
-              <h3 className="text-xl font-bold mb-4">Materiais & Almoxarifado</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Estoque atualizado</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Pedidos de material</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Entradas e saídas</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Consumo por obra, equipe e tarefa</span>
-                </li>
-              </ul>
-              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/materiais-almoxarifado')}>
-                Saiba Mais
-              </Button>
-            </div>
-
-            {/* Pilar 3 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
-              <h3 className="text-xl font-bold mb-4">Execução & Equipes</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Gestão de funcionários</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Checklists operacionais</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Registros diários com evidências</span>
-                </li>
-              </ul>
-              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/execucao-equipes')}>
-                Saiba Mais
-              </Button>
-            </div>
-
-            {/* Pilar 4 */}
-            <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow flex flex-col">
-              <h3 className="text-xl font-bold mb-4">Manutenção Predial</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground flex-1">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Catálogo de ativos</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>QR Codes</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Solicitações de manutenção</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Histórico completo</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Relatórios e alertas</span>
-                </li>
-              </ul>
-              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/features/manutencao-predial')}>
-                Saiba Mais
-              </Button>
-            </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <PillarCard
+              title="Controle de Obra"
+              icon={<Building2 className="w-6 h-6" />}
+              color="from-blue-500 to-blue-600"
+              items={["Dashboard de obras", "RDO completo com fotos", "Controle de produção", "Projetos e alertas"]}
+              route="/features/controle-de-obra"
+            />
+            <PillarCard
+              title="Materiais & Estoque"
+              icon={<Package className="w-6 h-6" />}
+              color="from-orange-500 to-orange-600"
+              items={["Estoque atualizado", "Pedidos de material", "Entradas e saídas", "Consumo por obra"]}
+              route="/features/materiais-almoxarifado"
+            />
+            <PillarCard
+              title="CRM & Vendas"
+              icon={<Briefcase className="w-6 h-6" />}
+              color="from-purple-500 to-purple-600"
+              items={["Gestão de contatos", "Pipeline de vendas", "Atividades e agenda", "Relatórios comerciais"]}
+              route="/crm"
+            />
+            <PillarCard
+              title="RH & Equipes"
+              icon={<UserCheck className="w-6 h-6" />}
+              color="from-teal-500 to-teal-600"
+              items={["Escalas CLT automáticas", "Dashboard Prime Cost", "Gestão de funcionários", "Controle de faltas"]}
+              route="/rh-construdata"
+            />
           </div>
         </div>
       </section>
 
-      {/* More Showcase Images - BLOCO 5.5 */}
-      <section className="py-12 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={almoxarifadoImg} alt="Controle total do almoxarifado" className="w-full h-auto max-h-64 object-contain" />
-            </div>
-            <div className="rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-card">
-              <img src={manutencaoImg} alt="Manutenção rápida, rastreável e organizada" className="w-full h-auto max-h-64 object-contain" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Problema → Solução - BLOCO 6 */}
-      <section className="py-24 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-              Problema → Solução
-            </h2>
-            
-            <div className="grid md:grid-cols-2 gap-12 items-start">
-              {/* Problemas */}
-              <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-destructive mb-6">Problemas Típicos:</h3>
-                <div className="space-y-4">
-                  <ProblemItem icon="📋" text="Planilhas desatualizadas e dados espalhados" />
-                  <ProblemItem icon="💸" text="Desperdício de materiais não rastreado" />
-                  <ProblemItem icon="⏰" text="Atrasos constantes por falta de visibilidade" />
-                  <ProblemItem icon="📱" text="Comunicação perdida no WhatsApp" />
-                  <ProblemItem icon="❓" text="Chamados de manutenção que somem" />
-                  <ProblemItem icon="🤷" text="Sem evidências fotográficas organizadas" />
-                </div>
-              </div>
-
-              {/* Benefícios */}
-              <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-green-600 mb-6">Com o ConstruData:</h3>
-                <div className="space-y-4">
-                  <BenefitItem icon="✓" text="Todos os dados centralizados em tempo real" />
-                  <BenefitItem icon="✓" text="Controle preciso de entrada e saída de materiais" />
-                  <BenefitItem icon="✓" text="Visibilidade total do progresso de cada frente" />
-                  <BenefitItem icon="✓" text="Histórico completo e organizado de comunicações" />
-                  <BenefitItem icon="✓" text="QR Codes para rastreamento de ativos e chamados" />
-                  <BenefitItem icon="✓" text="Galeria de fotos por obra, tarefa e data" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Como Funciona - BLOCO 7 */}
-      <section className="py-24 bg-muted/30">
+      {/* HOW IT WORKS */}
+      <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
               Como Funciona
             </h2>
             
-            <div className="space-y-8">
-              <MethodologyCard
-                number="1"
-                title="Cadastre suas obras e equipes"
-                description="Configure projetos, funcionários e materiais em minutos. Importe dados de planilhas se necessário."
-              />
-              <MethodologyCard
-                number="2"
-                title="Registre em tempo real"
-                description="Equipes registram produção, materiais e ocorrências direto do celular. Com fotos, GPS e hora."
-              />
-              <MethodologyCard
-                number="3"
-                title="Acompanhe no dashboard"
-                description="Gestores veem tudo centralizado: custos, produtividade, alertas e indicadores em tempo real."
-              />
-              <MethodologyCard
-                number="4"
-                title="Exporte relatórios completos"
-                description="RDOs, relatórios de consumo, histórico de manutenção — tudo pronto para enviar ao cliente."
-              />
-            </div>
-
-            <div className="mt-12 p-6 bg-card border rounded-lg">
-              <h3 className="text-xl font-bold mb-4">O que está incluso:</h3>
-              <ul className="grid md:grid-cols-2 gap-3 text-sm">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Usuários ilimitados</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Armazenamento de fotos e documentos</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Acesso via web e mobile</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Suporte técnico incluído</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Atualizações automáticas</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-500">✔</span>
-                  <span>Backup diário automático</span>
-                </li>
-              </ul>
+            <div className="space-y-6">
+              {[
+                { num: "1", title: "Cadastre obras e equipes", desc: "Configure projetos, funcionários e materiais em minutos. Importe dados de planilhas." },
+                { num: "2", title: "Registre em tempo real", desc: "Equipes registram produção, materiais e ocorrências direto do celular com fotos e GPS." },
+                { num: "3", title: "Acompanhe no dashboard", desc: "Gestores veem tudo centralizado: custos, produtividade, alertas e indicadores." },
+                { num: "4", title: "Exporte relatórios", desc: "RDOs, relatórios de consumo, histórico de manutenção — tudo pronto para o cliente." },
+              ].map((step, i) => (
+                <div key={i} className="flex gap-4 md:gap-6 items-start p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center text-xl font-bold">
+                    {step.num}
+                  </div>
+                  <div>
+                    <h3 className="text-lg md:text-xl font-bold mb-1">{step.title}</h3>
+                    <p className="text-muted-foreground">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Garantia / Segurança - BLOCO 8 */}
-      <section className="py-24 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 backdrop-blur-sm mb-4">
-                <Shield className="w-4 h-4" />
-                <span className="text-sm font-semibold">100% Seguro e Confiável</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Seus dados protegidos
-              </h2>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
-              <SecurityFeature
-                icon="🔐"
-                title="Criptografia de ponta a ponta"
-                description="Todos os dados são criptografados com tecnologia bancária. Ninguém acessa suas informações sem autorização."
-              />
-              <SecurityFeature
-                icon="🛡️"
-                title="Conformidade LGPD"
-                description="Sistema totalmente adequado à Lei Geral de Proteção de Dados. Seus dados e dos seus clientes protegidos."
-              />
-              <SecurityFeature
-                icon="☁️"
-                title="Backup automático diário"
-                description="Seus dados são salvos automaticamente todos os dias. Recuperação disponível a qualquer momento."
-              />
-              <SecurityFeature
-                icon="🔒"
-                title="Controle de acesso"
-                description="Defina permissões por usuário. Cada pessoa vê apenas o que precisa para seu trabalho."
-              />
-            </div>
-
-            <div className="text-center p-8 bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-lg border border-green-500/20">
-              <h3 className="text-2xl font-bold mb-4">Garantia de Satisfação</h3>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Teste sem compromisso. Se não funcionar para você, sem problemas. 
-                Estamos aqui para resolver problemas reais, não para criar mais dor de cabeça.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Quebra de Objeções - BLOCO 9 */}
-      <section className="py-24 bg-muted/30">
+      {/* OBJECTION HANDLING */}
+      <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-              Objeções que você talvez tenha — e que resolvemos logo de cara:
+              Objeções Comuns — Resolvidas
             </h2>
-            <div className="space-y-6">
-              <div className="p-6 rounded-lg border bg-card">
-                <h3 className="font-bold text-lg mb-2">"Minha equipe não vai usar."</h3>
-                <p className="text-muted-foreground">
-                  O Construdata foi feito para o campo: simples, rápido e direto. Registro por foto e QR Code.
-                </p>
-              </div>
-              <div className="p-6 rounded-lg border bg-card">
-                <h3 className="font-bold text-lg mb-2">"Já tentei outros softwares e ninguém adotou."</h3>
-                <p className="text-muted-foreground">
-                  Nosso onboarding é guiado. Em 7 dias você já vê resultado real.
-                </p>
-              </div>
-              <div className="p-6 rounded-lg border bg-card">
-                <h3 className="font-bold text-lg mb-2">"Isso deve dar trabalho para implementar."</h3>
-                <p className="text-muted-foreground">
-                  A implementação é por etapas e acompanhada. Não deixa ninguém travado.
-                </p>
-              </div>
+            
+            <div className="space-y-4">
+              {[
+                { q: '"Minha equipe não vai usar."', a: "Interface simples e direta. Registro por foto e QR Code. Treinamento incluso." },
+                { q: '"Já tentei outros softwares."', a: "Onboarding guiado e suporte dedicado. Em 7 dias você vê resultado real." },
+                { q: '"Isso deve dar trabalho."', a: "Implementação por etapas e acompanhada. Importamos seus dados de planilhas." },
+                { q: '"É muito caro para minha empresa."', a: "Usuários ilimitados. O custo do desperdício que você evita paga o sistema." },
+              ].map((obj, i) => (
+                <div key={i} className="p-6 rounded-xl border border-border bg-card">
+                  <h3 className="font-bold text-lg mb-2">{obj.q}</h3>
+                  <p className="text-muted-foreground">{obj.a}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Security Trust Section - BLOCO 10 */}
-      <section id="security" className="py-24 bg-gradient-to-br from-primary/5 to-secondary/5">
+      {/* SECURITY SECTION */}
+      <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 backdrop-blur-sm mb-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 mb-4">
                 <Shield className="w-4 h-4" />
-                <span className="text-sm font-semibold">Segurança Empresarial</span>
+                <span className="text-sm font-semibold">100% Seguro</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Segurança e Confiabilidade
+                Seus Dados Protegidos
               </h2>
-              <p className="text-xl text-muted-foreground">
-                Seus dados protegidos com tecnologia de ponta
-              </p>
             </div>
-            
-            <div className="grid md:grid-cols-2 gap-8">
-              <SecurityFeature
-                icon="🔐"
-                title="Autenticação Segura"
-                description="Login protegido com criptografia de ponta a ponta e autenticação de dois fatores disponível"
-              />
-              <SecurityFeature
-                icon="🗄️"
-                title="Isolamento de Dados"
-                description="Cada projeto tem seus próprios dados completamente isolados e protegidos"
-              />
-              <SecurityFeature
-                icon="🔒"
-                title="APIs Protegidas"
-                description="Todas as comunicações são criptografadas e validadas com tokens seguros"
-              />
-              <SecurityFeature
-                icon="📊"
-                title="Backup Automático"
-                description="Seus dados são automaticamente salvos e podem ser recuperados a qualquer momento"
-              />
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {[
+                { icon: "🔐", title: "Criptografia Bancária", desc: "Todos os dados protegidos com tecnologia de ponta" },
+                { icon: "🛡️", title: "Conformidade LGPD", desc: "Sistema adequado à Lei Geral de Proteção de Dados" },
+                { icon: "☁️", title: "Backup Automático", desc: "Seus dados salvos automaticamente todos os dias" },
+                { icon: "🔒", title: "Controle de Acesso", desc: "Defina permissões por usuário e função" },
+              ].map((item, i) => (
+                <div key={i} className="p-6 rounded-xl border border-border bg-card hover:shadow-md transition-shadow">
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <h3 className="font-bold mb-1">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Final CTA - BLOCO 11 */}
-      <section className="py-24 bg-gradient-to-br from-primary via-primary/90 to-primary text-primary-foreground">
+      {/* WHAT'S INCLUDED */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              O Que Está Incluso
+            </h2>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              {[
+                "Usuários ilimitados",
+                "Armazenamento de fotos",
+                "Acesso web e mobile",
+                "Suporte técnico",
+                "Atualizações automáticas",
+                "Backup diário",
+                "Treinamento incluso",
+                "Importação de dados",
+                "Exportação em PDF",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
+                  <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="py-24 bg-gradient-to-br from-primary via-primary/95 to-primary text-primary-foreground">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h2 className="text-4xl md:text-5xl font-bold">
-              Chega de operar no escuro.<br />
-              Controle sua obra e sua manutenção com profissionalismo.
+            <h2 className="text-3xl md:text-5xl font-bold">
+              Chega de operar no escuro.
             </h2>
-            <Button 
-              size="lg" 
-              variant="secondary"
-              className="text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
-              onClick={() => navigate('/auth')}
-            >
-              Quero ver o Construdata na prática
-            </Button>
-            <p className="text-primary-foreground/80">
-              Demonstração rápida. Sem compromisso.
+            <p className="text-xl text-primary-foreground/80">
+              Controle sua obra com profissionalismo — obras, equipes, materiais, CRM e RH em um só lugar.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg" 
+                variant="secondary"
+                className="text-lg px-8 py-6 rounded-xl shadow-lg"
+                onClick={() => navigate('/system-test')}
+              >
+                Começar Teste Grátis
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="text-lg px-8 py-6 rounded-xl bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={() => navigate('/auth')}
+              >
+                Ver Demonstração
+              </Button>
+            </div>
+            <p className="text-primary-foreground/60 text-sm">
+              Demonstração gratuita • Implementação em 7 dias • Sem compromisso
             </p>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* FAQ */}
       <FAQ />
 
-      {/* Floating Button to reopen Contact Dialog */}
+      {/* Floating Contact Button */}
       {dialogDismissed && !showContactDialog && (
         <Button
           onClick={() => setShowContactDialog(true)}
-          className="fixed bottom-6 right-6 z-50 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all"
+          className="fixed bottom-6 right-6 z-50 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-primary to-primary/80"
           size="icon"
         >
           <Mail className="h-6 w-6" />
@@ -686,49 +516,51 @@ const FeatureCard = ({ icon: Icon, title, description, color, onClick }: {
   onClick?: () => void;
 }) => (
   <div 
-    className="p-4 rounded-xl border bg-card hover:shadow-lg transition-all hover:-translate-y-1 group cursor-pointer"
+    className="p-4 rounded-xl border border-border bg-card hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer group"
     onClick={onClick}
   >
-    <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
       <Icon className="w-5 h-5 text-white" />
     </div>
-    <h3 className="font-semibold text-sm mb-1">{title}</h3>
+    <h3 className="font-semibold text-sm mb-1 line-clamp-1">{title}</h3>
     <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
   </div>
 );
 
-const SecurityFeature = ({ icon, title, description }: { icon: string; title: string; description: string }) => (
-  <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
-    <div className="text-4xl mb-4">{icon}</div>
-    <h3 className="text-lg font-bold mb-2">{title}</h3>
-    <p className="text-sm text-muted-foreground">{description}</p>
-  </div>
-);
-
-const ProblemItem = ({ icon, text }: { icon: string; text: string }) => (
-  <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-    <span className="text-2xl flex-shrink-0">{icon}</span>
-    <span className="text-base">{text}</span>
-  </div>
-);
-
-const BenefitItem = ({ icon, text }: { icon: string; text: string }) => (
-  <div className="flex items-start gap-3 p-4 rounded-lg bg-green-500/5 border border-green-500/20">
-    <span className="text-2xl flex-shrink-0 text-green-600">{icon}</span>
-    <span className="text-base">{text}</span>
-  </div>
-);
-
-const MethodologyCard = ({ number, title, description }: { number: string; title: string; description: string }) => (
-  <div className="flex gap-6 items-start p-6 rounded-lg border bg-card">
-    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
-      {number}
+// Pillar Card Component
+const PillarCard = ({ title, icon, color, items, route }: { 
+  title: string; 
+  icon: React.ReactNode;
+  color: string;
+  items: string[];
+  route: string;
+}) => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="p-6 rounded-xl border border-border bg-card hover:shadow-lg transition-all group">
+      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
+        {icon}
+      </div>
+      <h3 className="text-xl font-bold mb-4">{title}</h3>
+      <ul className="space-y-2 mb-4">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+      <Button 
+        variant="outline" 
+        className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+        onClick={() => navigate(route)}
+      >
+        Saiba Mais
+        <ChevronRight className="w-4 h-4 ml-1" />
+      </Button>
     </div>
-    <div>
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
-    </div>
-  </div>
-);
+  );
+};
 
 export default Hero;
