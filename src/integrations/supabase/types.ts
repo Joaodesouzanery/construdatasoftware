@@ -3177,6 +3177,7 @@ export type Database = {
           cost_center: string | null
           created_at: string | null
           estimated_cost: number | null
+          hide_cost_from_members: boolean | null
           id: string
           item_name: string
           justification: string | null
@@ -3195,6 +3196,7 @@ export type Database = {
           cost_center?: string | null
           created_at?: string | null
           estimated_cost?: number | null
+          hide_cost_from_members?: boolean | null
           id?: string
           item_name: string
           justification?: string | null
@@ -3213,6 +3215,7 @@ export type Database = {
           cost_center?: string | null
           created_at?: string | null
           estimated_cost?: number | null
+          hide_cost_from_members?: boolean | null
           id?: string
           item_name?: string
           justification?: string | null

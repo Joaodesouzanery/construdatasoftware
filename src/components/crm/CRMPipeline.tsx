@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Settings, DollarSign, Building2, User, Calendar, 
-  ChevronRight, Trophy, XCircle, GripVertical
+  ChevronRight, Trophy, XCircle, GripVertical, Target, TrendingUp
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -400,16 +400,73 @@ export const CRMPipeline = () => {
     ? contacts.filter(c => c.account_id === formData.account_id)
     : contacts;
 
+  // Calculate totals
+  const totalOpenValue = deals.reduce((sum, d) => sum + Number(d.estimated_value || 0), 0);
+  const totalWeightedValue = deals.reduce((sum, d) => sum + Number(d.estimated_value || 0) * (d.probability / 100), 0);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Pipeline Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950/50 dark:to-indigo-900/30 border-indigo-200 dark:border-indigo-800">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{deals.length}</p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400">Oportunidades Abertas</p>
+              </div>
+              <Target className="h-8 w-8 text-indigo-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 border-green-200 dark:border-green-800">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                  R$ {totalOpenValue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">Valor Total em Aberto</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-green-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                  R$ {totalWeightedValue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">Valor Ponderado</p>
+              </div>
+              <ChevronRight className="h-8 w-8 text-amber-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/30 border-purple-200 dark:border-purple-800">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{stages.length}</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">Estágios no Pipeline</p>
+              </div>
+              <Settings className="h-8 w-8 text-purple-500/50" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold">Pipeline de Vendas</h2>
           <p className="text-sm text-muted-foreground">
-            Arraste as oportunidades entre os estágios
+            Arraste as oportunidades entre os estágios para atualizar
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="shadow-md">
           <Plus className="h-4 w-4 mr-2" />
           Nova Oportunidade
         </Button>
