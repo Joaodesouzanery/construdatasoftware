@@ -644,14 +644,14 @@ export const CRMContacts = () => {
             <div className="grid gap-2">
               <Label htmlFor="account_id">Empresa Vinculada</Label>
               <Select
-                value={formData.account_id}
-                onValueChange={(value) => setFormData({ ...formData, account_id: value })}
+                value={formData.account_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, account_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma empresa (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {accounts.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
                       {acc.name}
