@@ -603,14 +603,14 @@ export const CRMPipeline = () => {
               <div className="grid gap-2">
                 <Label htmlFor="account_id">Empresa</Label>
                 <Select
-                  value={formData.account_id}
-                  onValueChange={(value) => setFormData({ ...formData, account_id: value, contact_id: "" })}
+                  value={formData.account_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, account_id: value === "none" ? "" : value, contact_id: "" })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="none">Nenhuma</SelectItem>
                     {accounts.map((acc) => (
                       <SelectItem key={acc.id} value={acc.id}>
                         {acc.name}
@@ -622,14 +622,14 @@ export const CRMPipeline = () => {
               <div className="grid gap-2">
                 <Label htmlFor="contact_id">Contato Principal</Label>
                 <Select
-                  value={formData.contact_id}
-                  onValueChange={(value) => setFormData({ ...formData, contact_id: value })}
+                  value={formData.contact_id || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, contact_id: value === "none" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {filteredContacts.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.full_name}

@@ -574,14 +574,14 @@ export const CRMActivities = () => {
             <div className="grid gap-2">
               <Label htmlFor="contact_id">Contato</Label>
               <Select
-                value={formData.contact_id}
-                onValueChange={(value) => setFormData({ ...formData, contact_id: value })}
+                value={formData.contact_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, contact_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {contacts.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.full_name}
@@ -594,14 +594,14 @@ export const CRMActivities = () => {
             <div className="grid gap-2">
               <Label htmlFor="account_id">Empresa</Label>
               <Select
-                value={formData.account_id}
-                onValueChange={(value) => setFormData({ ...formData, account_id: value })}
+                value={formData.account_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, account_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {accounts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name}
