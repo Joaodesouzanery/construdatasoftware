@@ -19,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, Search, Mail, Phone, Building2, Archive, RotateCcw, Pencil, 
-  History, Upload, AlertTriangle, User
+  History, Upload, AlertTriangle, User, PlusCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -59,6 +59,8 @@ export const CRMContacts = () => {
   const [duplicates, setDuplicates] = useState<DuplicateCheck[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [pendingContact, setPendingContact] = useState<any>(null);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [newAccountName, setNewAccountName] = useState("");
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -300,6 +302,35 @@ export const CRMContacts = () => {
     onSuccess: (_, { archive }) => {
       queryClient.invalidateQueries({ queryKey: ["crm-contacts"] });
       toast({ title: archive ? "Contato arquivado" : "Contato restaurado" });
+    },
+  });
+
+  const createAccountMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Não autenticado");
+
+      const { data, error } = await supabase
+        .from("crm_accounts")
+        .insert([{
+          created_by_user_id: userData.user.id,
+          name: name.trim(),
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["crm-accounts-select"] });
+      setFormData({ ...formData, account_id: data.id });
+      setNewAccountName("");
+      setIsCreatingAccount(false);
+      toast({ title: "Empresa criada com sucesso!" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao criar empresa", description: error.message, variant: "destructive" });
     },
   });
 
@@ -643,22 +674,64 @@ export const CRMContacts = () => {
 
             <div className="grid gap-2">
               <Label htmlFor="account_id">Empresa Vinculada</Label>
-              <Select
-                value={formData.account_id || "none"}
-                onValueChange={(value) => setFormData({ ...formData, account_id: value === "none" ? "" : value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma empresa (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  {accounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isCreatingAccount ? (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nome da nova empresa"
+                    value={newAccountName}
+                    onChange={(e) => setNewAccountName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      if (newAccountName.trim()) {
+                        createAccountMutation.mutate(newAccountName);
+                      }
+                    }}
+                    disabled={!newAccountName.trim() || createAccountMutation.isPending}
+                  >
+                    {createAccountMutation.isPending ? "..." : "Salvar"}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreatingAccount(false);
+                      setNewAccountName("");
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.account_id || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, account_id: value === "none" ? "" : value })}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecione uma empresa (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
+                      {accounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    title="Criar nova empresa"
+                    onClick={() => setIsCreatingAccount(true)}
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">
