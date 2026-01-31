@@ -614,14 +614,14 @@ export const CRMActivities = () => {
             <div className="grid gap-2">
               <Label htmlFor="deal_id">Oportunidade</Label>
               <Select
-                value={formData.deal_id}
-                onValueChange={(value) => setFormData({ ...formData, deal_id: value })}
+                value={formData.deal_id || "none"}
+                onValueChange={(value) => setFormData({ ...formData, deal_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {deals.map((d) => (
                     <SelectItem key={d.id} value={d.id}>
                       {d.name}

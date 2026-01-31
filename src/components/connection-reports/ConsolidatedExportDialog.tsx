@@ -202,14 +202,14 @@ export function ConsolidatedExportDialog({
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Por Equipe</Label>
                 <Select 
-                  value={filters.filterByTeam} 
-                  onValueChange={(v) => setFilters(prev => ({ ...prev, filterByTeam: v }))}
+                  value={filters.filterByTeam || "all"} 
+                  onValueChange={(v) => setFilters(prev => ({ ...prev, filterByTeam: v === "all" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as Equipes</SelectItem>
+                    <SelectItem value="all">Todas as Equipes</SelectItem>
                     {uniqueTeams.map(team => (
                       <SelectItem key={team} value={team}>{team}</SelectItem>
                     ))}
@@ -220,14 +220,14 @@ export function ConsolidatedExportDialog({
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Por Tipo de Serviço</Label>
                 <Select 
-                  value={filters.filterByServiceType} 
-                  onValueChange={(v) => setFilters(prev => ({ ...prev, filterByServiceType: v }))}
+                  value={filters.filterByServiceType || "all"} 
+                  onValueChange={(v) => setFilters(prev => ({ ...prev, filterByServiceType: v === "all" ? "" : v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os Tipos</SelectItem>
+                    <SelectItem value="all">Todos os Tipos</SelectItem>
                     {uniqueServiceTypes.map(type => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
