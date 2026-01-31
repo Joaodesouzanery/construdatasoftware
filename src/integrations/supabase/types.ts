@@ -4045,6 +4045,7 @@ export type Database = {
         Returns: string
       }
       tokenize_keywords: { Args: { input_text: string }; Returns: string[] }
+      validate_cnpj_format: { Args: { cnpj: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "manager"

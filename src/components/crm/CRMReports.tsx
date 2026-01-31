@@ -340,25 +340,38 @@ export const CRMReports = () => {
             <CardTitle>Atividades por Tipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={activitiesByType}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                >
-                  {activitiesByType.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="flex flex-col lg:flex-row items-center gap-4">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={activitiesByType}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={false}
+                  >
+                    {activitiesByType.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [value, "Quantidade"]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 justify-center lg:flex-col lg:min-w-[120px]">
+                {activitiesByType.map((entry, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <div 
+                      className="w-3 h-3 rounded-full shrink-0" 
+                      style={{ backgroundColor: entry.color }} 
+                    />
+                    <span className="whitespace-nowrap">{entry.name}: {entry.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -368,25 +381,38 @@ export const CRMReports = () => {
             <CardTitle>Status das Atividades</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={activitiesStatus}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                >
-                  {activitiesStatus.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="flex flex-col lg:flex-row items-center gap-4">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={activitiesStatus}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={false}
+                  >
+                    {activitiesStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [value, "Quantidade"]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 justify-center lg:flex-col lg:min-w-[120px]">
+                {activitiesStatus.map((entry, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <div 
+                      className="w-3 h-3 rounded-full shrink-0" 
+                      style={{ backgroundColor: entry.color }} 
+                    />
+                    <span className="whitespace-nowrap">{entry.name}: {entry.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
