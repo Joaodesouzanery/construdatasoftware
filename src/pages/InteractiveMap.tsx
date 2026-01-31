@@ -1099,14 +1099,14 @@ export default function InteractiveMap() {
                   <div className="space-y-2">
                     <Label>Frente de Serviço (Opcional)</Label>
                     <Select
-                      value={newMarker.service_front_id}
-                      onValueChange={(v) => setNewMarker({ ...newMarker, service_front_id: v })}
+                      value={newMarker.service_front_id || "none"}
+                      onValueChange={(v) => setNewMarker({ ...newMarker, service_front_id: v === "none" ? "" : v })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {serviceFronts.map((sf: any) => (
                           <SelectItem key={sf.id} value={sf.id}>{sf.name}</SelectItem>
                         ))}

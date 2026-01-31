@@ -243,14 +243,14 @@ const Alerts = () => {
                   <div className="space-y-2">
                     <Label htmlFor="obra">Obra (opcional)</Label>
                     <Select 
-                      value={newAlert.obra_id} 
-                      onValueChange={(value) => setNewAlert(prev => ({ ...prev, obra_id: value }))}
+                      value={newAlert.obra_id || "all"} 
+                      onValueChange={(value) => setNewAlert(prev => ({ ...prev, obra_id: value === "all" ? "" : value }))}
                     >
                       <SelectTrigger id="obra">
                         <SelectValue placeholder="Todas as obras" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todas as obras</SelectItem>
+                        <SelectItem value="all">Todas as obras</SelectItem>
                         {obras.map(obra => (
                           <SelectItem key={obra.id} value={obra.id}>{obra.nome}</SelectItem>
                         ))}
