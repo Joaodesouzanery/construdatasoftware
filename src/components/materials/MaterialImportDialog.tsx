@@ -1073,24 +1073,78 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
         }
       }
 
-      // Parse Excel with STANDARDIZED columns
-      const findColumnValue = (row: any, variations: string[]): string => {
+      // Parse Excel with EXACT column reading - preserving original values
+      const getExactColumnValue = (row: any, variations: string[]): string => {
+        // First try exact column name match
+        for (const key of Object.keys(row)) {
+          const keyLower = key.toLowerCase().trim();
+          for (const variation of variations) {
+            if (keyLower === variation.toLowerCase()) {
+              const value = row[key];
+              // Return exact value without modifications
+              if (value === null || value === undefined) return '';
+              return String(value).trim();
+            }
+          }
+        }
+        // Then try partial match
         for (const key of Object.keys(row)) {
           const normalizedKey = normalizeText(key);
           for (const variation of variations) {
             if (normalizedKey.includes(normalizeText(variation))) {
-              return String(row[key] || '').trim();
+              const value = row[key];
+              if (value === null || value === undefined) return '';
+              return String(value).trim();
             }
           }
         }
         return '';
       };
 
-      const parsePrice = (value: string): number => {
-        if (!value || value === '-' || value === 'R$ -') return 0;
-        const cleaned = value.replace(/[R$\s]/g, '').replace(',', '.');
+      // Parse price with EXACT precision - handles Brazilian and international formats
+      const parseExactPrice = (value: any): number => {
+        if (value === null || value === undefined) return 0;
+        
+        // If it's already a number (Excel numeric cell), return it directly
+        if (typeof value === 'number') {
+          return Number.isFinite(value) ? value : 0;
+        }
+        
+        const strValue = String(value).trim();
+        if (!strValue || strValue === '-' || strValue === 'R$ -' || strValue === '-') return 0;
+        
+        // Remove currency symbols and spaces
+        let cleaned = strValue.replace(/R\$\s*/gi, '').replace(/\s/g, '');
+        
+        // Detect format: Brazilian (1.234,56) vs International (1,234.56)
+        const hasCommaAsDecimal = /\d,\d{2}$/.test(cleaned);
+        const hasDotAsDecimal = /\d\.\d{2}$/.test(cleaned);
+        
+        if (hasCommaAsDecimal) {
+          // Brazilian format: 1.234,56 -> 1234.56
+          cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else if (hasDotAsDecimal && cleaned.includes(',')) {
+          // International format with thousand separator: 1,234.56 -> 1234.56
+          cleaned = cleaned.replace(/,/g, '');
+        } else if (cleaned.includes(',') && !cleaned.includes('.')) {
+          // Only comma, likely decimal: 123,45 -> 123.45
+          cleaned = cleaned.replace(',', '.');
+        }
+        
+        // Remove any remaining non-numeric characters except dot and minus
+        cleaned = cleaned.replace(/[^\d.-]/g, '');
+        
         const parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? 0 : parsed;
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+
+      // Get RAW row data directly from Excel - preserving all original values
+      const getRawExcelData = (row: any) => {
+        const result: Record<string, any> = {};
+        for (const key of Object.keys(row)) {
+          result[key.toLowerCase().trim()] = row[key];
+        }
+        return result;
       };
 
       const materials: ExtractedMaterial[] = [];
@@ -1099,23 +1153,33 @@ export const MaterialImportDialog = ({ open, onOpenChange }: MaterialImportDialo
       let duplicatesSkipped = 0;
       let existingSkipped = 0;
 
+      console.log(`Processing ${jsonData.length} rows from Excel`);
+
       for (let i = 0; i < jsonData.length; i++) {
         const rowData: any = jsonData[i];
+        const rawData = getRawExcelData(rowData);
         
-        // Colunas padronizadas
-        const name = findColumnValue(rowData, ['descricao', 'description', 'nome', 'name', 'item', 'material']);
-        const unit = findColumnValue(rowData, ['unidade', 'unit', 'un', 'und']) || 'UN';
-        const supplier = findColumnValue(rowData, ['fornecedor', 'supplier']) || undefined;
+        // Log first row for debugging
+        if (i === 0) {
+          console.log('First row columns:', Object.keys(rowData));
+          console.log('First row raw data:', rawData);
+        }
         
-        const materialPriceStr = findColumnValue(rowData, ['preco material', 'preço material', 'material_price']);
-        const laborPriceStr = findColumnValue(rowData, ['preco m.o.', 'preço m.o.', 'preco mo', 'labor_price', 'mao de obra']);
-        const totalPriceStr = findColumnValue(rowData, ['preco total', 'preço total', 'total', 'price']);
-        const keywordsStr = findColumnValue(rowData, ['palavras-chave', 'palavras chave', 'keywords', 'tags']);
+        // Colunas padronizadas - LEITURA EXATA
+        const name = getExactColumnValue(rowData, ['descricao', 'descrição', 'description', 'nome', 'name', 'item', 'material']);
+        const unit = getExactColumnValue(rowData, ['unidade', 'unit', 'un', 'und']) || 'UN';
+        const supplier = getExactColumnValue(rowData, ['fornecedor', 'supplier']) || undefined;
         
-        const materialPrice = parsePrice(materialPriceStr);
-        const laborPrice = parsePrice(laborPriceStr);
-        const totalPrice = parsePrice(totalPriceStr) || (materialPrice + laborPrice);
-        const keywords = keywordsStr ? keywordsStr.split(',').map(k => k.trim()).filter(k => k.length > 0) : [];
+        // Preços - LEITURA EXATA com detecção de formato
+        const materialPriceRaw = getExactColumnValue(rowData, ['preco material', 'preço material', 'material_price', 'valor material']);
+        const laborPriceRaw = getExactColumnValue(rowData, ['preco m.o.', 'preço m.o.', 'preco mo', 'preço mo', 'labor_price', 'mao de obra', 'mão de obra', 'valor mo']);
+        const totalPriceRaw = getExactColumnValue(rowData, ['preco total', 'preço total', 'total', 'price', 'valor', 'valor total']);
+        const keywordsStr = getExactColumnValue(rowData, ['palavras-chave', 'palavras chave', 'keywords', 'tags']);
+        
+        const materialPrice = parseExactPrice(materialPriceRaw);
+        const laborPrice = parseExactPrice(laborPriceRaw);
+        const totalPrice = parseExactPrice(totalPriceRaw) || (materialPrice + laborPrice);
+        const keywords = keywordsStr ? keywordsStr.split(/[,;|]/).map(k => k.trim()).filter(k => k.length > 0) : [];
 
         if (!name || name.length < 2) continue;
 

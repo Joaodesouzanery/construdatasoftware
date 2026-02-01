@@ -233,6 +233,42 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_schedules: {
+        Row: {
+          created_at: string
+          email: string
+          enabled: boolean
+          frequency: string
+          id: string
+          last_sent_at: string | null
+          tables: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          enabled?: boolean
+          frequency: string
+          id?: string
+          last_sent_at?: string | null
+          tables?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          enabled?: boolean
+          frequency?: string
+          id?: string
+          last_sent_at?: string | null
+          tables?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       backups: {
         Row: {
           backup_type: string

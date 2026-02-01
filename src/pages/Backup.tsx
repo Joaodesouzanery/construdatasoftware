@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Database, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Download, Database, Clock, CheckCircle, XCircle, Archive, Mail, Settings } from "lucide-react";
+import { BackupExportDialog } from "@/components/backup/BackupExportDialog";
 
 interface Backup {
   id: string;
@@ -15,6 +16,10 @@ interface Backup {
   file_size: number | null;
   created_at: string;
   project_id: string | null;
+  metadata?: {
+    tables?: string[];
+    format?: string;
+  };
   projects?: { name: string };
 }
 
@@ -22,7 +27,7 @@ export default function Backup() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [backups, setBackups] = useState<Backup[]>([]);
-  const [creating, setCreating] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -51,47 +56,6 @@ export default function Backup() {
     }
 
     setBackups(data || []);
-  };
-
-  const createManualBackup = async () => {
-    setCreating(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get all user's projects
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("created_by_user_id", user.id);
-
-      // Create backup record
-      const { error } = await supabase
-        .from("backups")
-        .insert({
-          user_id: user.id,
-          backup_type: "manual",
-          status: "completed",
-          metadata: {
-            projects_count: projects?.length || 0,
-            timestamp: new Date().toISOString()
-          }
-        });
-
-      if (error) {
-        toast.error("Erro ao criar backup");
-        console.error(error);
-        return;
-      }
-
-      toast.success("Backup criado com sucesso!");
-      await loadBackups();
-    } catch (error) {
-      console.error("Error creating backup:", error);
-      toast.error("Erro ao criar backup");
-    } finally {
-      setCreating(false);
-    }
   };
 
   const formatFileSize = (bytes: number | null) => {
@@ -139,17 +103,17 @@ export default function Backup() {
                 Gerenciamento de Backups
               </h1>
               <p className="text-muted-foreground">
-                Crie e gerencie backups dos seus dados
+                Exporte seus dados e configure backups automáticos por email
               </p>
             </div>
           </div>
-          <Button onClick={createManualBackup} disabled={creating}>
-            <Download className="h-4 w-4 mr-2" />
-            {creating ? "Criando..." : "Criar Backup Manual"}
+          <Button onClick={() => setShowExportDialog(true)}>
+            <Archive className="h-4 w-4 mr-2" />
+            Exportar Backup
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Backups</CardTitle>
@@ -183,13 +147,31 @@ export default function Backup() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border-primary/50 bg-primary/5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Envio por Email</CardTitle>
+              <Mail className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => setShowExportDialog(true)}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Configurar
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Histórico de Backups</CardTitle>
             <CardDescription>
-              Visualize todos os backups criados. Os backups automáticos são criados diariamente às 3h da manhã.
+              Visualize todos os backups realizados. Clique em "Exportar Backup" para criar um novo e configurar envios automáticos.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -199,15 +181,16 @@ export default function Backup() {
                   <TableHead>Data</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Projeto</TableHead>
+                  <TableHead>Formato</TableHead>
+                  <TableHead>Tabelas</TableHead>
                   <TableHead>Tamanho</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {backups.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      Nenhum backup encontrado
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      Nenhum backup encontrado. Clique em "Exportar Backup" para criar seu primeiro backup.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -225,7 +208,12 @@ export default function Backup() {
                         {getStatusBadge(backup.status)}
                       </TableCell>
                       <TableCell>
-                        {backup.projects?.name || "Todos os projetos"}
+                        <Badge variant="outline">
+                          {backup.metadata?.format?.toUpperCase() || "JSON"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {backup.metadata?.tables?.length || "Todas"} tabela(s)
                       </TableCell>
                       <TableCell>
                         {formatFileSize(backup.file_size)}
@@ -238,6 +226,11 @@ export default function Backup() {
           </CardContent>
         </Card>
       </div>
+
+      <BackupExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+      />
     </div>
   );
 }
