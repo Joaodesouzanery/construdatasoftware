@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Filter, Trash2 } from "lucide-react";
+import { Download, Filter, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
@@ -22,6 +22,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { EditRDODialog } from "./EditRDODialog";
 
 interface RDOHistoryViewProps {
   projectId: string;
@@ -36,6 +37,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingRdo, setDeletingRdo] = useState<any>(null);
   const [exportingRdo, setExportingRdo] = useState<any>(null);
+  const [editingRdo, setEditingRdo] = useState<any>(null);
   const [consolidateServices, setConsolidateServices] = useState(false);
   const queryClient = useQueryClient();
 
@@ -634,22 +636,32 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                         Local: {rdo.construction_sites?.name} | Frente: {rdo.service_fronts?.name}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                      onClick={() => setExportingRdo(rdo)}
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>PDF</span>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => setDeletingRdo(rdo)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      {/* Botão Editar - apenas para daily_reports (não para rdos antigos) */}
+                      {rdo._source !== 'rdos' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingRdo(rdo)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExportingRdo(rdo)}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setDeletingRdo(rdo)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -748,6 +760,14 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit RDO Dialog */}
+      <EditRDODialog
+        rdo={editingRdo}
+        open={!!editingRdo}
+        onOpenChange={(open) => !open && setEditingRdo(null)}
+        onSuccess={loadRDOs}
+      />
     </div>
   );
 };
