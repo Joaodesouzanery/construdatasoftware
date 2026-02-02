@@ -24,6 +24,7 @@ interface ExecutedService {
   quantity: number;
   unit: string;
   service_name?: string;
+  employee_id?: string;
   isNew?: boolean;
   toDelete?: boolean;
 }
@@ -56,6 +57,7 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
   const [availableServices, setAvailableServices] = useState<any[]>([]);
   const [constructionSites, setConstructionSites] = useState<any[]>([]);
   const [serviceFronts, setServiceFronts] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
 
   useEffect(() => {
     if (open && rdo) {
@@ -63,6 +65,7 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
       loadAvailableServices();
       loadConstructionSites();
       loadServiceFronts();
+      loadEmployees();
     }
   }, [open, rdo]);
 
@@ -108,6 +111,20 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
     }
   };
 
+  const loadEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, name, role')
+        .order('name');
+
+      if (error) throw error;
+      setEmployees(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar funcionários:", error);
+    }
+  };
+
   const loadRDOData = async () => {
     setIsLoading(true);
     try {
@@ -120,7 +137,9 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
             service_id,
             quantity,
             unit,
-            services_catalog(name)
+            employee_id,
+            services_catalog(name),
+            employees(name)
           )
         `)
         .eq('id', rdo.id)
@@ -153,6 +172,7 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
           service_id: es.service_id,
           quantity: es.quantity,
           unit: es.unit,
+          employee_id: es.employee_id || "",
           service_name: es.services_catalog?.name,
           isNew: false,
           toDelete: false
@@ -172,6 +192,7 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
         service_id: "",
         quantity: 0,
         unit: "",
+        employee_id: "",
         isNew: true,
         toDelete: false
       }
@@ -216,30 +237,75 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Atualizar o daily_report com todos os campos
+      // Montar objeto de update - só incluir campos que não estão vazios para os IDs obrigatórios
+      const updateData: any = {
+        report_date: reportDate,
+        general_observations: generalObservations || null,
+        terrain_condition: terrainCondition || null,
+        visits: visits || null,
+        occurrences_summary: occurrencesSummary || null,
+        gps_location: gpsLocation || null,
+        temperature: temperature,
+        humidity: humidity,
+        wind_speed: windSpeed,
+        weather_description: weatherDescription || null,
+        will_rain: willRain,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Só atualiza construction_site_id se foi selecionado um valor válido
+      if (constructionSiteId && constructionSiteId !== "") {
+        updateData.construction_site_id = constructionSiteId;
+      }
+      
+      // Só atualiza service_front_id se foi selecionado um valor válido
+      if (serviceFrontId && serviceFrontId !== "") {
+        updateData.service_front_id = serviceFrontId;
+      }
+
       const { error: rdoError } = await supabase
         .from('daily_reports')
-        .update({
-          report_date: reportDate,
-          general_observations: generalObservations || null,
-          terrain_condition: terrainCondition || null,
-          visits: visits || null,
-          occurrences_summary: occurrencesSummary || null,
-          construction_site_id: constructionSiteId || undefined,
-          service_front_id: serviceFrontId || undefined,
-          gps_location: gpsLocation || null,
-          temperature: temperature,
-          humidity: humidity,
-          wind_speed: windSpeed,
-          weather_description: weatherDescription || null,
-          will_rain: willRain,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', rdo.id);
 
       if (rdoError) throw rdoError;
 
       // Processar serviços
+      for (const service of executedServices) {
+        if (service.toDelete && service.id) {
+          // Deletar serviço existente
+          const { error } = await supabase
+            .from('executed_services')
+            .delete()
+            .eq('id', service.id);
+          if (error) throw error;
+        } else if (service.isNew && !service.toDelete && service.service_id) {
+          // Criar novo serviço
+          const { error } = await supabase
+            .from('executed_services')
+            .insert({
+              daily_report_id: rdo.id,
+              service_id: service.service_id,
+              quantity: service.quantity,
+              unit: service.unit,
+              employee_id: service.employee_id || null,
+              created_by_user_id: (await supabase.auth.getUser()).data.user?.id
+            });
+          if (error) throw error;
+        } else if (!service.isNew && !service.toDelete && service.id) {
+          // Atualizar serviço existente
+          const { error } = await supabase
+            .from('executed_services')
+            .update({
+              service_id: service.service_id,
+              quantity: service.quantity,
+              unit: service.unit,
+              employee_id: service.employee_id || null
+            })
+            .eq('id', service.id);
+          if (error) throw error;
+        }
+      }
       for (const service of executedServices) {
         if (service.toDelete && service.id) {
           // Deletar serviço existente
@@ -537,50 +603,73 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
                   visibleServices.map((service, index) => {
                     const actualIndex = executedServices.findIndex(s => s === service);
                     return (
-                      <div key={actualIndex} className="flex gap-2 items-end p-3 bg-muted/50 rounded-lg">
-                        <div className="flex-1 space-y-1">
-                          <Label className="text-xs">Serviço</Label>
-                          <Select
-                            value={service.service_id || "none"}
-                            onValueChange={(v) => handleServiceChange(actualIndex, 'service_id', v === "none" ? "" : v)}
+                      <div key={actualIndex} className="flex flex-col gap-3 p-3 bg-muted/50 rounded-lg">
+                        <div className="flex gap-2 items-end">
+                          <div className="flex-1 space-y-1">
+                            <Label className="text-xs">Serviço</Label>
+                            <Select
+                              value={service.service_id || "none"}
+                              onValueChange={(v) => handleServiceChange(actualIndex, 'service_id', v === "none" ? "" : v)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o serviço" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Selecione...</SelectItem>
+                                {availableServices.map(svc => (
+                                  <SelectItem key={svc.id} value={svc.id}>
+                                    {svc.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleRemoveService(actualIndex)}
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o serviço" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Selecione...</SelectItem>
-                              {availableServices.map(svc => (
-                                <SelectItem key={svc.id} value={svc.id}>
-                                  {svc.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <div className="w-24 space-y-1">
-                          <Label className="text-xs">Quantidade</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={service.quantity}
-                            onChange={(e) => handleServiceChange(actualIndex, 'quantity', parseFloat(e.target.value) || 0)}
-                          />
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Quantidade</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={service.quantity}
+                              onChange={(e) => handleServiceChange(actualIndex, 'quantity', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Unidade</Label>
+                            <Input
+                              value={service.unit}
+                              onChange={(e) => handleServiceChange(actualIndex, 'unit', e.target.value)}
+                              placeholder="m², un"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Responsável</Label>
+                            <Select
+                              value={service.employee_id || "none"}
+                              onValueChange={(v) => handleServiceChange(actualIndex, 'employee_id', v === "none" ? "" : v)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Funcionário" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Não informado</SelectItem>
+                                {employees.map(emp => (
+                                  <SelectItem key={emp.id} value={emp.id}>
+                                    {emp.name} {emp.role ? `(${emp.role})` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                        <div className="w-20 space-y-1">
-                          <Label className="text-xs">Unidade</Label>
-                          <Input
-                            value={service.unit}
-                            onChange={(e) => handleServiceChange(actualIndex, 'unit', e.target.value)}
-                            placeholder="m², un"
-                          />
-                        </div>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => handleRemoveService(actualIndex)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     );
                   })
