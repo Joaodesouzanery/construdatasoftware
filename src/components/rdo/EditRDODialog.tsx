@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Save, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, Save, Loader2, Cloud, Thermometer, Droplets, Wind, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface EditRDODialogProps {
@@ -30,17 +31,38 @@ interface ExecutedService {
 export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Campos básicos
   const [reportDate, setReportDate] = useState("");
   const [generalObservations, setGeneralObservations] = useState("");
   const [terrainCondition, setTerrainCondition] = useState("");
   const [visits, setVisits] = useState("");
+  const [occurrencesSummary, setOccurrencesSummary] = useState("");
+  
+  // Campos de localização
+  const [constructionSiteId, setConstructionSiteId] = useState("");
+  const [serviceFrontId, setServiceFrontId] = useState("");
+  const [gpsLocation, setGpsLocation] = useState("");
+  
+  // Campos meteorológicos
+  const [temperature, setTemperature] = useState<number | null>(null);
+  const [humidity, setHumidity] = useState<number | null>(null);
+  const [windSpeed, setWindSpeed] = useState<number | null>(null);
+  const [weatherDescription, setWeatherDescription] = useState("");
+  const [willRain, setWillRain] = useState(false);
+  
+  // Listas e serviços
   const [executedServices, setExecutedServices] = useState<ExecutedService[]>([]);
   const [availableServices, setAvailableServices] = useState<any[]>([]);
+  const [constructionSites, setConstructionSites] = useState<any[]>([]);
+  const [serviceFronts, setServiceFronts] = useState<any[]>([]);
 
   useEffect(() => {
     if (open && rdo) {
       loadRDOData();
       loadAvailableServices();
+      loadConstructionSites();
+      loadServiceFronts();
     }
   }, [open, rdo]);
 
@@ -58,10 +80,37 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
     }
   };
 
+  const loadConstructionSites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('construction_sites')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setConstructionSites(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar canteiros:", error);
+    }
+  };
+
+  const loadServiceFronts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('service_fronts')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setServiceFronts(data || []);
+    } catch (error: any) {
+      console.error("Erro ao carregar frentes de serviço:", error);
+    }
+  };
+
   const loadRDOData = async () => {
     setIsLoading(true);
     try {
-      // Carregar dados completos do RDO
       const { data: rdoData, error } = await supabase
         .from('daily_reports')
         .select(`
@@ -79,10 +128,24 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
 
       if (error) throw error;
 
+      // Campos básicos
       setReportDate(rdoData.report_date);
       setGeneralObservations(rdoData.general_observations || "");
       setTerrainCondition(rdoData.terrain_condition || "");
       setVisits(rdoData.visits || "");
+      setOccurrencesSummary(rdoData.occurrences_summary || "");
+      
+      // Campos de localização
+      setConstructionSiteId(rdoData.construction_site_id || "");
+      setServiceFrontId(rdoData.service_front_id || "");
+      setGpsLocation(rdoData.gps_location || "");
+      
+      // Campos meteorológicos
+      setTemperature(rdoData.temperature);
+      setHumidity(rdoData.humidity);
+      setWindSpeed(rdoData.wind_speed);
+      setWeatherDescription(rdoData.weather_description || "");
+      setWillRain(rdoData.will_rain || false);
       
       setExecutedServices(
         rdoData.executed_services?.map((es: any) => ({
@@ -153,7 +216,7 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Atualizar o daily_report
+      // Atualizar o daily_report com todos os campos
       const { error: rdoError } = await supabase
         .from('daily_reports')
         .update({
@@ -161,6 +224,15 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
           general_observations: generalObservations || null,
           terrain_condition: terrainCondition || null,
           visits: visits || null,
+          occurrences_summary: occurrencesSummary || null,
+          construction_site_id: constructionSiteId || undefined,
+          service_front_id: serviceFrontId || undefined,
+          gps_location: gpsLocation || null,
+          temperature: temperature,
+          humidity: humidity,
+          wind_speed: windSpeed,
+          weather_description: weatherDescription || null,
+          will_rain: willRain,
           updated_at: new Date().toISOString()
         })
         .eq('id', rdo.id);
@@ -266,6 +338,47 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="construction_site">Canteiro de Obra</Label>
+                    <Select 
+                      value={constructionSiteId || "none"} 
+                      onValueChange={(v) => setConstructionSiteId(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o canteiro..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não informado</SelectItem>
+                        {constructionSites.map(site => (
+                          <SelectItem key={site.id} value={site.id}>
+                            {site.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="service_front">Frente de Serviço</Label>
+                    <Select 
+                      value={serviceFrontId || "none"} 
+                      onValueChange={(v) => setServiceFrontId(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a frente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não informado</SelectItem>
+                        {serviceFronts.map(front => (
+                          <SelectItem key={front.id} value={front.id}>
+                            {front.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="visits">Visitas</Label>
                   <Input
@@ -273,6 +386,19 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
                     value={visits}
                     onChange={(e) => setVisits(e.target.value)}
                     placeholder="Ex: Engenheiro João, Fiscal Maria"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gps_location" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Localização GPS
+                  </Label>
+                  <Input
+                    id="gps_location"
+                    value={gpsLocation}
+                    onChange={(e) => setGpsLocation(e.target.value)}
+                    placeholder="Ex: -23.5505, -46.6333"
                   />
                 </div>
 
@@ -285,6 +411,110 @@ export const EditRDODialog = ({ rdo, open, onOpenChange, onSuccess }: EditRDODia
                     placeholder="Observações sobre o dia de trabalho..."
                     rows={3}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="occurrences">Resumo de Ocorrências</Label>
+                  <Textarea
+                    id="occurrences"
+                    value={occurrencesSummary}
+                    onChange={(e) => setOccurrencesSummary(e.target.value)}
+                    placeholder="Ocorrências registradas no dia..."
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Dados Meteorológicos */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Cloud className="h-4 w-4" />
+                  Condições Meteorológicas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="temperature" className="flex items-center gap-2">
+                      <Thermometer className="h-4 w-4" />
+                      Temperatura (°C)
+                    </Label>
+                    <Input
+                      id="temperature"
+                      type="number"
+                      step="0.1"
+                      value={temperature ?? ""}
+                      onChange={(e) => setTemperature(e.target.value ? parseFloat(e.target.value) : null)}
+                      placeholder="25.5"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="humidity" className="flex items-center gap-2">
+                      <Droplets className="h-4 w-4" />
+                      Umidade (%)
+                    </Label>
+                    <Input
+                      id="humidity"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={humidity ?? ""}
+                      onChange={(e) => setHumidity(e.target.value ? parseInt(e.target.value) : null)}
+                      placeholder="65"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wind_speed" className="flex items-center gap-2">
+                      <Wind className="h-4 w-4" />
+                      Vento (km/h)
+                    </Label>
+                    <Input
+                      id="wind_speed"
+                      type="number"
+                      step="0.1"
+                      value={windSpeed ?? ""}
+                      onChange={(e) => setWindSpeed(e.target.value ? parseFloat(e.target.value) : null)}
+                      placeholder="12.5"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="weather_description">Descrição do Tempo</Label>
+                    <Select 
+                      value={weatherDescription || "none"} 
+                      onValueChange={(v) => setWeatherDescription(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não informado</SelectItem>
+                        <SelectItem value="ensolarado">Ensolarado</SelectItem>
+                        <SelectItem value="parcialmente_nublado">Parcialmente Nublado</SelectItem>
+                        <SelectItem value="nublado">Nublado</SelectItem>
+                        <SelectItem value="chuvoso">Chuvoso</SelectItem>
+                        <SelectItem value="tempestade">Tempestade</SelectItem>
+                        <SelectItem value="garoa">Garoa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="will_rain">Previsão de Chuva</Label>
+                    <div className="flex items-center gap-3 h-10">
+                      <Switch
+                        id="will_rain"
+                        checked={willRain}
+                        onCheckedChange={setWillRain}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {willRain ? "Sim, há previsão" : "Não há previsão"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
