@@ -69,6 +69,7 @@ import SatisfactionSurvey from "./pages/SatisfactionSurvey";
 import NotFound from "./pages/NotFound";
 import ProjectHistory from "./pages/ProjectHistory";
 import Onboarding from "./pages/Onboarding";
+import Planning from "./pages/Planning";
 
 const queryClient = new QueryClient();
 
@@ -146,6 +147,7 @@ const AppContent = () => {
         <Route path="/backup" element={<Backup />} />
         <Route path="/support" element={<Support />} />
         <Route path="/satisfaction-survey" element={<SatisfactionSurvey />} />
+        <Route path="/planning" element={<Planning />} />
         
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
