@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Copy } from "lucide-react";
+import { Mail, Copy, Linkedin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Support = () => {
@@ -61,6 +61,34 @@ const Support = () => {
                   <div className="text-center text-sm text-muted-foreground">
                     <p>Envie suas dúvidas, sugestões ou reporte problemas.</p>
                     <p>Responderemos o mais breve possível!</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Linkedin className="h-5 w-5" />
+                    LinkedIn
+                  </CardTitle>
+                  <CardDescription>
+                    Acompanhe nossas novidades e conecte-se conosco no LinkedIn.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center gap-4 p-6 bg-muted rounded-lg">
+                    <Linkedin className="h-12 w-12 text-primary" />
+                    <Button asChild>
+                      <a
+                        href="https://www.linkedin.com/company/construdatasoftware"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="gap-2"
+                      >
+                        <Linkedin className="h-4 w-4" />
+                        Visitar LinkedIn
+                      </a>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
