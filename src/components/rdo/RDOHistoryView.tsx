@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Filter, Trash2, Pencil } from "lucide-react";
+import { Download, Filter, Trash2, Pencil, ImageIcon, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { EditRDODialog } from "./EditRDODialog";
 
@@ -30,6 +31,7 @@ interface RDOHistoryViewProps {
 
 export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [rdos, setRdos] = useState<any[]>([]);
+  const [rdoPhotoCounts, setRdoPhotoCounts] = useState<Record<string, number>>({});
   const [services, setServices] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
@@ -166,6 +168,21 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       console.log("- RDOs antigos:", rdosData.length);
       
       setRdos(allRdos);
+
+      // Load photo counts for daily_reports
+      const dailyReportIds = allRdos.filter(r => r._source !== 'rdos').map(r => r.id);
+      if (dailyReportIds.length > 0) {
+        const { data: photosData } = await supabase
+          .from('rdo_validation_photos')
+          .select('daily_report_id')
+          .in('daily_report_id', dailyReportIds);
+        
+        const counts: Record<string, number> = {};
+        photosData?.forEach((p: any) => {
+          counts[p.daily_report_id] = (counts[p.daily_report_id] || 0) + 1;
+        });
+        setRdoPhotoCounts(counts);
+      }
       
       // Extract unique services
       const uniqueServices = new Set<string>();
@@ -632,8 +649,21 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                           year: 'numeric' 
                         })}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Local: {rdo.construction_sites?.name} | Frente: {rdo.service_fronts?.name}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Local: {rdo.construction_sites?.name} | Frente: {rdo.service_fronts?.name}</span>
+                        {rdo._source !== 'rdos' && (
+                          rdoPhotoCounts[rdo.id] > 0 ? (
+                            <Badge variant="outline" className="text-green-600 border-green-300 gap-1">
+                              <ImageIcon className="h-3 w-3" />
+                              {rdoPhotoCounts[rdo.id]} foto{rdoPhotoCounts[rdo.id] > 1 ? 's' : ''}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground gap-1">
+                              <ImageOff className="h-3 w-3" />
+                              Sem fotos
+                            </Badge>
+                          )
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
