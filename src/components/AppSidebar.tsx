@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3, Map, Palette, BookOpen, Target, UserCheck, CalendarDays, PieChart, Construction } from "lucide-react";
+import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3, Map, Palette, BookOpen, Target, UserCheck, CalendarDays, PieChart, Construction, Layers, TrendingUp } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -34,6 +34,9 @@ const rdoItems = [
   { title: "Fotos de Validação", url: "/rdo-photos", icon: Image },
   { title: "Controle de Produção", url: "/production-control", icon: ClipboardList },
   { title: "Relatório de Ligações", url: "/connection-reports", icon: FileText },
+  { title: "Relatórios Unificados", url: "/unified-reports", icon: Layers },
+  { title: "Atraso da Obra", url: "/delay-tracking", icon: AlertCircle },
+  { title: "Planejado vs Realizado", url: "/planned-vs-actual", icon: TrendingUp },
   { title: "Ocorrências", url: "/occurrences", icon: AlertCircle },
 ];
 

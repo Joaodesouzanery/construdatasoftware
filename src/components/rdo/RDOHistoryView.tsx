@@ -391,6 +391,47 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     }
   };
 
+  const handleExportDXF = async (rdo: any) => {
+    try {
+      // Fetch complete RDO data
+      const { data: completeRDO, error } = await supabase
+        .from('daily_reports')
+        .select(`
+          *,
+          project:projects!inner(name),
+          construction_site:construction_sites!inner(name, address),
+          service_front:service_fronts!inner(name),
+          executed_services(
+            quantity, unit, equipment_used,
+            services_catalog(name),
+            employees(name)
+          )
+        `)
+        .eq('id', rdo.id)
+        .single();
+
+      if (error) throw error;
+
+      // Fetch photos
+      const { data: photos } = await supabase
+        .from('rdo_validation_photos')
+        .select('photo_url, uploaded_at')
+        .eq('daily_report_id', rdo.id);
+
+      const { generateRDODXF, downloadDXF } = await import('@/lib/dxfExporter');
+      const dxfContent = generateRDODXF({ ...completeRDO, photos: photos || [] });
+      
+      const fileName = `RDO-${completeRDO.project.name.replace(/[^a-zA-Z0-9]/g, '_')}-${completeRDO.report_date}.dxf`;
+      downloadDXF(dxfContent, fileName);
+
+      toast.success('RDO exportado em DXF com sucesso!');
+      setExportingRdo(null);
+    } catch (error: any) {
+      console.error('Erro ao exportar DXF:', error);
+      toast.error('Erro ao exportar DXF: ' + (error.message || 'Erro desconhecido'));
+    }
+  };
+
   const handleExportSingleRDO = async (rdo: any) => {
     try {
       // Fetch complete RDO data with all relationships
@@ -746,17 +787,17 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Export PDF Dialog */}
+      {/* Export Dialog */}
       <Dialog open={!!exportingRdo} onOpenChange={(open) => {
         if (!open) {
           setExportingRdo(null);
           setConsolidateServices(false);
         }
       }}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>Exportar RDO para PDF</DialogTitle>
-            <DialogDescription>Configure as opções de exportação</DialogDescription>
+            <DialogTitle>Exportar RDO</DialogTitle>
+            <DialogDescription>Escolha o formato e as opções de exportação</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -782,9 +823,13 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
               }}>
                 Cancelar
               </Button>
+              <Button type="button" variant="outline" onClick={() => exportingRdo && handleExportDXF(exportingRdo)}>
+                <Download className="w-4 h-4 mr-2" />
+                DXF (CAD)
+              </Button>
               <Button type="button" onClick={() => exportingRdo && handleExportSingleRDO(exportingRdo)}>
                 <Download className="w-4 h-4 mr-2" />
-                Exportar
+                PDF
               </Button>
             </div>
           </div>
