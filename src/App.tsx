@@ -70,6 +70,9 @@ import NotFound from "./pages/NotFound";
 import ProjectHistory from "./pages/ProjectHistory";
 import Onboarding from "./pages/Onboarding";
 import Planning from "./pages/Planning";
+import UnifiedReports from "./pages/UnifiedReports";
+import DelayTracking from "./pages/DelayTracking";
+import PlannedVsActual from "./pages/PlannedVsActual";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +115,9 @@ const AppContent = () => {
         <Route path="/facility-reports" element={<FacilityReports />} />
         <Route path="/connection-reports" element={<ConnectionReports />} />
         <Route path="/occurrences" element={<Occurrences />} />
+        <Route path="/unified-reports" element={<UnifiedReports />} />
+        <Route path="/delay-tracking" element={<DelayTracking />} />
+        <Route path="/planned-vs-actual" element={<PlannedVsActual />} />
         
         <Route path="/labor-tracking" element={<LaborTracking />} />
         <Route path="/maintenance-qr-codes" element={<MaintenanceQRCodes />} />
