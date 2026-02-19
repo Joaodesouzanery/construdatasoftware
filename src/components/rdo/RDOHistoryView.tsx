@@ -323,105 +323,139 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     toast.success("Histórico exportado em CSV com sucesso!");
   };
 
+  // Helper: fetch a single RDO with ALL data (services, photos with signed URLs, weather, GPS, etc.)
+  const fetchFullRDOForExport = async (rdoId: string) => {
+    const { data: completeRDO, error } = await supabase
+      .from('daily_reports')
+      .select(`
+        *,
+        project:projects(name),
+        construction_site:construction_sites(name, address),
+        service_front:service_fronts(name),
+        executed_services(
+          quantity, unit, equipment_used,
+          services_catalog(name),
+          employees(name)
+        )
+      `)
+      .eq('id', rdoId)
+      .single();
+
+    if (error || !completeRDO) return null;
+
+    const { data: photos } = await supabase
+      .from('rdo_validation_photos')
+      .select('photo_url, uploaded_at')
+      .eq('daily_report_id', rdoId)
+      .order('uploaded_at', { ascending: true });
+
+    const photosWithSignedUrls = await Promise.all(
+      (photos || []).map(async (photo: any) => {
+        const rawPath: string = photo.photo_url || "";
+        const path = rawPath.includes('rdo-photos/')
+          ? rawPath.split('rdo-photos/')[1]
+          : rawPath;
+        let signedUrl = rawPath;
+        try {
+          const { data: signed } = await supabase.storage
+            .from('rdo-photos')
+            .createSignedUrl(path, 60 * 60);
+          if (signed?.signedUrl) signedUrl = signed.signedUrl;
+        } catch { /* keep raw */ }
+        return { ...photo, photo_url: signedUrl };
+      })
+    );
+
+    return { ...completeRDO, photos: photosWithSignedUrls };
+  };
+
+  // Fetch ALL daily_report IDs for project (no filter, paginated)
+  const fetchAllProjectRDOIds = async (): Promise<string[]> => {
+    const allIds: string[] = [];
+    let offset = 0;
+    const batchSize = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('daily_reports')
+        .select('id')
+        .eq('project_id', projectId)
+        .order('report_date', { ascending: false })
+        .range(offset, offset + batchSize - 1);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        allIds.push(...data.map((d: any) => d.id));
+        offset += batchSize;
+        hasMore = data.length === batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
+    return allIds;
+  };
+
   const handleExportPDF = async () => {
     try {
-      const filtered = getFilteredData();
+      toast.info('Buscando TODOS os RDOs do projeto para gerar PDFs completos...');
       
-      if (filtered.length === 0) {
-        toast.error("Nenhum RDO para exportar");
+      const allIds = await fetchAllProjectRDOIds();
+      if (allIds.length === 0) {
+        toast.error("Nenhum RDO encontrado neste projeto");
         return;
       }
-      
-      const jsPDFModule = await import("jspdf");
-      const autoTableModule: any = await import("jspdf-autotable");
-      const jsPDFLocal = jsPDFModule.default;
-      const autoTableFn = autoTableModule.default || (autoTableModule as any);
 
-      const doc = new jsPDFLocal();
-      
-      doc.setFontSize(18);
-      doc.text("Histórico de RDOs", 14, 22);
-      
-      doc.setFontSize(11);
-      doc.text(`Data de Exportação: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
-      doc.text(`Total de RDOs: ${filtered.length}`, 14, 36);
+      toast.info(`Gerando ${allIds.length} PDF(s) completo(s)...`);
 
-      const tableData: any[] = [];
-      filtered.forEach(rdo => {
-        const formattedDate = new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR');
+      const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      for (let i = 0; i < allIds.length; i += 5) {
+        const batch = allIds.slice(i, i + 5);
+        const rdos = await Promise.all(batch.map(id => fetchFullRDOForExport(id)));
         
-        if (rdo.executed_services && rdo.executed_services.length > 0) {
-          rdo.executed_services.forEach((es: any) => {
-            tableData.push([
-              formattedDate,
-              rdo.construction_sites?.name || 'N/A',
-              rdo.service_fronts?.name || 'N/A',
-              es.services_catalog?.name || 'N/A',
-              es.quantity || 0,
-              es.unit || 'N/A'
-            ]);
-          });
-        } else {
-          tableData.push([
-            formattedDate,
-            rdo.construction_sites?.name || 'N/A',
-            rdo.service_fronts?.name || 'N/A',
-            'Nenhum serviço registrado',
-            '-',
-            '-'
-          ]);
+        for (const rdo of rdos) {
+          if (!rdo) continue;
+          try {
+            const blob = await generateRDOReportPDF(rdo, consolidateServices, true);
+            if (blob) {
+              const projectName = rdo.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
+              const fileName = `RDO-${projectName}-${rdo.report_date}.pdf`;
+              zip.file(fileName, blob);
+            }
+          } catch (e) {
+            console.error('Erro ao gerar PDF para RDO:', rdo.id, e);
+          }
         }
-      });
+      }
 
-      autoTableFn(doc as any, {
-        head: [['Data', 'Local', 'Frente', 'Serviço', 'Qtd', 'Un']],
-        body: tableData,
-        startY: 42,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [59, 130, 246] },
-      } as any);
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RDOs-Completos-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      const fileName = `historico_rdos_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
-      toast.success("Histórico exportado em PDF com sucesso!");
-      
+      toast.success(`${allIds.length} PDF(s) completo(s) exportado(s) em ZIP!`);
     } catch (error: any) {
-      console.error("Erro ao exportar PDF:", error);
-      toast.error("Erro ao exportar PDF: " + (error.message || "Erro desconhecido"));
+      console.error("Erro ao exportar PDFs:", error);
+      toast.error("Erro ao exportar PDFs: " + (error.message || "Erro desconhecido"));
     }
   };
 
   const handleExportDXF = async (rdo: any) => {
     try {
-      // Fetch complete RDO data
-      const { data: completeRDO, error } = await supabase
-        .from('daily_reports')
-        .select(`
-          *,
-          project:projects(name),
-          construction_site:construction_sites(name, address),
-          service_front:service_fronts(name),
-          executed_services(
-            quantity, unit, equipment_used,
-            services_catalog(name),
-            employees(name)
-          )
-        `)
-        .eq('id', rdo.id)
-        .single();
-
-      if (error) throw error;
-
-      // Fetch photos
-      const { data: photos } = await supabase
-        .from('rdo_validation_photos')
-        .select('photo_url, uploaded_at')
-        .eq('daily_report_id', rdo.id);
+      const fullRDO = await fetchFullRDOForExport(rdo.id);
+      if (!fullRDO) throw new Error('RDO não encontrado');
 
       const { generateRDODXF, downloadDXF } = await import('@/lib/dxfExporter');
-      const dxfContent = generateRDODXF({ ...completeRDO, photos: photos || [] });
+      const dxfContent = generateRDODXF(fullRDO);
       
-      const fileName = `RDO-${completeRDO.project.name.replace(/[^a-zA-Z0-9]/g, '_')}-${completeRDO.report_date}.dxf`;
+      const projectName = fullRDO.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
+      const fileName = `RDO-${projectName}-${fullRDO.report_date}.dxf`;
       downloadDXF(dxfContent, fileName);
 
       toast.success('RDO exportado em DXF com sucesso!');
@@ -459,30 +493,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     try {
       toast.info('Buscando TODOS os RDOs do projeto para HydroNetwork...');
       
-      // Fetch ALL daily_report IDs for this project with pagination
-      const allIds: string[] = [];
-      let offset = 0;
-      const batchSize = 1000;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('daily_reports')
-          .select('id')
-          .eq('project_id', projectId)
-          .order('report_date', { ascending: false })
-          .range(offset, offset + batchSize - 1);
-        
-        if (error) throw error;
-        if (data && data.length > 0) {
-          allIds.push(...data.map((d: any) => d.id));
-          offset += batchSize;
-          hasMore = data.length === batchSize;
-        } else {
-          hasMore = false;
-        }
-      }
-
+      const allIds = await fetchAllProjectRDOIds();
       if (allIds.length === 0) {
         toast.error('Nenhum RDO encontrado neste projeto');
         return;
@@ -491,7 +502,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       toast.info(`Exportando ${allIds.length} RDO(s) completo(s) para HydroNetwork...`);
       const { fetchCompleteRDO, downloadJSON } = await import('@/lib/hydroNetworkExporter');
       
-      // Process in batches of 10 to avoid overwhelming the API
       const validResults: any[] = [];
       for (let i = 0; i < allIds.length; i += 10) {
         const batch = allIds.slice(i, i + 10);
@@ -517,68 +527,11 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
   const handleExportSingleRDO = async (rdo: any) => {
     try {
-      // Fetch complete RDO data with all relationships
-      const { data: completeRDO, error: rdoError } = await supabase
-        .from('daily_reports')
-        .select(`
-          *,
-          project:projects(name),
-          construction_site:construction_sites(name, address),
-          service_front:service_fronts(name),
-          executed_services(
-            quantity,
-            unit,
-            equipment_used,
-            services_catalog(name),
-            employees(name)
-          )
-        `)
-        .eq('id', rdo.id)
-        .single();
+      const fullRDO = await fetchFullRDOForExport(rdo.id);
+      if (!fullRDO) throw new Error('RDO não encontrado');
 
-      if (rdoError) throw rdoError;
-
-      // Fetch photos
-      const { data: photos, error: photosError } = await supabase
-        .from('rdo_validation_photos')
-        .select('photo_url, uploaded_at')
-        .eq('daily_report_id', rdo.id)
-        .order('uploaded_at', { ascending: true });
-
-      const photosWithSignedUrls = await Promise.all(
-        (photos || []).map(async (photo: any) => {
-          const rawPath: string = photo.photo_url || "";
-          const path = rawPath.includes('rdo-photos/')
-            ? rawPath.split('rdo-photos/')[1]
-            : rawPath;
-
-          let signedUrl = rawPath;
-          try {
-            const { data: signed } = await supabase.storage
-              .from('rdo-photos')
-              .createSignedUrl(path, 10 * 60);
-            if (signed?.signedUrl) {
-              signedUrl = signed.signedUrl;
-            }
-          } catch (error) {
-            console.error('Erro ao gerar URL assinada para foto do PDF:', error);
-          }
-
-          return {
-            ...photo,
-            photo_url: signedUrl,
-          };
-        })
-      );
-
-      // Import the report generator
       const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
-      
-      // Generate PDF with all data
-      await generateRDOReportPDF({
-        ...completeRDO,
-        photos: photosWithSignedUrls,
-      }, consolidateServices);
+      await generateRDOReportPDF(fullRDO, consolidateServices);
       
       toast.success('RDO exportado em PDF com sucesso!');
       setExportingRdo(null);
