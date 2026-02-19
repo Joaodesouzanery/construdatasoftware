@@ -398,9 +398,9 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         .from('daily_reports')
         .select(`
           *,
-          project:projects!inner(name),
-          construction_site:construction_sites!inner(name, address),
-          service_front:service_fronts!inner(name),
+          project:projects(name),
+          construction_site:construction_sites(name, address),
+          service_front:service_fronts(name),
           executed_services(
             quantity, unit, equipment_used,
             services_catalog(name),
@@ -522,9 +522,9 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         .from('daily_reports')
         .select(`
           *,
-          project:projects!inner(name),
-          construction_site:construction_sites!inner(name, address),
-          service_front:service_fronts!inner(name),
+          project:projects(name),
+          construction_site:construction_sites(name, address),
+          service_front:service_fronts(name),
           executed_services(
             quantity,
             unit,
