@@ -41,7 +41,7 @@ const loadImage = (url: string): Promise<HTMLImageElement> => {
   });
 };
 
-export async function generateRDOReportPDF(report: RDOReport, consolidateServices: boolean = false) {
+export async function generateRDOReportPDF(report: RDOReport, consolidateServices: boolean = false, returnBlob: boolean = false): Promise<Blob | void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -362,7 +362,10 @@ export async function generateRDOReportPDF(report: RDOReport, consolidateService
     doc.setFont("helvetica", "normal");
   }
 
-  // Save
+  // Save or return
+  if (returnBlob) {
+    return doc.output('blob');
+  }
   const fileName = `RDO-${report.project.name.replace(/[^a-zA-Z0-9]/g, '_')}-${format(
     new Date(report.report_date + 'T12:00:00'),
     "yyyy-MM-dd"
