@@ -457,16 +457,47 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
   const handleExportAllHydroNetwork = async () => {
     try {
-      const filtered = getFilteredData().filter((r: any) => r._source !== 'rdos');
-      if (filtered.length === 0) {
-        toast.error('Nenhum RDO para exportar');
+      toast.info('Buscando TODOS os RDOs do projeto para HydroNetwork...');
+      
+      // Fetch ALL daily_report IDs for this project with pagination
+      const allIds: string[] = [];
+      let offset = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('daily_reports')
+          .select('id')
+          .eq('project_id', projectId)
+          .order('report_date', { ascending: false })
+          .range(offset, offset + batchSize - 1);
+        
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allIds.push(...data.map((d: any) => d.id));
+          offset += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      if (allIds.length === 0) {
+        toast.error('Nenhum RDO encontrado neste projeto');
         return;
       }
-      toast.info(`Preparando ${filtered.length} RDO(s) para HydroNetwork...`);
+
+      toast.info(`Exportando ${allIds.length} RDO(s) completo(s) para HydroNetwork...`);
       const { fetchCompleteRDO, downloadJSON } = await import('@/lib/hydroNetworkExporter');
       
-      const results = await Promise.all(filtered.map((rdo: any) => fetchCompleteRDO(rdo.id)));
-      const validResults = results.filter(Boolean);
+      // Process in batches of 10 to avoid overwhelming the API
+      const validResults: any[] = [];
+      for (let i = 0; i < allIds.length; i += 10) {
+        const batch = allIds.slice(i, i + 10);
+        const results = await Promise.all(batch.map(id => fetchCompleteRDO(id)));
+        validResults.push(...results.filter(Boolean));
+      }
 
       const exportPayload = {
         format: 'HydroNetwork',
@@ -476,9 +507,9 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         total: validResults.length,
         data: validResults,
       };
-      const fileName = `HydroNetwork-RDOs-${new Date().toISOString().split('T')[0]}.json`;
+      const fileName = `HydroNetwork-TODOS-RDOs-${new Date().toISOString().split('T')[0]}.json`;
       downloadJSON(exportPayload, fileName);
-      toast.success(`${validResults.length} RDO(s) exportado(s) para HydroNetwork!`);
+      toast.success(`${validResults.length} RDO(s) exportado(s) para HydroNetwork com todos os dados!`);
     } catch (error: any) {
       toast.error('Erro ao exportar: ' + (error.message || 'Erro desconhecido'));
     }
