@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Filter, Trash2, Pencil, ImageIcon, ImageOff } from "lucide-react";
+import { Download, Filter, Trash2, Pencil, ImageIcon, ImageOff, FileJson } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
@@ -432,6 +432,58 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     }
   };
 
+  const handleExportHydroNetwork = async (rdo: any) => {
+    try {
+      toast.info('Preparando exportação para HydroNetwork...');
+      const { fetchCompleteRDO, downloadJSON } = await import('@/lib/hydroNetworkExporter');
+      const data = await fetchCompleteRDO(rdo.id);
+      if (!data) throw new Error('RDO não encontrado');
+      
+      const exportPayload = {
+        format: 'HydroNetwork',
+        version: '1.0',
+        source: 'ConstruData',
+        exported_at: new Date().toISOString(),
+        data: [data],
+      };
+      const fileName = `HydroNetwork-RDO-${data.report_date}.json`;
+      downloadJSON(exportPayload, fileName);
+      toast.success('RDO exportado para HydroNetwork!');
+      setExportingRdo(null);
+    } catch (error: any) {
+      toast.error('Erro ao exportar: ' + (error.message || 'Erro desconhecido'));
+    }
+  };
+
+  const handleExportAllHydroNetwork = async () => {
+    try {
+      const filtered = getFilteredData().filter((r: any) => r._source !== 'rdos');
+      if (filtered.length === 0) {
+        toast.error('Nenhum RDO para exportar');
+        return;
+      }
+      toast.info(`Preparando ${filtered.length} RDO(s) para HydroNetwork...`);
+      const { fetchCompleteRDO, downloadJSON } = await import('@/lib/hydroNetworkExporter');
+      
+      const results = await Promise.all(filtered.map((rdo: any) => fetchCompleteRDO(rdo.id)));
+      const validResults = results.filter(Boolean);
+
+      const exportPayload = {
+        format: 'HydroNetwork',
+        version: '1.0',
+        source: 'ConstruData',
+        exported_at: new Date().toISOString(),
+        total: validResults.length,
+        data: validResults,
+      };
+      const fileName = `HydroNetwork-RDOs-${new Date().toISOString().split('T')[0]}.json`;
+      downloadJSON(exportPayload, fileName);
+      toast.success(`${validResults.length} RDO(s) exportado(s) para HydroNetwork!`);
+    } catch (error: any) {
+      toast.error('Erro ao exportar: ' + (error.message || 'Erro desconhecido'));
+    }
+  };
+
   const handleExportSingleRDO = async (rdo: any) => {
     try {
       // Fetch complete RDO data with all relationships
@@ -578,7 +630,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
               </Select>
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 flex-wrap">
               <Button onClick={handleExportCSV} variant="outline" className="flex-1">
                 <Download className="w-4 h-4 mr-2" />
                 CSV
@@ -586,6 +638,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
               <Button onClick={handleExportPDF} className="flex-1">
                 <Download className="w-4 h-4 mr-2" />
                 PDF
+              </Button>
+              <Button onClick={handleExportAllHydroNetwork} variant="outline" className="flex-1 text-xs">
+                <FileJson className="w-4 h-4 mr-2" />
+                HydroNetwork
               </Button>
             </div>
           </div>
@@ -816,12 +872,16 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
             <p className="text-xs text-muted-foreground">
               Ao ativar esta opção, serviços com o mesmo nome e unidade serão somados e exibidos como um único item no PDF.
             </p>
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end flex-wrap">
               <Button type="button" variant="outline" onClick={() => {
                 setExportingRdo(null);
                 setConsolidateServices(false);
               }}>
                 Cancelar
+              </Button>
+              <Button type="button" variant="outline" onClick={() => exportingRdo && handleExportHydroNetwork(exportingRdo)}>
+                <FileJson className="w-4 h-4 mr-2" />
+                HydroNetwork
               </Button>
               <Button type="button" variant="outline" onClick={() => exportingRdo && handleExportDXF(exportingRdo)}>
                 <Download className="w-4 h-4 mr-2" />
