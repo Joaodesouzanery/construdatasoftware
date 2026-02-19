@@ -1,6 +1,7 @@
 /**
  * HydroNetwork Exporter
  * Exports RDO data in a structured JSON format compatible with HydroNetwork.
+ * Includes ALL fields: project, site, weather, terrain, GPS, services, photos, observations.
  */
 
 import { supabase } from "@/lib/supabase";
@@ -8,9 +9,11 @@ import { supabase } from "@/lib/supabase";
 interface HydroNetworkRDO {
   id: string;
   report_date: string;
-  project: { name: string };
-  construction_site: { name: string; address: string | null };
-  service_front: { name: string };
+  created_at: string | null;
+  updated_at: string | null;
+  project: { name: string } | null;
+  construction_site: { name: string; address: string | null } | null;
+  service_front: { name: string } | null;
   weather: {
     temperature: number | null;
     humidity: number | null;
@@ -37,13 +40,14 @@ interface HydroNetworkRDO {
 }
 
 export async function fetchCompleteRDO(rdoId: string): Promise<HydroNetworkRDO | null> {
+  // Use LEFT joins (no !inner) so records are never filtered out
   const { data, error } = await supabase
     .from('daily_reports')
     .select(`
       *,
-      project:projects!inner(name),
-      construction_site:construction_sites!inner(name, address),
-      service_front:service_fronts!inner(name),
+      project:projects(name),
+      construction_site:construction_sites(name, address),
+      service_front:service_fronts(name),
       executed_services(
         quantity, unit, equipment_used,
         services_catalog(name),
@@ -53,7 +57,10 @@ export async function fetchCompleteRDO(rdoId: string): Promise<HydroNetworkRDO |
     .eq('id', rdoId)
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) {
+    console.error('Erro ao buscar RDO completo:', error);
+    return null;
+  }
 
   const { data: photos } = await supabase
     .from('rdo_validation_photos')
@@ -80,9 +87,13 @@ export async function fetchCompleteRDO(rdoId: string): Promise<HydroNetworkRDO |
   return {
     id: data.id,
     report_date: data.report_date,
-    project: { name: data.project.name },
-    construction_site: { name: data.construction_site.name, address: data.construction_site.address },
-    service_front: { name: data.service_front.name },
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    project: data.project ? { name: data.project.name } : null,
+    construction_site: data.construction_site
+      ? { name: data.construction_site.name, address: data.construction_site.address }
+      : null,
+    service_front: data.service_front ? { name: data.service_front.name } : null,
     weather: {
       temperature: data.temperature,
       humidity: data.humidity,
