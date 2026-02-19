@@ -281,23 +281,64 @@ export default function UnifiedReports() {
                               </span>
                             </div>
                             {report._type === 'rdo' ? (
-                              <div className="mt-1 text-sm text-muted-foreground">
-                                <span>{report.projects?.name || '-'}</span>
-                                <span className="mx-1">•</span>
-                                <span>{report.construction_sites?.name}</span>
-                                <span className="mx-1">•</span>
-                                <span>{report.service_fronts?.name}</span>
+                              <div className="mt-1 space-y-1">
+                                <div className="text-sm text-muted-foreground">
+                                  <span className="font-medium">{report.projects?.name || '-'}</span>
+                                  <span className="mx-1">•</span>
+                                  <span>{report.construction_sites?.name}</span>
+                                  <span className="mx-1">•</span>
+                                  <span>{report.service_fronts?.name}</span>
+                                </div>
                                 {report.executed_services?.length > 0 && (
-                                  <span className="ml-2 text-xs">({report.executed_services.length} serviço{report.executed_services.length > 1 ? 's' : ''})</span>
+                                  <div className="space-y-0.5 ml-1">
+                                    {report.executed_services.map((es: any, i: number) => (
+                                      <div key={i} className="text-xs border-l-2 border-blue-400 pl-2 text-muted-foreground">
+                                        {es.services_catalog?.name || 'Serviço'} — {es.quantity} {es.unit}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {(report.weather_description || report.temperature) && (
+                                  <div className="text-xs text-muted-foreground">
+                                    🌤 {report.weather_description || ''} {report.temperature ? `${report.temperature}°C` : ''} {report.humidity ? `| ${report.humidity}% umid.` : ''}
+                                  </div>
+                                )}
+                                {report.terrain_condition && (
+                                  <div className="text-xs text-muted-foreground">🏗 Terreno: {report.terrain_condition}</div>
+                                )}
+                                {report.general_observations && (
+                                  <div className="text-xs text-muted-foreground mt-1 italic line-clamp-2">📝 {report.general_observations}</div>
+                                )}
+                                {report.gps_location && (
+                                  <div className="text-xs text-muted-foreground">📍 GPS: {report.gps_location}</div>
                                 )}
                               </div>
                             ) : (
-                              <div className="mt-1 text-sm text-muted-foreground">
-                                <span>Equipe: {report.team_name}</span>
-                                <span className="mx-1">•</span>
-                                <span>OS: {report.os_number}</span>
-                                <span className="mx-1">•</span>
-                                <span>{report.client_name}</span>
+                              <div className="mt-1 space-y-1">
+                                <div className="text-sm text-muted-foreground">
+                                  <span className="font-medium">Equipe: {report.team_name}</span>
+                                  <span className="mx-1">•</span>
+                                  <span>OS: {report.os_number}</span>
+                                  <span className="mx-1">•</span>
+                                  <span>{report.client_name}</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  <MapPin className="inline h-3 w-3 mr-1" />{report.address}
+                                  {report.address_complement && ` — ${report.address_complement}`}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Serviço: {report.service_type}
+                                  {report.connection_type && ` | Tipo: ${report.connection_type}`}
+                                  {report.water_meter_number && ` | Hidrômetro: ${report.water_meter_number}`}
+                                </div>
+                                {report.observations && (
+                                  <div className="text-xs text-muted-foreground italic line-clamp-2">📝 {report.observations}</div>
+                                )}
+                                {report.photos_urls?.length > 0 && (
+                                  <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
+                                    <ImageIcon className="h-3 w-3 mr-1" />{report.photos_urls.length} foto{report.photos_urls.length > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
                               </div>
                             )}
                           </div>
@@ -314,20 +355,37 @@ export default function UnifiedReports() {
                 <Card key={rdo.id}>
                   <CardContent className="pt-4 pb-4">
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex-1">
                         <div className="font-semibold">
                           {format(new Date(rdo.report_date + 'T12:00:00'), "dd/MM/yyyy - EEEE", { locale: ptBR })}
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {rdo.construction_sites?.name} | {rdo.service_fronts?.name}
+                          {rdo.projects?.name} | {rdo.construction_sites?.name} | {rdo.service_fronts?.name}
                         </div>
+                        {(rdo.weather_description || rdo.temperature) && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            🌤 {rdo.weather_description || ''} {rdo.temperature ? `${rdo.temperature}°C` : ''} {rdo.humidity ? `| ${rdo.humidity}%` : ''} {rdo.terrain_condition ? `| Terreno: ${rdo.terrain_condition}` : ''}
+                          </div>
+                        )}
+                        {rdo.gps_location && (
+                          <div className="text-xs text-muted-foreground">📍 {rdo.gps_location}</div>
+                        )}
                         <div className="mt-2 space-y-1">
                           {rdo.executed_services?.map((es: any, idx: number) => (
                             <div key={idx} className="text-sm border-l-2 border-blue-400 pl-2">
-                              {es.services_catalog?.name} - {es.quantity} {es.unit}
+                              {es.services_catalog?.name} — {es.quantity} {es.unit}
                             </div>
                           ))}
                         </div>
+                        {rdo.general_observations && (
+                          <div className="text-xs text-muted-foreground mt-2 italic line-clamp-3">📝 {rdo.general_observations}</div>
+                        )}
+                        {rdo.visits && (
+                          <div className="text-xs text-muted-foreground mt-1">👥 Visitas: {rdo.visits}</div>
+                        )}
+                        {rdo.occurrences_summary && (
+                          <div className="text-xs text-muted-foreground mt-1">⚠️ {rdo.occurrences_summary}</div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

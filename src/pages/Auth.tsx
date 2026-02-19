@@ -46,21 +46,35 @@ const Auth = () => {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Check if onboarding is completed
-        const { data: profile } = await supabase
+    const redirectAfterAuth = async (userId: string) => {
+      try {
+        const { data: profile, error } = await supabase
           .from('user_profiles')
           .select('onboarding_completed')
-          .eq('user_id', session.user.id)
-          .single();
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error checking profile:', error);
+          navigate('/onboarding');
+          return;
+        }
 
         if (profile?.onboarding_completed) {
           navigate('/dashboard');
         } else {
           navigate('/onboarding');
         }
+      } catch (err) {
+        console.error('Error in redirect:', err);
+        navigate('/onboarding');
+      }
+    };
+
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await redirectAfterAuth(session.user.id);
       }
     };
     
@@ -68,17 +82,7 @@ const Auth = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('onboarding_completed')
-          .eq('user_id', session.user.id)
-          .single();
-
-        if (profile?.onboarding_completed) {
-          navigate('/dashboard');
-        } else {
-          navigate('/onboarding');
-        }
+        await redirectAfterAuth(session.user.id);
       }
     });
 
