@@ -41,6 +41,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [exportingRdo, setExportingRdo] = useState<any>(null);
   const [editingRdo, setEditingRdo] = useState<any>(null);
   const [consolidateServices, setConsolidateServices] = useState(false);
+  const [selectedRdoIds, setSelectedRdoIds] = useState<Set<string>>(new Set());
+  const [isBulkExporting, setIsBulkExporting] = useState(false);
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
@@ -542,6 +544,94 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     }
   };
 
+  const toggleRdoSelection = (id: string) => {
+    setSelectedRdoIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const filtered = getFilteredData().filter(r => r._source !== 'rdos');
+    if (selectedRdoIds.size === filtered.length) {
+      setSelectedRdoIds(new Set());
+    } else {
+      setSelectedRdoIds(new Set(filtered.map(r => r.id)));
+    }
+  };
+
+  const handleBulkExportPDF = async () => {
+    if (selectedRdoIds.size === 0) { toast.error('Selecione pelo menos um RDO'); return; }
+    setIsBulkExporting(true);
+    try {
+      const ids = Array.from(selectedRdoIds);
+      toast.info(`Gerando ${ids.length} PDF(s) completo(s)...`);
+      const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      for (let i = 0; i < ids.length; i += 5) {
+        const batch = ids.slice(i, i + 5);
+        const rdos = await Promise.all(batch.map(id => fetchFullRDOForExport(id)));
+        for (const rdo of rdos) {
+          if (!rdo) continue;
+          try {
+            const blob = await generateRDOReportPDF(rdo, consolidateServices, true);
+            if (blob) {
+              const projectName = rdo.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
+              zip.file(`RDO-${projectName}-${rdo.report_date}.pdf`, blob);
+            }
+          } catch (e) { console.error('Erro PDF:', e); }
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RDOs-Selecionados-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${ids.length} PDF(s) exportado(s) em ZIP!`);
+    } catch (error: any) {
+      toast.error('Erro ao exportar PDFs: ' + (error.message || 'Erro'));
+    } finally { setIsBulkExporting(false); }
+  };
+
+  const handleBulkExportHydroNetwork = async () => {
+    if (selectedRdoIds.size === 0) { toast.error('Selecione pelo menos um RDO'); return; }
+    setIsBulkExporting(true);
+    try {
+      const ids = Array.from(selectedRdoIds);
+      toast.info(`Exportando ${ids.length} RDO(s) para HydroNetwork...`);
+      const { fetchCompleteRDO, downloadJSON } = await import('@/lib/hydroNetworkExporter');
+
+      const validResults: any[] = [];
+      for (let i = 0; i < ids.length; i += 10) {
+        const batch = ids.slice(i, i + 10);
+        const results = await Promise.all(batch.map(id => fetchCompleteRDO(id)));
+        validResults.push(...results.filter(Boolean));
+      }
+
+      const exportPayload = {
+        format: 'HydroNetwork',
+        version: '1.0',
+        source: 'ConstruData',
+        exported_at: new Date().toISOString(),
+        total: validResults.length,
+        data: validResults,
+      };
+      downloadJSON(exportPayload, `HydroNetwork-Selecionados-${new Date().toISOString().split('T')[0]}.json`);
+      toast.success(`${validResults.length} RDO(s) exportado(s) para HydroNetwork!`);
+    } catch (error: any) {
+      toast.error('Erro: ' + (error.message || 'Erro'));
+    } finally { setIsBulkExporting(false); }
+  };
+
   const chartData = getChartData();
   const serviceData = getServiceDistribution();
 
@@ -709,19 +799,65 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         </CardContent>
       </Card>
 
+      {/* Bulk action bar */}
+      {selectedRdoIds.size > 0 && (
+        <Card className="border-primary">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-sm font-medium">
+                {selectedRdoIds.size} RDO(s) selecionado(s)
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedRdoIds(new Set())} disabled={isBulkExporting}>
+                  Limpar seleção
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleBulkExportHydroNetwork} disabled={isBulkExporting}>
+                  <FileJson className="w-4 h-4 mr-2" />
+                  HydroNetwork (JSON)
+                </Button>
+                <Button size="sm" onClick={handleBulkExportPDF} disabled={isBulkExporting}>
+                  <Download className="w-4 h-4 mr-2" />
+                  PDF (ZIP)
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* RDO List */}
       <Card>
         <CardHeader>
-          <CardTitle>Histórico Detalhado</CardTitle>
-          <CardDescription>{getFilteredData().length} RDOs encontrados</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Histórico Detalhado</CardTitle>
+              <CardDescription>{getFilteredData().length} RDOs encontrados</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="select-all"
+                checked={getFilteredData().filter(r => r._source !== 'rdos').length > 0 && selectedRdoIds.size === getFilteredData().filter(r => r._source !== 'rdos').length}
+                onCheckedChange={toggleSelectAll}
+              />
+              <Label htmlFor="select-all" className="text-sm">Selecionar todos</Label>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {getFilteredData().map(rdo => (
-              <Card key={rdo.id} className="bg-muted/50">
+              <Card key={rdo.id} className={`bg-muted/50 ${selectedRdoIds.has(rdo.id) ? 'ring-2 ring-primary' : ''}`}>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start mb-4">
-                    <div>
+                    <div className="flex items-start gap-3">
+                      {rdo._source !== 'rdos' && (
+                        <Checkbox
+                          checked={selectedRdoIds.has(rdo.id)}
+                          onCheckedChange={() => toggleRdoSelection(rdo.id)}
+                          className="mt-1"
+                        />
+                      )}
+                      <div>
                       <div className="font-semibold text-lg">
                         {new Date(rdo.report_date + 'T12:00:00').toLocaleDateString('pt-BR', { 
                           weekday: 'short',
@@ -746,6 +882,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                           )
                         )}
                       </div>
+                    </div>
                     </div>
                     <div className="flex gap-2">
                       {/* Botão Editar - apenas para daily_reports (não para rdos antigos) */}
