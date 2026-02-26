@@ -2,7 +2,7 @@ import { Shield, MessageCircle } from "lucide-react";
 
 const MaintenanceOverlay = () => {
   // Para remover o overlay, basta mudar esta variável para false ou deletar este componente
-  const isMaintenanceMode = false;
+  const isMaintenanceMode = true;
 
   if (!isMaintenanceMode) return null;
 
