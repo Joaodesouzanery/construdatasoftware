@@ -643,6 +643,95 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     } finally { setIsBulkExporting(false); }
   };
 
+  // Fetch RDO IDs filtered by current date range
+  const fetchFilteredRDOIds = async (): Promise<string[]> => {
+    const filtered = getFilteredData().filter(r => r._source !== 'rdos');
+    return filtered.map(r => r.id);
+  };
+
+  const handleExportPeriodSinglePDF = async () => {
+    setIsExportingPeriod(true);
+    try {
+      const ids = await fetchFilteredRDOIds();
+      if (ids.length === 0) { toast.error('Nenhum RDO no período selecionado'); return; }
+      toast.info(`Gerando PDF consolidado com ${ids.length} RDO(s)...`);
+
+      const { generateConsolidatedRDOPdf } = await import('@/lib/rdoConsolidatedPdfGenerator');
+
+      const allReports: any[] = [];
+      for (let i = 0; i < ids.length; i += 5) {
+        const batch = ids.slice(i, i + 5);
+        const results = await Promise.all(batch.map(id => fetchFullRDOForExport(id)));
+        allReports.push(...results.filter(Boolean));
+      }
+
+      if (allReports.length === 0) { toast.error('Nenhum dado encontrado'); return; }
+
+      // Determine date range for file name
+      const dates = allReports.map(r => r.report_date).sort();
+      const start = dates[0];
+      const end = dates[dates.length - 1];
+
+      const blob = await generateConsolidatedRDOPdf(allReports, start, end, (cur, total) => {
+        if (cur % 5 === 0 || cur === total) toast.info(`Processando RDO ${cur}/${total}...`);
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const projectName = allReports[0]?.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
+      a.download = `RDO-Consolidado-${projectName}-${start}_a_${end}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`PDF consolidado com ${allReports.length} RDO(s) gerado!`);
+    } catch (error: any) {
+      toast.error('Erro: ' + (error.message || 'Erro'));
+    } finally { setIsExportingPeriod(false); }
+  };
+
+  const handleExportPeriodZipPDF = async () => {
+    setIsExportingPeriod(true);
+    try {
+      const ids = await fetchFilteredRDOIds();
+      if (ids.length === 0) { toast.error('Nenhum RDO no período selecionado'); return; }
+      toast.info(`Gerando ${ids.length} PDF(s) individuais em ZIP...`);
+
+      const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      for (let i = 0; i < ids.length; i += 5) {
+        const batch = ids.slice(i, i + 5);
+        const rdosData = await Promise.all(batch.map(id => fetchFullRDOForExport(id)));
+        for (const rdo of rdosData) {
+          if (!rdo) continue;
+          try {
+            const blob = await generateRDOReportPDF(rdo, consolidateServices, true);
+            if (blob) {
+              const projectName = rdo.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
+              zip.file(`RDO-${projectName}-${rdo.report_date}.pdf`, blob);
+            }
+          } catch (e) { console.error('Erro PDF:', e); }
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RDOs-Periodo-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${ids.length} PDF(s) exportado(s) em ZIP!`);
+    } catch (error: any) {
+      toast.error('Erro: ' + (error.message || 'Erro'));
+    } finally { setIsExportingPeriod(false); }
+  };
+
   const chartData = getChartData();
   const serviceData = getServiceDistribution();
 
