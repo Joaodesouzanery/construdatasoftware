@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Filter, Trash2, Pencil, ImageIcon, ImageOff, FileJson } from "lucide-react";
+import { Download, Filter, Trash2, Pencil, ImageIcon, ImageOff, FileJson, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
@@ -36,6 +36,9 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [specificDate, setSpecificDate] = useState<string>("");
+  const [dateRangeStart, setDateRangeStart] = useState<string>("");
+  const [dateRangeEnd, setDateRangeEnd] = useState<string>("");
+  const [isExportingPeriod, setIsExportingPeriod] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingRdo, setDeletingRdo] = useState<any>(null);
   const [exportingRdo, setExportingRdo] = useState<any>(null);
@@ -75,7 +78,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     if (projectId) {
       loadRDOs();
     }
-  }, [projectId, selectedService, selectedPeriod, specificDate]);
+  }, [projectId, selectedService, selectedPeriod, specificDate, dateRangeStart, dateRangeEnd]);
 
   const loadRDOs = async () => {
     setIsLoading(true);
@@ -99,6 +102,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
       if (specificDate) {
         dailyReportsQuery = dailyReportsQuery.eq('report_date', specificDate);
+      } else if (dateRangeStart && dateRangeEnd) {
+        dailyReportsQuery = dailyReportsQuery
+          .gte('report_date', dateRangeStart)
+          .lte('report_date', dateRangeEnd);
       } else {
         dailyReportsQuery = dailyReportsQuery
           .gte('report_date', dateFilter.start)
@@ -128,6 +135,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
         if (specificDate) {
           rdosQuery = rdosQuery.eq('data', specificDate);
+        } else if (dateRangeStart && dateRangeEnd) {
+          rdosQuery = rdosQuery
+            .gte('data', dateRangeStart)
+            .lte('data', dateRangeEnd);
         } else {
           rdosQuery = rdosQuery
             .gte('data', dateFilter.start)
@@ -632,6 +643,95 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     } finally { setIsBulkExporting(false); }
   };
 
+  // Fetch RDO IDs filtered by current date range
+  const fetchFilteredRDOIds = async (): Promise<string[]> => {
+    const filtered = getFilteredData().filter(r => r._source !== 'rdos');
+    return filtered.map(r => r.id);
+  };
+
+  const handleExportPeriodSinglePDF = async () => {
+    setIsExportingPeriod(true);
+    try {
+      const ids = await fetchFilteredRDOIds();
+      if (ids.length === 0) { toast.error('Nenhum RDO no período selecionado'); return; }
+      toast.info(`Gerando PDF consolidado com ${ids.length} RDO(s)...`);
+
+      const { generateConsolidatedRDOPdf } = await import('@/lib/rdoConsolidatedPdfGenerator');
+
+      const allReports: any[] = [];
+      for (let i = 0; i < ids.length; i += 5) {
+        const batch = ids.slice(i, i + 5);
+        const results = await Promise.all(batch.map(id => fetchFullRDOForExport(id)));
+        allReports.push(...results.filter(Boolean));
+      }
+
+      if (allReports.length === 0) { toast.error('Nenhum dado encontrado'); return; }
+
+      // Determine date range for file name
+      const dates = allReports.map(r => r.report_date).sort();
+      const start = dates[0];
+      const end = dates[dates.length - 1];
+
+      const blob = await generateConsolidatedRDOPdf(allReports, start, end, (cur, total) => {
+        if (cur % 5 === 0 || cur === total) toast.info(`Processando RDO ${cur}/${total}...`);
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const projectName = allReports[0]?.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
+      a.download = `RDO-Consolidado-${projectName}-${start}_a_${end}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`PDF consolidado com ${allReports.length} RDO(s) gerado!`);
+    } catch (error: any) {
+      toast.error('Erro: ' + (error.message || 'Erro'));
+    } finally { setIsExportingPeriod(false); }
+  };
+
+  const handleExportPeriodZipPDF = async () => {
+    setIsExportingPeriod(true);
+    try {
+      const ids = await fetchFilteredRDOIds();
+      if (ids.length === 0) { toast.error('Nenhum RDO no período selecionado'); return; }
+      toast.info(`Gerando ${ids.length} PDF(s) individuais em ZIP...`);
+
+      const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      for (let i = 0; i < ids.length; i += 5) {
+        const batch = ids.slice(i, i + 5);
+        const rdosData = await Promise.all(batch.map(id => fetchFullRDOForExport(id)));
+        for (const rdo of rdosData) {
+          if (!rdo) continue;
+          try {
+            const blob = await generateRDOReportPDF(rdo, consolidateServices, true);
+            if (blob) {
+              const projectName = rdo.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
+              zip.file(`RDO-${projectName}-${rdo.report_date}.pdf`, blob);
+            }
+          } catch (e) { console.error('Erro PDF:', e); }
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RDOs-Periodo-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${ids.length} PDF(s) exportado(s) em ZIP!`);
+    } catch (error: any) {
+      toast.error('Erro: ' + (error.message || 'Erro'));
+    } finally { setIsExportingPeriod(false); }
+  };
+
   const chartData = getChartData();
   const serviceData = getServiceDistribution();
 
@@ -639,7 +739,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     <div className="space-y-6">
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Data Específica</label>
@@ -649,7 +749,11 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                   value={specificDate}
                   onChange={(e) => {
                     setSpecificDate(e.target.value);
-                    if (e.target.value) setSelectedPeriod("");
+                    if (e.target.value) {
+                      setSelectedPeriod("");
+                      setDateRangeStart("");
+                      setDateRangeEnd("");
+                    }
                   }}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
@@ -671,9 +775,13 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                 value={selectedPeriod} 
                 onValueChange={(value) => {
                   setSelectedPeriod(value);
-                  if (value) setSpecificDate("");
+                  if (value) {
+                    setSpecificDate("");
+                    setDateRangeStart("");
+                    setDateRangeEnd("");
+                  }
                 }}
-                disabled={!!specificDate}
+                disabled={!!specificDate || !!(dateRangeStart && dateRangeEnd)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o período" />
@@ -717,6 +825,77 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                 <FileJson className="w-4 h-4 mr-2" />
                 HydroNetwork
               </Button>
+            </div>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarRange className="w-4 h-4 text-primary" />
+              <label className="text-sm font-medium">Período Personalizado (De / Até)</label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">De</label>
+                <input
+                  type="date"
+                  value={dateRangeStart}
+                  onChange={(e) => {
+                    setDateRangeStart(e.target.value);
+                    if (e.target.value && dateRangeEnd) {
+                      setSpecificDate("");
+                      setSelectedPeriod("");
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Até</label>
+                <input
+                  type="date"
+                  value={dateRangeEnd}
+                  onChange={(e) => {
+                    setDateRangeEnd(e.target.value);
+                    if (dateRangeStart && e.target.value) {
+                      setSpecificDate("");
+                      setSelectedPeriod("");
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1"
+                  disabled={!dateRangeStart || !dateRangeEnd || isExportingPeriod}
+                  onClick={handleExportPeriodSinglePDF}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  PDF Único
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={!dateRangeStart || !dateRangeEnd || isExportingPeriod}
+                  onClick={handleExportPeriodZipPDF}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  ZIP PDFs
+                </Button>
+              </div>
+              {(dateRangeStart || dateRangeEnd) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setDateRangeStart(""); setDateRangeEnd(""); }}
+                >
+                  Limpar período
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
