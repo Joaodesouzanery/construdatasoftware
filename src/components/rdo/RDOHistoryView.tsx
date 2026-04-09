@@ -102,6 +102,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
       if (specificDate) {
         dailyReportsQuery = dailyReportsQuery.eq('report_date', specificDate);
+      } else if (dateRangeStart && dateRangeEnd) {
+        dailyReportsQuery = dailyReportsQuery
+          .gte('report_date', dateRangeStart)
+          .lte('report_date', dateRangeEnd);
       } else {
         dailyReportsQuery = dailyReportsQuery
           .gte('report_date', dateFilter.start)
