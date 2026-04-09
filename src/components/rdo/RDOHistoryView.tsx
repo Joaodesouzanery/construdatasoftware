@@ -36,6 +36,9 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [selectedService, setSelectedService] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [specificDate, setSpecificDate] = useState<string>("");
+  const [dateRangeStart, setDateRangeStart] = useState<string>("");
+  const [dateRangeEnd, setDateRangeEnd] = useState<string>("");
+  const [isExportingPeriod, setIsExportingPeriod] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingRdo, setDeletingRdo] = useState<any>(null);
   const [exportingRdo, setExportingRdo] = useState<any>(null);
