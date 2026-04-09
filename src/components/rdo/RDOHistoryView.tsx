@@ -78,7 +78,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     if (projectId) {
       loadRDOs();
     }
-  }, [projectId, selectedService, selectedPeriod, specificDate]);
+  }, [projectId, selectedService, selectedPeriod, specificDate, dateRangeStart, dateRangeEnd]);
 
   const loadRDOs = async () => {
     setIsLoading(true);
