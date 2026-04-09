@@ -135,6 +135,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
         if (specificDate) {
           rdosQuery = rdosQuery.eq('data', specificDate);
+        } else if (dateRangeStart && dateRangeEnd) {
+          rdosQuery = rdosQuery
+            .gte('data', dateRangeStart)
+            .lte('data', dateRangeEnd);
         } else {
           rdosQuery = rdosQuery
             .gte('data', dateFilter.start)
