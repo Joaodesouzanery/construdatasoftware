@@ -739,7 +739,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     <div className="space-y-6">
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Data Específica</label>
@@ -749,7 +749,11 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                   value={specificDate}
                   onChange={(e) => {
                     setSpecificDate(e.target.value);
-                    if (e.target.value) setSelectedPeriod("");
+                    if (e.target.value) {
+                      setSelectedPeriod("");
+                      setDateRangeStart("");
+                      setDateRangeEnd("");
+                    }
                   }}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
@@ -771,9 +775,13 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                 value={selectedPeriod} 
                 onValueChange={(value) => {
                   setSelectedPeriod(value);
-                  if (value) setSpecificDate("");
+                  if (value) {
+                    setSpecificDate("");
+                    setDateRangeStart("");
+                    setDateRangeEnd("");
+                  }
                 }}
-                disabled={!!specificDate}
+                disabled={!!specificDate || !!(dateRangeStart && dateRangeEnd)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o período" />
@@ -817,6 +825,77 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                 <FileJson className="w-4 h-4 mr-2" />
                 HydroNetwork
               </Button>
+            </div>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarRange className="w-4 h-4 text-primary" />
+              <label className="text-sm font-medium">Período Personalizado (De / Até)</label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">De</label>
+                <input
+                  type="date"
+                  value={dateRangeStart}
+                  onChange={(e) => {
+                    setDateRangeStart(e.target.value);
+                    if (e.target.value && dateRangeEnd) {
+                      setSpecificDate("");
+                      setSelectedPeriod("");
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Até</label>
+                <input
+                  type="date"
+                  value={dateRangeEnd}
+                  onChange={(e) => {
+                    setDateRangeEnd(e.target.value);
+                    if (dateRangeStart && e.target.value) {
+                      setSpecificDate("");
+                      setSelectedPeriod("");
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1"
+                  disabled={!dateRangeStart || !dateRangeEnd || isExportingPeriod}
+                  onClick={handleExportPeriodSinglePDF}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  PDF Único
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={!dateRangeStart || !dateRangeEnd || isExportingPeriod}
+                  onClick={handleExportPeriodZipPDF}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  ZIP PDFs
+                </Button>
+              </div>
+              {(dateRangeStart || dateRangeEnd) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setDateRangeStart(""); setDateRangeEnd(""); }}
+                >
+                  Limpar período
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
