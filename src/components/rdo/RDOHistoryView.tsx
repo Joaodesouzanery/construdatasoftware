@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, Filter, Trash2, Pencil, ImageIcon, ImageOff, FileJson } from "lucide-react";
+import { Download, Filter, Trash2, Pencil, ImageIcon, ImageOff, FileJson, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
