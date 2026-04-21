@@ -48,7 +48,7 @@ interface InventoryItem {
   supplier: string | null;
   unit_cost: number;
   notes: string | null;
-  projects: { name: string };
+  projects: { name: string } | null;
 }
 
 const Inventory = () => {
@@ -341,7 +341,7 @@ const Inventory = () => {
           item.material_code || '',
           item.material_name,
           item.category || '',
-          item.projects.name,
+          item.projects?.name || '',
           item.quantity_available,
           item.unit || '',
           item.minimum_stock,
@@ -381,7 +381,7 @@ const Inventory = () => {
         item.material_code || '-',
         item.material_name,
         item.category || '-',
-        item.projects.name,
+        item.projects?.name || '-',
         item.quantity_available.toString(),
         item.minimum_stock.toString(),
         needsToBuy.toString(),
@@ -897,7 +897,7 @@ const Inventory = () => {
                               <Badge variant="outline">{item.category}</Badge>
                             ) : '-'}
                           </TableCell>
-                          <TableCell>{item.projects.name}</TableCell>
+                          <TableCell>{item.projects?.name || '-'}</TableCell>
                           <TableCell>
                             <span className={item.quantity_available <= item.minimum_stock ? 'text-destructive font-semibold' : ''}>
                               {item.quantity_available}
