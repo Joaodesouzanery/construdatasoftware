@@ -48,7 +48,7 @@ interface InventoryItem {
   supplier: string | null;
   unit_cost: number;
   notes: string | null;
-  projects: { name: string };
+  projects: { name: string } | null;
 }
 
 const Inventory = () => {
