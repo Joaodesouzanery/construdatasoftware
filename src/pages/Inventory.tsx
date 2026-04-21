@@ -341,7 +341,7 @@ const Inventory = () => {
           item.material_code || '',
           item.material_name,
           item.category || '',
-          item.projects.name,
+          item.projects?.name || '',
           item.quantity_available,
           item.unit || '',
           item.minimum_stock,
