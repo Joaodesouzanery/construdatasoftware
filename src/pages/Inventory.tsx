@@ -381,7 +381,7 @@ const Inventory = () => {
         item.material_code || '-',
         item.material_name,
         item.category || '-',
-        item.projects.name,
+        item.projects?.name || '-',
         item.quantity_available.toString(),
         item.minimum_stock.toString(),
         needsToBuy.toString(),
