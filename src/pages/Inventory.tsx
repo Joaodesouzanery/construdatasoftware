@@ -897,7 +897,7 @@ const Inventory = () => {
                               <Badge variant="outline">{item.category}</Badge>
                             ) : '-'}
                           </TableCell>
-                          <TableCell>{item.projects.name}</TableCell>
+                          <TableCell>{item.projects?.name || '-'}</TableCell>
                           <TableCell>
                             <span className={item.quantity_available <= item.minimum_stock ? 'text-destructive font-semibold' : ''}>
                               {item.quantity_available}
