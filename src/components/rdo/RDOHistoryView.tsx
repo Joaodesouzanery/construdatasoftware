@@ -24,6 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { EditRDODialog } from "./EditRDODialog";
+import { downloadRdoSabespPdf } from "@/lib/rdoSabespPdfGenerator";
 
 interface RDOHistoryViewProps {
   projectId: string;
@@ -175,6 +176,26 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         }));
         allRdos.push(...convertedRdos);
       }
+
+      // Adicionar RDOs Sabesp
+      try {
+        let sabespQuery = supabase.from('rdo_sabesp' as any).select('*').eq('project_id', projectId);
+        if (specificDate) sabespQuery = sabespQuery.eq('report_date', specificDate);
+        else if (dateRangeStart && dateRangeEnd) sabespQuery = sabespQuery.gte('report_date', dateRangeStart).lte('report_date', dateRangeEnd);
+        else sabespQuery = sabespQuery.gte('report_date', dateFilter.start).lte('report_date', dateFilter.end);
+        const { data: sabespData } = await sabespQuery.order('report_date', { ascending: false });
+        if (sabespData) {
+          allRdos.push(...sabespData.map((r: any) => ({
+            ...r,
+            construction_sites: { name: r.rua_beco || 'Rua não especificada' },
+            service_fronts: { name: r.encarregado || 'Encarregado não especificado' },
+            executed_services: [],
+            justifications: [],
+            _source: 'rdo_sabesp',
+            _sabesp_full: r,
+          })));
+        }
+      } catch (e) { console.error('Erro carregando RDOs Sabesp:', e); }
 
       console.log("Total de RDOs carregados:", allRdos.length);
       console.log("- Daily Reports:", dailyReportsData?.length || 0);

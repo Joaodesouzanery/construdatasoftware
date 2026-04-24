@@ -20,6 +20,7 @@ import RDO from "./pages/RDO";
 import RDONew from "./pages/RDONew";
 import RDOHistory from "./pages/RDOHistory";
 import RDOPhotos from "./pages/RDOPhotos";
+import RdoSabesp from "./pages/RdoSabesp";
 import Alerts from "./pages/Alerts";
 import Employees from "./pages/Employees";
 import Settings from "./pages/Settings";
@@ -105,6 +106,7 @@ const AppContent = () => {
         <Route path="/rdo-new" element={<RDONew />} />
         <Route path="/rdo-history" element={<RDOHistory />} />
         <Route path="/rdo-photos" element={<RDOPhotos />} />
+        <Route path="/rdo-sabesp" element={<RdoSabesp />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/settings" element={<Settings />} />

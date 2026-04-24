@@ -31,6 +31,7 @@ const menuItems = [
 const rdoItems = [
   { title: "Novo RDO", url: "/rdo-new", icon: Plus },
   { title: "Histórico RDO", url: "/rdo-history", icon: History },
+  { title: "RDO Sabesp", url: "/rdo-sabesp", icon: FileText },
   { title: "Fotos de Validação", url: "/rdo-photos", icon: Image },
   { title: "Controle de Produção", url: "/production-control", icon: ClipboardList },
   { title: "Relatório de Ligações", url: "/connection-reports", icon: FileText },
