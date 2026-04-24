@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import "jspdf-autotable";
 import logoSabesp from "@/assets/logo-sabesp.png";
 import logoCslnr from "@/assets/logo-cslnr.jpg";
 import { CRIADOUROS } from "./rdoSabespCatalog";
@@ -125,7 +125,7 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   const horarios = rdo.horarios || {};
   const para = rdo.paralisacoes || [];
 
-  autoTable(doc, {
+  (doc as any).autoTable({
     startY: y,
     margin: { left: margin, right: margin },
     styles: { fontSize: 7, cellPadding: 1.2, lineColor: [0, 0, 0], lineWidth: 0.1 },
@@ -148,7 +148,7 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   // === Mão de obra ===
   const mo = (rdo.mao_de_obra || []).filter((m: any) => m.cargo);
   if (mo.length) {
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: y,
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
@@ -163,7 +163,7 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   // === Equipamentos ===
   const eq = (rdo.equipamentos || []).filter((e: any) => e.descricao);
   if (eq.length) {
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: y,
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
@@ -179,7 +179,7 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   const renderServicos = (titulo: string, lista: any[]) => {
     const filt = (lista || []).filter((s: any) => Number(s.quantidade) > 0);
     if (!filt.length) return;
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: y,
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
