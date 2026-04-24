@@ -3274,6 +3274,95 @@ export type Database = {
           },
         ]
       }
+      rdo_sabesp: {
+        Row: {
+          condicoes_climaticas: Json | null
+          created_at: string
+          created_by_user_id: string
+          criadouro: string | null
+          criadouro_outro: string | null
+          encarregado: string | null
+          epi_utilizado: boolean | null
+          equipamentos: Json | null
+          horarios: Json | null
+          id: string
+          mao_de_obra: Json | null
+          observacoes: string | null
+          paralisacoes: Json | null
+          planilha_foto_url: string | null
+          project_id: string
+          qualidade: Json | null
+          report_date: string
+          responsavel_consorcio: string | null
+          responsavel_empreiteira: string | null
+          rua_beco: string | null
+          servicos_agua: Json | null
+          servicos_esgoto: Json | null
+          updated_at: string
+          whatsapp_text: string | null
+        }
+        Insert: {
+          condicoes_climaticas?: Json | null
+          created_at?: string
+          created_by_user_id: string
+          criadouro?: string | null
+          criadouro_outro?: string | null
+          encarregado?: string | null
+          epi_utilizado?: boolean | null
+          equipamentos?: Json | null
+          horarios?: Json | null
+          id?: string
+          mao_de_obra?: Json | null
+          observacoes?: string | null
+          paralisacoes?: Json | null
+          planilha_foto_url?: string | null
+          project_id: string
+          qualidade?: Json | null
+          report_date: string
+          responsavel_consorcio?: string | null
+          responsavel_empreiteira?: string | null
+          rua_beco?: string | null
+          servicos_agua?: Json | null
+          servicos_esgoto?: Json | null
+          updated_at?: string
+          whatsapp_text?: string | null
+        }
+        Update: {
+          condicoes_climaticas?: Json | null
+          created_at?: string
+          created_by_user_id?: string
+          criadouro?: string | null
+          criadouro_outro?: string | null
+          encarregado?: string | null
+          epi_utilizado?: boolean | null
+          equipamentos?: Json | null
+          horarios?: Json | null
+          id?: string
+          mao_de_obra?: Json | null
+          observacoes?: string | null
+          paralisacoes?: Json | null
+          planilha_foto_url?: string | null
+          project_id?: string
+          qualidade?: Json | null
+          report_date?: string
+          responsavel_consorcio?: string | null
+          responsavel_empreiteira?: string | null
+          rua_beco?: string | null
+          servicos_agua?: Json | null
+          servicos_esgoto?: Json | null
+          updated_at?: string
+          whatsapp_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_sabesp_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rdo_validation_photos: {
         Row: {
           created_by_user_id: string
