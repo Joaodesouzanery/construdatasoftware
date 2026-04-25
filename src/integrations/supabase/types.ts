@@ -3276,6 +3276,8 @@ export type Database = {
       }
       rdo_sabesp: {
         Row: {
+          assinatura_consorcio_url: string | null
+          assinatura_empreiteira_url: string | null
           condicoes_climaticas: Json | null
           created_at: string
           created_by_user_id: string
@@ -3288,9 +3290,10 @@ export type Database = {
           id: string
           mao_de_obra: Json | null
           observacoes: string | null
+          paralisacao_outro: string | null
           paralisacoes: Json | null
           planilha_foto_url: string | null
-          project_id: string
+          project_id: string | null
           qualidade: Json | null
           report_date: string
           responsavel_consorcio: string | null
@@ -3302,6 +3305,8 @@ export type Database = {
           whatsapp_text: string | null
         }
         Insert: {
+          assinatura_consorcio_url?: string | null
+          assinatura_empreiteira_url?: string | null
           condicoes_climaticas?: Json | null
           created_at?: string
           created_by_user_id: string
@@ -3314,9 +3319,10 @@ export type Database = {
           id?: string
           mao_de_obra?: Json | null
           observacoes?: string | null
+          paralisacao_outro?: string | null
           paralisacoes?: Json | null
           planilha_foto_url?: string | null
-          project_id: string
+          project_id?: string | null
           qualidade?: Json | null
           report_date: string
           responsavel_consorcio?: string | null
@@ -3328,6 +3334,8 @@ export type Database = {
           whatsapp_text?: string | null
         }
         Update: {
+          assinatura_consorcio_url?: string | null
+          assinatura_empreiteira_url?: string | null
           condicoes_climaticas?: Json | null
           created_at?: string
           created_by_user_id?: string
@@ -3340,9 +3348,10 @@ export type Database = {
           id?: string
           mao_de_obra?: Json | null
           observacoes?: string | null
+          paralisacao_outro?: string | null
           paralisacoes?: Json | null
           planilha_foto_url?: string | null
-          project_id?: string
+          project_id?: string | null
           qualidade?: Json | null
           report_date?: string
           responsavel_consorcio?: string | null
