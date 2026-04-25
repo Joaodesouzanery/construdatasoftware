@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Plus, Upload, MessageSquare, Loader2, FileDown } from "lucide-react";
+import { Upload, MessageSquare, Loader2, FileDown, Save, ArrowRight, ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import {
@@ -15,12 +12,9 @@ import {
   SERVICOS_AGUA,
   CARGOS_PADRAO,
   EQUIPAMENTOS_PADRAO,
-  CRIADOUROS,
-  MOTIVOS_PARALISACAO,
 } from "@/lib/rdoSabespCatalog";
 import { downloadRdoSabespPdf } from "@/lib/rdoSabespPdfGenerator";
-import logoSabesp from "@/assets/logo-sabesp.png";
-import logoCslnr from "@/assets/logo-cslnr.jpg";
+import { RdoSabespSheet, getMissingRequired, REQUIRED_LABELS } from "./RdoSabespSheet";
 
 interface Props {
   projectId: string;
@@ -35,7 +29,7 @@ const empty = (projectId: string) => ({
   rua_beco: "",
   criadouro: "",
   criadouro_outro: "",
-  epi_utilizado: true,
+  epi_utilizado: null as boolean | null,
   condicoes_climaticas: { manha: "", tarde: "", noite: "" },
   qualidade: { ordem_servico: false, bandeirola: false, projeto: false, obs: "" },
   paralisacoes: [] as any[],
@@ -51,8 +45,11 @@ const empty = (projectId: string) => ({
   whatsapp_text: null as string | null,
 });
 
+type Step = "import" | "edit" | "review";
+
 export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
   const [data, setData] = useState<any>(() => initialData || empty(projectId));
+  const [step, setStep] = useState<Step>(initialData ? "edit" : "import");
   const [saving, setSaving] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [whatsappText, setWhatsappText] = useState("");
@@ -62,7 +59,10 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       const copy = JSON.parse(JSON.stringify(d));
       const parts = path.split(".");
       let cur = copy;
-      for (let i = 0; i < parts.length - 1; i++) cur = cur[parts[i]];
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (cur[parts[i]] === undefined || cur[parts[i]] === null) cur[parts[i]] = {};
+        cur = cur[parts[i]];
+      }
       cur[parts[parts.length - 1]] = val;
       return copy;
     });
@@ -72,31 +72,30 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
     setData((d: any) => {
       const merged = { ...d };
       for (const k of Object.keys(extracted || {})) {
-        if (extracted[k] !== "" && extracted[k] !== null && extracted[k] !== undefined) {
-          // Para arrays de serviços, fazer match por descrição/código
-          if (k === "servicos_esgoto" || k === "servicos_agua") {
-            const list = [...d[k]];
-            for (const s of extracted[k]) {
-              const idx = list.findIndex(
-                (x: any) =>
-                  (s.codigo && x.codigo === s.codigo) ||
-                  (s.descricao && x.descricao?.toLowerCase().includes(s.descricao.toLowerCase().slice(0, 15))),
-              );
-              if (idx >= 0) list[idx] = { ...list[idx], quantidade: Number(s.quantidade) || 0 };
-            }
-            merged[k] = list;
-          } else if (k === "mao_de_obra" || k === "equipamentos") {
-            const list = [...d[k]];
-            for (const item of extracted[k]) {
-              const key = k === "mao_de_obra" ? "cargo" : "descricao";
-              const idx = list.findIndex((x: any) => x[key]?.toUpperCase() === item[key]?.toUpperCase());
-              if (idx >= 0) list[idx] = { ...list[idx], terc: Number(item.terc) || 0, contrat: Number(item.contrat) || 0 };
-              else list.push(item);
-            }
-            merged[k] = list;
-          } else {
-            merged[k] = extracted[k];
+        const v = extracted[k];
+        if (v === "" || v === null || v === undefined) continue;
+        if (k === "servicos_esgoto" || k === "servicos_agua") {
+          const list = [...d[k]];
+          for (const s of v) {
+            const idx = list.findIndex(
+              (x: any) =>
+                (s.codigo && x.codigo === s.codigo) ||
+                (s.descricao && x.descricao?.toLowerCase().includes(s.descricao.toLowerCase().slice(0, 15))),
+            );
+            if (idx >= 0) list[idx] = { ...list[idx], quantidade: Number(s.quantidade) || 0 };
           }
+          merged[k] = list;
+        } else if (k === "mao_de_obra" || k === "equipamentos") {
+          const list = [...d[k]];
+          for (const item of v) {
+            const key = k === "mao_de_obra" ? "cargo" : "descricao";
+            const idx = list.findIndex((x: any) => x[key]?.toUpperCase() === item[key]?.toUpperCase());
+            if (idx >= 0) list[idx] = { ...list[idx], terc: Number(item.terc) || 0, contrat: Number(item.contrat) || 0 };
+            else list.push(item);
+          }
+          merged[k] = list;
+        } else {
+          merged[k] = v;
         }
       }
       return merged;
@@ -115,9 +114,11 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
 
       const path = `${projectId}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from("rdo-sabesp-photos").upload(path, file);
-      if (upErr) throw upErr;
-      const { data: signed } = await supabase.storage.from("rdo-sabesp-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
-      set("planilha_foto_url", signed?.signedUrl || null);
+      if (upErr) console.warn("upload warn:", upErr);
+      else {
+        const { data: signed } = await supabase.storage.from("rdo-sabesp-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+        set("planilha_foto_url", signed?.signedUrl || null);
+      }
 
       const { data: aiData, error: aiErr } = await supabase.functions.invoke("parse-rdo-sabesp", {
         body: { mode: "image", image_base64: base64 },
@@ -125,7 +126,8 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       if (aiErr) throw aiErr;
       if (aiData?.error) throw new Error(aiData.error);
       mergeExtracted(aiData?.data || {});
-      toast.success("Foto processada e campos preenchidos!");
+      toast.success("Foto processada! Confira os dados.");
+      setStep("edit");
     } catch (e: any) {
       toast.error("Erro ao processar foto: " + (e.message || e));
     } finally {
@@ -144,7 +146,8 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       if (aiErr) throw aiErr;
       if (aiData?.error) throw new Error(aiData.error);
       mergeExtracted(aiData?.data || {});
-      toast.success("Texto interpretado e campos preenchidos!");
+      toast.success("Texto interpretado! Confira os dados.");
+      setStep("edit");
     } catch (e: any) {
       toast.error("Erro ao interpretar texto: " + (e.message || e));
     } finally {
@@ -175,239 +178,122 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
     }
   };
 
+  const missing = getMissingRequired(data);
+  const missingLabels = Array.from(missing).map((k) => REQUIRED_LABELS[k] || k);
+  const uniqueMissingLabels = Array.from(new Set(missingLabels));
+
   return (
     <div className="space-y-4">
-      {/* Cabeçalho com logos */}
-      <Card>
-        <CardContent className="p-4 flex items-center justify-between">
-          <img src={logoSabesp} alt="Sabesp" className="h-12 object-contain" />
-          <div className="text-center">
-            <h2 className="font-bold text-lg">RELATÓRIO DIÁRIO DE OBRA (RDO)</h2>
-            <p className="text-xs text-muted-foreground">SABESP - Consórcio Se Liga Na Rede</p>
+      {/* Stepper */}
+      <div className="flex items-center justify-center gap-2 text-xs">
+        {[
+          { k: "import", label: "1. Importar (opcional)" },
+          { k: "edit", label: "2. Preencher" },
+          { k: "review", label: "3. Pré-visualização" },
+        ].map((s, i, arr) => (
+          <div key={s.k} className="flex items-center gap-2">
+            <button
+              onClick={() => setStep(s.k as Step)}
+              className={`px-3 py-1.5 rounded-full font-medium ${step === s.k ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+            >
+              {s.label}
+            </button>
+            {i < arr.length - 1 && <ArrowRight className="w-3 h-3 text-muted-foreground" />}
           </div>
-          <img src={logoCslnr} alt="CSLNR" className="h-14 object-contain" />
-        </CardContent>
-      </Card>
+        ))}
+      </div>
 
-      {/* Importação inteligente */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Preenchimento automático (opcional)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="foto">
-            <TabsList>
-              <TabsTrigger value="foto"><Upload className="w-4 h-4 mr-1" /> Foto da planilha</TabsTrigger>
-              <TabsTrigger value="texto"><MessageSquare className="w-4 h-4 mr-1" /> Texto WhatsApp</TabsTrigger>
-            </TabsList>
-            <TabsContent value="foto" className="space-y-2">
-              <Input type="file" accept="image/*" disabled={parsing} onChange={(e) => e.target.files?.[0] && handlePhoto(e.target.files[0])} />
-              {parsing && <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> Lendo planilha com IA...</p>}
-            </TabsContent>
-            <TabsContent value="texto" className="space-y-2">
-              <Textarea rows={5} placeholder="Cole aqui a mensagem do WhatsApp com os dados do RDO..." value={whatsappText} onChange={(e) => setWhatsappText(e.target.value)} />
-              <Button size="sm" onClick={handleWhatsapp} disabled={parsing || !whatsappText.trim()}>
-                {parsing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <MessageSquare className="w-4 h-4 mr-1" />}
-                Interpretar texto
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Identificação */}
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Identificação</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div><Label>Data</Label><Input type="date" value={data.report_date} onChange={(e) => set("report_date", e.target.value)} /></div>
-          <div><Label>Encarregado</Label><Input value={data.encarregado || ""} onChange={(e) => set("encarregado", e.target.value)} /></div>
-          <div><Label>Rua / Beco</Label><Input value={data.rua_beco || ""} onChange={(e) => set("rua_beco", e.target.value)} /></div>
-          <div>
-            <Label>Criadouro</Label>
-            <Select value={data.criadouro || ""} onValueChange={(v) => set("criadouro", v)}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>{CRIADOUROS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          {data.criadouro === "outro" && (
-            <div><Label>Especificar</Label><Input value={data.criadouro_outro || ""} onChange={(e) => set("criadouro_outro", e.target.value)} /></div>
-          )}
-          <div className="flex items-center gap-2 pt-6">
-            <Checkbox checked={!!data.epi_utilizado} onCheckedChange={(v) => set("epi_utilizado", !!v)} />
-            <Label>Todos utilizando EPIs</Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Condições / Qualidade / Horários */}
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Condições, Qualidade e Horários</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-2">
-            <Label>Condições climáticas</Label>
-            {(["manha", "tarde", "noite"] as const).map((p) => (
-              <div key={p} className="flex items-center gap-2">
-                <span className="capitalize w-16 text-xs">{p}</span>
-                <Select value={data.condicoes_climaticas?.[p] || ""} onValueChange={(v) => set(`condicoes_climaticas.${p}`, v)}>
-                  <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bom">Bom</SelectItem>
-                    <SelectItem value="chuva">Chuva</SelectItem>
-                    <SelectItem value="improdutivo">Improdutivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label>Qualidade</Label>
-            {[
-              { key: "ordem_servico", label: "Ordem de Serviço" },
-              { key: "bandeirola", label: "Bandeirola" },
-              { key: "projeto", label: "Projeto" },
-            ].map((q) => (
-              <div key={q.key} className="flex items-center gap-2">
-                <Checkbox checked={!!data.qualidade?.[q.key]} onCheckedChange={(v) => set(`qualidade.${q.key}`, !!v)} />
-                <Label className="text-xs">{q.label}</Label>
-              </div>
-            ))}
-            <Textarea rows={2} placeholder="Obs. qualidade" value={data.qualidade?.obs || ""} onChange={(e) => set("qualidade.obs", e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Horários</Label>
-            <div className="text-xs">Diurno</div>
-            <div className="flex gap-2">
-              <Input type="time" value={data.horarios?.diurno?.inicio || ""} onChange={(e) => set("horarios.diurno.inicio", e.target.value)} />
-              <Input type="time" value={data.horarios?.diurno?.fim || ""} onChange={(e) => set("horarios.diurno.fim", e.target.value)} />
-            </div>
-            <div className="text-xs">Noturno</div>
-            <div className="flex gap-2">
-              <Input type="time" value={data.horarios?.noturno?.inicio || ""} onChange={(e) => set("horarios.noturno.inicio", e.target.value)} />
-              <Input type="time" value={data.horarios?.noturno?.fim || ""} onChange={(e) => set("horarios.noturno.fim", e.target.value)} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Paralisações */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm">Paralisações</CardTitle>
-          <Button size="sm" variant="outline" onClick={() => set("paralisacoes", [...(data.paralisacoes || []), { motivo: "", descricao: "" }])}>
-            <Plus className="w-4 h-4" />
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(data.paralisacoes || []).map((p: any, i: number) => (
-            <div key={i} className="flex gap-2 items-center">
-              <Select value={p.motivo} onValueChange={(v) => { const arr = [...data.paralisacoes]; arr[i].motivo = v; set("paralisacoes", arr); }}>
-                <SelectTrigger className="w-56"><SelectValue placeholder="Motivo" /></SelectTrigger>
-                <SelectContent>{MOTIVOS_PARALISACAO.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-              </Select>
-              <Input placeholder="Descrição" value={p.descricao} onChange={(e) => { const arr = [...data.paralisacoes]; arr[i].descricao = e.target.value; set("paralisacoes", arr); }} />
-              <Button variant="ghost" size="icon" onClick={() => set("paralisacoes", data.paralisacoes.filter((_: any, j: number) => j !== i))}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Mão de obra */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm">Mão de Obra</CardTitle>
-          <Button size="sm" variant="outline" onClick={() => set("mao_de_obra", [...data.mao_de_obra, { cargo: "", terc: 0, contrat: 0 }])}>
-            <Plus className="w-4 h-4" /> Cargo customizado
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-12 gap-2 text-xs font-bold mb-1">
-            <div className="col-span-7">CARGO</div>
-            <div className="col-span-2 text-center">TERC.</div>
-            <div className="col-span-2 text-center">CONTRAT.</div>
-          </div>
-          {data.mao_de_obra.map((m: any, i: number) => (
-            <div key={i} className="grid grid-cols-12 gap-2 mb-1 items-center">
-              <Input className="col-span-7 h-8" value={m.cargo} onChange={(e) => { const arr = [...data.mao_de_obra]; arr[i].cargo = e.target.value; set("mao_de_obra", arr); }} />
-              <Input className="col-span-2 h-8 text-center" type="number" min={0} value={m.terc} onChange={(e) => { const arr = [...data.mao_de_obra]; arr[i].terc = Number(e.target.value); set("mao_de_obra", arr); }} />
-              <Input className="col-span-2 h-8 text-center" type="number" min={0} value={m.contrat} onChange={(e) => { const arr = [...data.mao_de_obra]; arr[i].contrat = Number(e.target.value); set("mao_de_obra", arr); }} />
-              <Button className="col-span-1" variant="ghost" size="icon" onClick={() => set("mao_de_obra", data.mao_de_obra.filter((_: any, j: number) => j !== i))}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Equipamentos */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm">Equipamentos / Veículos</CardTitle>
-          <Button size="sm" variant="outline" onClick={() => set("equipamentos", [...data.equipamentos, { descricao: "", terc: 0, contrat: 0 }])}>
-            <Plus className="w-4 h-4" /> Equipamento
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {data.equipamentos.map((e: any, i: number) => (
-            <div key={i} className="grid grid-cols-12 gap-2 mb-1 items-center">
-              <Input className="col-span-7 h-8" value={e.descricao} onChange={(ev) => { const arr = [...data.equipamentos]; arr[i].descricao = ev.target.value; set("equipamentos", arr); }} />
-              <Input className="col-span-2 h-8 text-center" type="number" min={0} value={e.terc} onChange={(ev) => { const arr = [...data.equipamentos]; arr[i].terc = Number(ev.target.value); set("equipamentos", arr); }} />
-              <Input className="col-span-2 h-8 text-center" type="number" min={0} value={e.contrat} onChange={(ev) => { const arr = [...data.equipamentos]; arr[i].contrat = Number(ev.target.value); set("equipamentos", arr); }} />
-              <Button className="col-span-1" variant="ghost" size="icon" onClick={() => set("equipamentos", data.equipamentos.filter((_: any, j: number) => j !== i))}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Serviços */}
-      {([
-        { key: "servicos_esgoto", title: "Serviços Executados - ESGOTO" },
-        { key: "servicos_agua", title: "Serviços Executados - ÁGUA" },
-      ] as const).map((g) => (
-        <Card key={g.key}>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm">{g.title}</CardTitle>
-            <Button size="sm" variant="outline" onClick={() => set(g.key, [...data[g.key], { codigo: "", descricao: "", unidade: "UN", quantidade: 0 }])}>
-              <Plus className="w-4 h-4" /> Customizado
-            </Button>
+      {step === "import" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Preenchimento automático (opcional)</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Envie uma foto da planilha preenchida ou cole um texto do WhatsApp. A IA preenche os campos para você revisar.
+              Você também pode pular esta etapa e preencher manualmente.
+            </p>
           </CardHeader>
-          <CardContent className="max-h-96 overflow-y-auto">
-            {data[g.key].map((s: any, i: number) => (
-              <div key={i} className="grid grid-cols-12 gap-2 mb-1 items-center">
-                <Input className="col-span-2 h-8 text-xs" placeholder="Cód." value={s.codigo} onChange={(e) => { const arr = [...data[g.key]]; arr[i].codigo = e.target.value; set(g.key, arr); }} />
-                <Input className="col-span-7 h-8 text-xs" value={s.descricao} onChange={(e) => { const arr = [...data[g.key]]; arr[i].descricao = e.target.value; set(g.key, arr); }} />
-                <Input className="col-span-1 h-8 text-xs text-center" value={s.unidade} onChange={(e) => { const arr = [...data[g.key]]; arr[i].unidade = e.target.value; set(g.key, arr); }} />
-                <Input className="col-span-2 h-8 text-xs text-center" type="number" min={0} step="0.01" value={s.quantidade} onChange={(e) => { const arr = [...data[g.key]]; arr[i].quantidade = Number(e.target.value); set(g.key, arr); }} />
-              </div>
-            ))}
+          <CardContent>
+            <Tabs defaultValue="foto">
+              <TabsList>
+                <TabsTrigger value="foto"><Upload className="w-4 h-4 mr-1" /> Foto da planilha</TabsTrigger>
+                <TabsTrigger value="texto"><MessageSquare className="w-4 h-4 mr-1" /> Texto WhatsApp</TabsTrigger>
+              </TabsList>
+              <TabsContent value="foto" className="space-y-2 pt-3">
+                <Input type="file" accept="image/*" disabled={parsing} onChange={(e) => e.target.files?.[0] && handlePhoto(e.target.files[0])} />
+                {parsing && <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> Lendo planilha com IA...</p>}
+              </TabsContent>
+              <TabsContent value="texto" className="space-y-2 pt-3">
+                <Textarea rows={6} placeholder="Cole aqui a mensagem do WhatsApp com os dados do RDO..." value={whatsappText} onChange={(e) => setWhatsappText(e.target.value)} />
+                <Button size="sm" onClick={handleWhatsapp} disabled={parsing || !whatsappText.trim()}>
+                  {parsing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <MessageSquare className="w-4 h-4 mr-1" />}
+                  Interpretar texto
+                </Button>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end mt-4">
+              <Button variant="outline" onClick={() => setStep("edit")}>
+                Pular e preencher manualmente <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      ))}
+      )}
 
-      {/* Observações + responsáveis */}
-      <Card>
-        <CardHeader><CardTitle className="text-sm">Observações e Responsáveis</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea rows={3} placeholder="Observações gerais" value={data.observacoes || ""} onChange={(e) => set("observacoes", e.target.value)} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div><Label>Responsável da Empreiteira</Label><Input value={data.responsavel_empreiteira || ""} onChange={(e) => set("responsavel_empreiteira", e.target.value)} /></div>
-            <div><Label>Responsável do Consórcio</Label><Input value={data.responsavel_consorcio || ""} onChange={(e) => set("responsavel_consorcio", e.target.value)} /></div>
+      {step === "edit" && (
+        <>
+          <RdoSabespSheet data={data} set={set} />
+          <div className="flex gap-2 justify-between sticky bottom-0 bg-background py-3 border-t">
+            <Button variant="outline" onClick={() => setStep("import")}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
+            </Button>
+            <Button onClick={() => setStep("review")}>
+              Pré-visualização e revisão <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </>
+      )}
 
-      <div className="flex gap-2 justify-end sticky bottom-0 bg-background py-3 border-t">
-        <Button variant="outline" onClick={() => downloadRdoSabespPdf(data)}>
-          <FileDown className="w-4 h-4 mr-1" /> Pré-visualizar PDF
-        </Button>
-        <Button onClick={save} disabled={saving}>
-          {saving && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-          {initialData?.id ? "Atualizar RDO" : "Salvar RDO Sabesp"}
-        </Button>
-      </div>
+      {step === "review" && (
+        <>
+          {uniqueMissingLabels.length > 0 ? (
+            <div className="border-l-4 border-destructive bg-destructive/10 p-3 rounded">
+              <div className="flex items-center gap-2 font-semibold text-destructive">
+                <AlertTriangle className="w-4 h-4" />
+                {uniqueMissingLabels.length} campo(s) obrigatório(s) faltando
+              </div>
+              <ul className="text-xs mt-1 ml-6 list-disc text-destructive">
+                {uniqueMissingLabels.map((l) => <li key={l}>{l}</li>)}
+              </ul>
+              <p className="text-xs mt-2 text-muted-foreground">
+                Os campos faltantes estão destacados em vermelho na planilha abaixo. Volte para "Preencher" para corrigir.
+              </p>
+            </div>
+          ) : (
+            <div className="border-l-4 border-green-500 bg-green-500/10 p-3 rounded flex items-center gap-2 text-green-700">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="font-semibold">Tudo preenchido!</span> Você pode salvar e/ou gerar o PDF.
+            </div>
+          )}
+
+          <RdoSabespSheet data={data} readOnly missing={missing} />
+
+          <div className="flex gap-2 justify-between sticky bottom-0 bg-background py-3 border-t flex-wrap">
+            <Button variant="outline" onClick={() => setStep("edit")}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Voltar e editar
+            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={() => downloadRdoSabespPdf(data)}>
+                <FileDown className="w-4 h-4 mr-1" /> Gerar PDF
+              </Button>
+              <Button onClick={save} disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+                {initialData?.id ? "Atualizar RDO" : "Salvar RDO Sabesp"}
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
