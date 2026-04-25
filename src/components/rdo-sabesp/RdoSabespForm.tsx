@@ -17,12 +17,12 @@ import { downloadRdoSabespPdf } from "@/lib/rdoSabespPdfGenerator";
 import { RdoSabespSheet, getMissingRequired, REQUIRED_LABELS } from "./RdoSabespSheet";
 
 interface Props {
-  projectId: string;
+  projectId: string | null;
   initialData?: any;
   onSaved?: () => void;
 }
 
-const empty = (projectId: string) => ({
+const empty = (projectId: string | null) => ({
   project_id: projectId,
   report_date: new Date().toISOString().slice(0, 10),
   encarregado: "",
@@ -33,6 +33,7 @@ const empty = (projectId: string) => ({
   condicoes_climaticas: { manha: "", tarde: "", noite: "" },
   qualidade: { ordem_servico: false, bandeirola: false, projeto: false, obs: "" },
   paralisacoes: [] as any[],
+  paralisacao_outro: "",
   horarios: { diurno: { inicio: "", fim: "" }, noturno: { inicio: "", fim: "" } },
   mao_de_obra: CARGOS_PADRAO.map((c) => ({ cargo: c, terc: 0, contrat: 0 })),
   equipamentos: EQUIPAMENTOS_PADRAO.map((e) => ({ descricao: e, terc: 0, contrat: 0 })),
@@ -41,6 +42,8 @@ const empty = (projectId: string) => ({
   observacoes: "",
   responsavel_empreiteira: "",
   responsavel_consorcio: "",
+  assinatura_empreiteira_url: null as string | null,
+  assinatura_consorcio_url: null as string | null,
   planilha_foto_url: null as string | null,
   whatsapp_text: null as string | null,
 });
@@ -112,7 +115,8 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
         reader.readAsDataURL(file);
       });
 
-      const path = `${projectId}/${Date.now()}_${file.name}`;
+      const folder = projectId || "no-project";
+      const path = `${folder}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from("rdo-sabesp-photos").upload(path, file);
       if (upErr) console.warn("upload warn:", upErr);
       else {
