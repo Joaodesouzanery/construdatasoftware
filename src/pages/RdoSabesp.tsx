@@ -28,14 +28,19 @@ export default function RdoSabesp() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth"); return; }
       const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
-      if (data?.length) { setProjects(data); setProjectId(data[0].id); }
+      if (data?.length) setProjects(data);
+      // padrão: sem projeto vinculado
+      setProjectId("__none__");
       setLoading(false);
     })();
   }, [navigate]);
 
   const load = async () => {
     if (!projectId) return;
-    const { data, error } = await supabase.from("rdo_sabesp" as any).select("*").eq("project_id", projectId).order("report_date", { ascending: false });
+    let query = supabase.from("rdo_sabesp" as any).select("*").order("report_date", { ascending: false });
+    if (projectId === "__none__") query = query.is("project_id", null);
+    else query = query.eq("project_id", projectId);
+    const { data, error } = await query;
     if (error) { toast.error(error.message); return; }
     setList(data || []);
   };
@@ -83,16 +88,16 @@ export default function RdoSabesp() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-4">
-        {projects.length === 0 ? (
-          <Card><CardContent className="pt-6 text-center"><p>Crie um projeto primeiro.</p><Button className="mt-3" onClick={() => navigate("/projects")}>Criar Projeto</Button></CardContent></Card>
-        ) : (
-          <>
+        <>
             <Card>
-              <CardHeader><CardTitle>Projeto</CardTitle><CardDescription>Selecione o projeto para ver e criar RDOs Sabesp</CardDescription></CardHeader>
+              <CardHeader><CardTitle>Projeto (opcional)</CardTitle><CardDescription>Você pode criar RDOs Sabesp sem vincular a nenhum projeto.</CardDescription></CardHeader>
               <CardContent>
                 <Select value={projectId} onValueChange={setProjectId}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem projeto vinculado</SelectItem>
+                    {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </CardContent>
             </Card>
@@ -136,11 +141,10 @@ export default function RdoSabesp() {
               </TabsContent>
 
               <TabsContent value="novo">
-                <RdoSabespForm projectId={projectId} initialData={editing || undefined} onSaved={() => { setShowNew(false); setEditing(null); load(); }} />
+                <RdoSabespForm projectId={projectId === "__none__" ? null : projectId} initialData={editing || undefined} onSaved={() => { setShowNew(false); setEditing(null); load(); }} />
               </TabsContent>
             </Tabs>
-          </>
-        )}
+        </>
       </main>
     </div>
   );

@@ -20,6 +20,7 @@ Campos:
 - condicoes_climaticas: { manha: 'bom'|'chuva'|'improdutivo'|'', tarde: ..., noite: ... }
 - qualidade: { ordem_servico: bool, bandeirola: bool, projeto: bool, obs: string }
 - paralisacoes: array de { motivo: string, descricao: string } - motivos comuns: 'Intervenção Policial', 'Chuva / Alagamento'
+- paralisacao_outro: string com descrição livre quando o motivo for 'Outro'
 - horarios: { diurno: { inicio: 'HH:MM', fim: 'HH:MM' }, noturno: { inicio: 'HH:MM', fim: 'HH:MM' } }
 - mao_de_obra: array de { cargo: string, terc: number, contrat: number }
 - equipamentos: array de { descricao: string, terc: number, contrat: number }
@@ -28,6 +29,8 @@ Campos:
 - observacoes: string
 - responsavel_empreiteira: nome
 - responsavel_consorcio: nome
+- assinatura_empreiteira_presente: true se há assinatura visível no campo do responsável da empreiteira
+- assinatura_consorcio_presente: true se há assinatura visível no campo do responsável do consórcio
 `;
 
 const EXTRACT_TOOL = {
@@ -139,6 +142,9 @@ const EXTRACT_TOOL = {
         observacoes: { type: "string" },
         responsavel_empreiteira: { type: "string" },
         responsavel_consorcio: { type: "string" },
+        paralisacao_outro: { type: "string" },
+        assinatura_empreiteira_presente: { type: "boolean" },
+        assinatura_consorcio_presente: { type: "boolean" },
       },
       required: ["report_date"],
     },

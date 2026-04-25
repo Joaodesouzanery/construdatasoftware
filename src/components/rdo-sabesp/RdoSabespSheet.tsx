@@ -16,9 +16,9 @@ interface SheetProps {
   missing?: Set<string>;
 }
 
-const cell = "border border-black px-1 py-[2px] text-[11px] align-middle";
-const head = "border border-black px-1 py-[2px] text-[11px] font-bold text-center bg-gray-200";
-const subhead = "border border-black px-1 py-[2px] text-[10px] font-bold text-center bg-gray-100";
+const cell = "border border-black px-1 py-[2px] text-[11px] align-middle break-words whitespace-normal";
+const head = "border border-black px-1 py-[2px] text-[11px] font-bold text-center bg-gray-200 break-words whitespace-normal";
+const subhead = "border border-black px-1 py-[2px] text-[10px] font-bold text-center bg-gray-100 break-words whitespace-normal";
 const orange = "border border-black px-1 py-[2px] text-[12px] font-bold text-center bg-orange-400";
 const blue = "border border-black px-1 py-[2px] text-[12px] font-bold text-center bg-sky-300";
 
@@ -351,12 +351,12 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
           <tr>
             <td className={subhead}>CÓDIGO</td>
             <td className={subhead} colSpan={3}>ATIVIDADES EXECUTADAS</td>
-            <td className={subhead}>UN</td>
             <td className={subhead}>EXECUTADO</td>
+            <td className={subhead}>UN</td>
             <td className={subhead}>CÓDIGO</td>
             <td className={subhead} colSpan={3}>ATIVIDADES EXECUTADAS</td>
-            <td className={subhead}>UN</td>
             <td className={subhead}>EXECUTADO</td>
+            <td className={subhead}>UN</td>
           </tr>
           {Array.from({ length: maxServ }).map((_, i) => {
             const e = esgoto[i];
@@ -365,17 +365,30 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
               <tr key={`serv-${i}`}>
                 <td className={cell}><Field value={e?.codigo} onChange={(v) => updateServ("servicos_esgoto", i, "codigo", v)} readOnly={readOnly} className="text-[10px]" /></td>
                 <td className={cell} colSpan={3}><Field value={e?.descricao} onChange={(v) => updateServ("servicos_esgoto", i, "descricao", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell}><Field value={e?.unidade} onChange={(v) => updateServ("servicos_esgoto", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
                 <td className={cell}><Field type="number" value={e?.quantidade} onChange={(v) => updateServ("servicos_esgoto", i, "quantidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
+                <td className={cell}><Field value={e?.unidade} onChange={(v) => updateServ("servicos_esgoto", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
                 <td className={cell}><Field value={a?.codigo} onChange={(v) => updateServ("servicos_agua", i, "codigo", v)} readOnly={readOnly} className="text-[10px]" /></td>
                 <td className={cell} colSpan={3}><Field value={a?.descricao} onChange={(v) => updateServ("servicos_agua", i, "descricao", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell}><Field value={a?.unidade} onChange={(v) => updateServ("servicos_agua", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
                 <td className={cell}><Field type="number" value={a?.quantidade} onChange={(v) => updateServ("servicos_agua", i, "quantidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
+                <td className={cell}><Field value={a?.unidade} onChange={(v) => updateServ("servicos_agua", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
               </tr>
             );
           })}
 
           {/* === OBSERVAÇÕES + RESPONSÁVEIS === */}
+          {(para.some((p: any) => p?.motivo === "Outro") || data.paralisacao_outro) && (
+            <tr>
+              <td className={`${cell} font-bold`} colSpan={3}>PARALISAÇÃO — OUTRO (descrever):</td>
+              <td className={cell} colSpan={9}>
+                <Field
+                  value={data.paralisacao_outro}
+                  onChange={(v) => set?.("paralisacao_outro", v)}
+                  readOnly={readOnly}
+                  placeholder="Descreva o motivo da paralisação"
+                />
+              </td>
+            </tr>
+          )}
           <tr>
             <td className={`${head}`} colSpan={12}>OBSERVAÇÕES</td>
           </tr>
@@ -396,12 +409,18 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
           <tr>
             <td className={`${cell} text-center`} colSpan={6}>
               <div className="border-t border-black mt-6 pt-1 text-[10px]">
+                {data.assinatura_empreiteira_url && (
+                  <img src={data.assinatura_empreiteira_url} alt="Assinatura empreiteira" className="h-12 mx-auto object-contain" />
+                )}
                 <Field value={data.responsavel_empreiteira} onChange={(v) => set?.("responsavel_empreiteira", v)} readOnly={readOnly} className="text-center" placeholder="Nome" />
                 <div>RESPONSÁVEL DA EMPREITEIRA</div>
               </div>
             </td>
             <td className={`${cell} text-center`} colSpan={6}>
               <div className="border-t border-black mt-6 pt-1 text-[10px]">
+                {data.assinatura_consorcio_url && (
+                  <img src={data.assinatura_consorcio_url} alt="Assinatura consórcio" className="h-12 mx-auto object-contain" />
+                )}
                 <Field value={data.responsavel_consorcio} onChange={(v) => set?.("responsavel_consorcio", v)} readOnly={readOnly} className="text-center" placeholder="Nome" />
                 <div>RESPONSÁVEL DO CONSÓRCIO</div>
               </div>

@@ -43,6 +43,7 @@ export interface RdoSabespData {
   condicoes_climaticas?: any;
   qualidade?: any;
   paralisacoes?: any[];
+  paralisacao_outro?: string | null;
   horarios?: any;
   mao_de_obra?: any[];
   equipamentos?: any[];
@@ -51,6 +52,8 @@ export interface RdoSabespData {
   observacoes?: string | null;
   responsavel_empreiteira?: string | null;
   responsavel_consorcio?: string | null;
+  assinatura_empreiteira_url?: string | null;
+  assinatura_consorcio_url?: string | null;
   planilha_foto_url?: string | null;
 }
 
@@ -128,16 +131,20 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   (doc as any).autoTable({
     startY: y,
     margin: { left: margin, right: margin },
-    styles: { fontSize: 7, cellPadding: 1.2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+    styles: { fontSize: 7, cellPadding: 1.2, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: "linebreak", cellWidth: "wrap" },
     headStyles: { fillColor: [220, 230, 241], textColor: 0, fontStyle: "bold", halign: "center" },
     head: [["CONDIÇÕES CLIMÁTICAS", "QUALIDADE", "PARALISAÇÕES", "HORÁRIO"]],
     body: [
       [
         `Manhã: ${cc.manha || "—"}\nTarde: ${cc.tarde || "—"}\nNoite: ${cc.noite || "—"}`,
         `Ordem de Serviço: ${checkbox(!!q.ordem_servico)}\nBandeirola: ${checkbox(!!q.bandeirola)}\nProjeto: ${checkbox(!!q.projeto)}\nObs: ${q.obs || "—"}`,
-        para.length
-          ? para.map((p: any) => `• ${p.motivo}${p.descricao ? ": " + p.descricao : ""}`).join("\n")
-          : "—",
+        (() => {
+          const lines = para.length
+            ? para.map((p: any) => `• ${p.motivo || "—"}${p.inicio ? ` ${p.inicio}` : ""}${p.fim ? `→${p.fim}` : ""}`)
+            : [];
+          if (rdo.paralisacao_outro) lines.push(`Outro: ${rdo.paralisacao_outro}`);
+          return lines.length ? lines.join("\n") : "—";
+        })(),
         `Diurno: ${horarios?.diurno?.inicio || "—"} → ${horarios?.diurno?.fim || "—"}\nNoturno: ${horarios?.noturno?.inicio || "—"} → ${horarios?.noturno?.fim || "—"}`,
       ],
     ],
@@ -182,14 +189,14 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
     (doc as any).autoTable({
       startY: y,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
+      styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: "linebreak" },
       headStyles: { fillColor: [200, 220, 240], textColor: 0, halign: "center" },
-      head: [[`${titulo} - CÓD.`, "ATIVIDADE EXECUTADA", "UN.", "EXEC."]],
-      body: filt.map((s: any) => [s.codigo || "—", s.descricao, s.unidade, String(s.quantidade)]),
+      head: [[`${titulo} - CÓD.`, "ATIVIDADE EXECUTADA", "EXEC.", "UN."]],
+      body: filt.map((s: any) => [s.codigo || "—", s.descricao, String(s.quantidade), s.unidade]),
       columnStyles: {
         0: { cellWidth: 22 },
-        2: { halign: "center", cellWidth: 14 },
-        3: { halign: "center", cellWidth: 18 },
+        2: { halign: "center", cellWidth: 18 },
+        3: { halign: "center", cellWidth: 14 },
       },
     });
     y = (doc as any).lastAutoTable.finalY + 2;
@@ -222,6 +229,18 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   y = Math.max(y, 270);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
+  // Assinaturas (imagem) acima da linha, se houver
+  const drawSig = async (url: string | null | undefined, cx: number) => {
+    if (!url) return;
+    try {
+      const dataUrl = url.startsWith("data:") ? url : await loadDataUrl(url);
+      doc.addImage(dataUrl, "PNG", cx - 25, y - 18, 50, 16);
+    } catch (e) {
+      console.warn("sig load fail", e);
+    }
+  };
+  await drawSig(rdo.assinatura_empreiteira_url, margin + 40);
+  await drawSig(rdo.assinatura_consorcio_url, pageW - margin - 40);
   doc.line(margin + 5, y, margin + 75, y);
   doc.line(pageW - margin - 75, y, pageW - margin - 5, y);
   doc.text(rdo.responsavel_empreiteira || "RESPONSÁVEL DA EMPREITEIRA", margin + 40, y + 4, { align: "center" });

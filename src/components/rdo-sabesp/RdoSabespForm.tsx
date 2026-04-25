@@ -17,12 +17,12 @@ import { downloadRdoSabespPdf } from "@/lib/rdoSabespPdfGenerator";
 import { RdoSabespSheet, getMissingRequired, REQUIRED_LABELS } from "./RdoSabespSheet";
 
 interface Props {
-  projectId: string;
+  projectId: string | null;
   initialData?: any;
   onSaved?: () => void;
 }
 
-const empty = (projectId: string) => ({
+const empty = (projectId: string | null) => ({
   project_id: projectId,
   report_date: new Date().toISOString().slice(0, 10),
   encarregado: "",
@@ -33,6 +33,7 @@ const empty = (projectId: string) => ({
   condicoes_climaticas: { manha: "", tarde: "", noite: "" },
   qualidade: { ordem_servico: false, bandeirola: false, projeto: false, obs: "" },
   paralisacoes: [] as any[],
+  paralisacao_outro: "",
   horarios: { diurno: { inicio: "", fim: "" }, noturno: { inicio: "", fim: "" } },
   mao_de_obra: CARGOS_PADRAO.map((c) => ({ cargo: c, terc: 0, contrat: 0 })),
   equipamentos: EQUIPAMENTOS_PADRAO.map((e) => ({ descricao: e, terc: 0, contrat: 0 })),
@@ -41,6 +42,8 @@ const empty = (projectId: string) => ({
   observacoes: "",
   responsavel_empreiteira: "",
   responsavel_consorcio: "",
+  assinatura_empreiteira_url: null as string | null,
+  assinatura_consorcio_url: null as string | null,
   planilha_foto_url: null as string | null,
   whatsapp_text: null as string | null,
 });
@@ -112,7 +115,8 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
         reader.readAsDataURL(file);
       });
 
-      const path = `${projectId}/${Date.now()}_${file.name}`;
+      const folder = projectId || "no-project";
+      const path = `${folder}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from("rdo-sabesp-photos").upload(path, file);
       if (upErr) console.warn("upload warn:", upErr);
       else {
@@ -125,7 +129,17 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       });
       if (aiErr) throw aiErr;
       if (aiData?.error) throw new Error(aiData.error);
-      mergeExtracted(aiData?.data || {});
+      const extracted = aiData?.data || {};
+      // Se a IA identificou assinatura, usar a foto original como referência visual
+      if (extracted.assinatura_empreiteira_presente) {
+        extracted.assinatura_empreiteira_url = base64;
+      }
+      if (extracted.assinatura_consorcio_presente) {
+        extracted.assinatura_consorcio_url = base64;
+      }
+      delete extracted.assinatura_empreiteira_presente;
+      delete extracted.assinatura_consorcio_presente;
+      mergeExtracted(extracted);
       toast.success("Foto processada! Confira os dados.");
       setStep("edit");
     } catch (e: any) {
@@ -283,7 +297,18 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
               <ArrowLeft className="w-4 h-4 mr-1" /> Voltar e editar
             </Button>
             <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" onClick={() => downloadRdoSabespPdf(data)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (uniqueMissingLabels.length > 0) {
+                    toast.error(`Preencha os ${uniqueMissingLabels.length} campo(s) obrigatório(s) antes de gerar o PDF.`);
+                    return;
+                  }
+                  downloadRdoSabespPdf(data);
+                }}
+                disabled={uniqueMissingLabels.length > 0}
+                title={uniqueMissingLabels.length > 0 ? "Complete os campos obrigatórios" : ""}
+              >
                 <FileDown className="w-4 h-4 mr-1" /> Gerar PDF
               </Button>
               <Button onClick={save} disabled={saving}>
