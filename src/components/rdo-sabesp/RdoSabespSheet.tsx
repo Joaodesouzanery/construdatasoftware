@@ -351,12 +351,12 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
           <tr>
             <td className={subhead}>CÓDIGO</td>
             <td className={subhead} colSpan={3}>ATIVIDADES EXECUTADAS</td>
-            <td className={subhead}>UN</td>
             <td className={subhead}>EXECUTADO</td>
+            <td className={subhead}>UN</td>
             <td className={subhead}>CÓDIGO</td>
             <td className={subhead} colSpan={3}>ATIVIDADES EXECUTADAS</td>
-            <td className={subhead}>UN</td>
             <td className={subhead}>EXECUTADO</td>
+            <td className={subhead}>UN</td>
           </tr>
           {Array.from({ length: maxServ }).map((_, i) => {
             const e = esgoto[i];
@@ -365,12 +365,12 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
               <tr key={`serv-${i}`}>
                 <td className={cell}><Field value={e?.codigo} onChange={(v) => updateServ("servicos_esgoto", i, "codigo", v)} readOnly={readOnly} className="text-[10px]" /></td>
                 <td className={cell} colSpan={3}><Field value={e?.descricao} onChange={(v) => updateServ("servicos_esgoto", i, "descricao", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell}><Field value={e?.unidade} onChange={(v) => updateServ("servicos_esgoto", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
                 <td className={cell}><Field type="number" value={e?.quantidade} onChange={(v) => updateServ("servicos_esgoto", i, "quantidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
+                <td className={cell}><Field value={e?.unidade} onChange={(v) => updateServ("servicos_esgoto", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
                 <td className={cell}><Field value={a?.codigo} onChange={(v) => updateServ("servicos_agua", i, "codigo", v)} readOnly={readOnly} className="text-[10px]" /></td>
                 <td className={cell} colSpan={3}><Field value={a?.descricao} onChange={(v) => updateServ("servicos_agua", i, "descricao", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell}><Field value={a?.unidade} onChange={(v) => updateServ("servicos_agua", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
                 <td className={cell}><Field type="number" value={a?.quantidade} onChange={(v) => updateServ("servicos_agua", i, "quantidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
+                <td className={cell}><Field value={a?.unidade} onChange={(v) => updateServ("servicos_agua", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
               </tr>
             );
           })}
