@@ -129,7 +129,17 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       });
       if (aiErr) throw aiErr;
       if (aiData?.error) throw new Error(aiData.error);
-      mergeExtracted(aiData?.data || {});
+      const extracted = aiData?.data || {};
+      // Se a IA identificou assinatura, usar a foto original como referência visual
+      if (extracted.assinatura_empreiteira_presente) {
+        extracted.assinatura_empreiteira_url = base64;
+      }
+      if (extracted.assinatura_consorcio_presente) {
+        extracted.assinatura_consorcio_url = base64;
+      }
+      delete extracted.assinatura_empreiteira_presente;
+      delete extracted.assinatura_consorcio_presente;
+      mergeExtracted(extracted);
       toast.success("Foto processada! Confira os dados.");
       setStep("edit");
     } catch (e: any) {
