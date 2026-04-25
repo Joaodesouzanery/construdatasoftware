@@ -16,9 +16,9 @@ interface SheetProps {
   missing?: Set<string>;
 }
 
-const cell = "border border-black px-1 py-[2px] text-[11px] align-middle";
-const head = "border border-black px-1 py-[2px] text-[11px] font-bold text-center bg-gray-200";
-const subhead = "border border-black px-1 py-[2px] text-[10px] font-bold text-center bg-gray-100";
+const cell = "border border-black px-1 py-[2px] text-[11px] align-middle break-words whitespace-normal";
+const head = "border border-black px-1 py-[2px] text-[11px] font-bold text-center bg-gray-200 break-words whitespace-normal";
+const subhead = "border border-black px-1 py-[2px] text-[10px] font-bold text-center bg-gray-100 break-words whitespace-normal";
 const orange = "border border-black px-1 py-[2px] text-[12px] font-bold text-center bg-orange-400";
 const blue = "border border-black px-1 py-[2px] text-[12px] font-bold text-center bg-sky-300";
 
