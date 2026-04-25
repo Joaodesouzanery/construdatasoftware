@@ -297,7 +297,18 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
               <ArrowLeft className="w-4 h-4 mr-1" /> Voltar e editar
             </Button>
             <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" onClick={() => downloadRdoSabespPdf(data)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (uniqueMissingLabels.length > 0) {
+                    toast.error(`Preencha os ${uniqueMissingLabels.length} campo(s) obrigatório(s) antes de gerar o PDF.`);
+                    return;
+                  }
+                  downloadRdoSabespPdf(data);
+                }}
+                disabled={uniqueMissingLabels.length > 0}
+                title={uniqueMissingLabels.length > 0 ? "Complete os campos obrigatórios" : ""}
+              >
                 <FileDown className="w-4 h-4 mr-1" /> Gerar PDF
               </Button>
               <Button onClick={save} disabled={saving}>
