@@ -1,6 +1,8 @@
 import { CRIADOUROS } from "./rdoSabespCatalog";
 import type { RdoSabespData } from "./rdoSabespPdfGenerator";
 
+export type RdoSabespStatus = "draft" | "finalized";
+
 export type ComparisonGroupId =
   | "header"
   | "epi"
@@ -128,6 +130,36 @@ export function getRdoSabespExecutedServices(rdo: Partial<RdoSabespData>) {
         unit: service.unidade || "",
       },
     }));
+}
+
+export function countExecutedServices(rdo: Partial<RdoSabespData>) {
+  return [...(rdo.servicos_esgoto || []), ...(rdo.servicos_agua || [])].filter(
+    (service: any) => Number(service?.quantidade) > 0,
+  ).length;
+}
+
+export function sumExecutedQuantities(rdo: Partial<RdoSabespData>) {
+  return [...(rdo.servicos_esgoto || []), ...(rdo.servicos_agua || [])].reduce(
+    (total, service: any) => total + (Number(service?.quantidade) || 0),
+    0,
+  );
+}
+
+export function getRdoSabespDashboardMetrics(rdos: Array<Partial<RdoSabespData> & { status?: string | null }>) {
+  const drafts = rdos.filter((rdo) => rdo.status === "draft").length;
+  const finalized = rdos.filter((rdo) => rdo.status !== "draft").length;
+  const withPhotos = rdos.filter((rdo) => Array.isArray(rdo.photo_paths) && rdo.photo_paths.length > 0).length;
+  const totalActivities = rdos.reduce((total, rdo) => total + countExecutedServices(rdo), 0);
+  const totalExecutedQuantity = rdos.reduce((total, rdo) => total + sumExecutedQuantities(rdo), 0);
+
+  return {
+    total: rdos.length,
+    drafts,
+    finalized,
+    withPhotos,
+    totalActivities,
+    totalExecutedQuantity,
+  };
 }
 
 export function compareRdoSabespData(

@@ -3286,6 +3286,7 @@ export type Database = {
           encarregado: string | null
           epi_utilizado: boolean | null
           equipamentos: Json | null
+          finalized_at: string | null
           horarios: Json | null
           id: string
           mao_de_obra: Json | null
@@ -3302,6 +3303,7 @@ export type Database = {
           rua_beco: string | null
           servicos_agua: Json | null
           servicos_esgoto: Json | null
+          status: string
           updated_at: string
           whatsapp_text: string | null
         }
@@ -3316,6 +3318,7 @@ export type Database = {
           encarregado?: string | null
           epi_utilizado?: boolean | null
           equipamentos?: Json | null
+          finalized_at?: string | null
           horarios?: Json | null
           id?: string
           mao_de_obra?: Json | null
@@ -3332,6 +3335,7 @@ export type Database = {
           rua_beco?: string | null
           servicos_agua?: Json | null
           servicos_esgoto?: Json | null
+          status?: string
           updated_at?: string
           whatsapp_text?: string | null
         }
@@ -3346,6 +3350,7 @@ export type Database = {
           encarregado?: string | null
           epi_utilizado?: boolean | null
           equipamentos?: Json | null
+          finalized_at?: string | null
           horarios?: Json | null
           id?: string
           mao_de_obra?: Json | null
@@ -3362,6 +3367,7 @@ export type Database = {
           rua_beco?: string | null
           servicos_agua?: Json | null
           servicos_esgoto?: Json | null
+          status?: string
           updated_at?: string
           whatsapp_text?: string | null
         }

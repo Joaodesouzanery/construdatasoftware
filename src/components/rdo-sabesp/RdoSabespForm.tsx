@@ -38,6 +38,7 @@ import {
   compareRdoSabespData,
   type ComparisonGroupId,
   type RdoSabespDivergence,
+  type RdoSabespStatus,
 } from "@/lib/rdoSabespUtils";
 import { RdoSabespSheet, getMissingRequired, REQUIRED_LABELS } from "./RdoSabespSheet";
 
@@ -76,6 +77,8 @@ const empty = (projectId: string | null) => ({
   photo_paths: [] as string[],
   planilha_foto_url: null as string | null,
   whatsapp_text: null as string | null,
+  status: "draft" as RdoSabespStatus,
+  finalized_at: null as string | null,
 });
 
 const toDataUrl = (blob: Blob) =>
@@ -456,13 +459,19 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
     }
   };
 
-  const save = async () => {
+  const persist = async (nextStatus: RdoSabespStatus) => {
     setSaving(true);
     try {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) throw new Error("Usuário não autenticado");
 
-      const payload = { ...data, project_id: projectId, created_by_user_id: authData.user.id };
+      const payload = {
+        ...data,
+        project_id: projectId,
+        created_by_user_id: authData.user.id,
+        status: nextStatus,
+        finalized_at: nextStatus === "finalized" ? new Date().toISOString() : null,
+      };
       let response;
 
       if (initialData?.id) {
@@ -473,13 +482,39 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       }
 
       if (response.error) throw response.error;
-      toast.success(initialData?.id ? "RDO atualizado!" : "RDO Sabesp salvo!");
+      setData((current: any) => ({
+        ...current,
+        status: nextStatus,
+        finalized_at: payload.finalized_at,
+      }));
+      toast.success(
+        nextStatus === "draft"
+          ? initialData?.id
+            ? "Rascunho atualizado!"
+            : "Rascunho salvo!"
+          : initialData?.id
+            ? "RDO finalizado atualizado!"
+            : "RDO Sabesp finalizado!",
+      );
       onSaved?.();
     } catch (error: any) {
       toast.error("Erro ao salvar: " + (error.message || error));
     } finally {
       setSaving(false);
     }
+  };
+
+  const saveDraft = async () => {
+    await persist("draft");
+  };
+
+  const finalizeRdo = async () => {
+    if (uniqueMissingLabels.length > 0) {
+      toast.error(`Preencha os ${uniqueMissingLabels.length} campo(s) obrigatorios(s) antes de finalizar o RDO.`);
+      return;
+    }
+
+    await persist("finalized");
   };
 
   const toggleCompareGroup = (groupId: ComparisonGroupId, checked: boolean) => {
@@ -495,6 +530,7 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
   const missingLabels = Array.from(missing).map((key) => REQUIRED_LABELS[key] || key);
   const uniqueMissingLabels = Array.from(new Set(missingLabels));
   const photoCount = Array.isArray(data.photo_paths) ? data.photo_paths.length : 0;
+  const currentStatus: RdoSabespStatus = data.status === "finalized" ? "finalized" : "draft";
   const selectedGroups = useMemo(
     () => COMPARISON_GROUPS.filter((group) => compareGroups.includes(group.id)),
     [compareGroups],
@@ -621,9 +657,15 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
             <Button variant="outline" onClick={() => setStep("import")}>
               <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
             </Button>
-            <Button onClick={() => setStep("review")}>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={saveDraft} disabled={saving}>
+                {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+                Salvar rascunho
+              </Button>
+              <Button onClick={() => setStep("review")}>
               Pré-visualização e revisão <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
+          </div>
           </div>
         </>
       )}
@@ -649,6 +691,15 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
               <span className="font-semibold">Tudo preenchido.</span> Você pode revisar a comparação e gerar o PDF.
             </div>
           )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={currentStatus === "draft" ? "secondary" : "default"}>
+              {currentStatus === "draft" ? "Rascunho" : "Finalizado"}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              Rascunhos podem ficar incompletos e ser retomados depois. Finalizados entram prontos para controle e exportacao.
+            </span>
+          </div>
 
           <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
             <Card>
@@ -869,9 +920,13 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
                 {reviewBusy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <FileDown className="mr-1 h-4 w-4" />}
                 Gerar PDF
               </Button>
-              <Button onClick={save} disabled={saving}>
+              <Button variant="outline" onClick={saveDraft} disabled={saving}>
                 {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
-                {initialData?.id ? "Atualizar RDO" : "Salvar RDO Sabesp"}
+                Salvar rascunho
+              </Button>
+              <Button onClick={finalizeRdo} disabled={saving || reviewBusy}>
+                {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+                {currentStatus === "finalized" ? "Atualizar finalizado" : "Finalizar e salvar"}
               </Button>
             </div>
           </div>

@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { RdoSabespForm } from "@/components/rdo-sabesp/RdoSabespForm";
 import { downloadRdoSabespPdf, downloadRdoSabespBatchZip } from "@/lib/rdoSabespPdfGenerator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getCriadouroLabel, getExecutedActivities } from "@/lib/rdoSabespUtils";
+import { getCriadouroLabel, getExecutedActivities, getRdoSabespDashboardMetrics, sumExecutedQuantities } from "@/lib/rdoSabespUtils";
 
 type PeriodFilter = "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual" | "custom";
 
@@ -142,6 +142,7 @@ export default function RdoSabesp() {
   };
 
   const filteredList = getFilteredList();
+  const summary = getRdoSabespDashboardMetrics(filteredList);
 
   const remove = async (rdo: any) => {
     if (!confirm("Excluir este RDO Sabesp?")) return;
@@ -180,9 +181,19 @@ export default function RdoSabesp() {
 
     setBulkLoading(true);
     try {
-      const items = filteredList.filter((item) => selected.has(item.id));
+      const items = filteredList.filter((item) => selected.has(item.id) && item.status !== "draft");
+      if (!items.length) {
+        toast.error("Selecione ao menos um RDO finalizado para exportar.");
+        return;
+      }
+
+      const draftCount = filteredList.filter((item) => selected.has(item.id) && item.status === "draft").length;
       await downloadRdoSabespBatchZip(items);
-      toast.success("ZIP gerado");
+      toast.success(
+        draftCount > 0
+          ? `ZIP gerado com ${items.length} RDO(s) finalizado(s). ${draftCount} rascunho(s) foram ignorados.`
+          : "ZIP gerado",
+      );
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -334,6 +345,45 @@ export default function RdoSabesp() {
               </CardContent>
             </Card>
 
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>RDOs no periodo</CardDescription>
+                  <CardTitle>{summary.total}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Finalizados</CardDescription>
+                  <CardTitle>{summary.finalized}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Rascunhos</CardDescription>
+                  <CardTitle>{summary.drafts}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Com fotos</CardDescription>
+                  <CardTitle>{summary.withPhotos}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Atividades executadas</CardDescription>
+                  <CardTitle>{summary.totalActivities}</CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Quantidade total registrada</CardDescription>
+                  <CardTitle>{summary.totalExecutedQuantity}</CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+
             <div className="flex flex-wrap justify-end gap-2">
               <Button variant="outline" onClick={toggleAll}>
                 {selected.size === filteredList.length && filteredList.length ? "Desmarcar todos" : "Selecionar todos"}
@@ -354,6 +404,8 @@ export default function RdoSabesp() {
                   filteredList.map((rdo) => {
                     const photoCount = Array.isArray(rdo.photo_paths) ? rdo.photo_paths.length : 0;
                     const activities = getExecutedActivities(rdo);
+                    const totalQuantity = sumExecutedQuantities(rdo);
+                    const isDraft = rdo.status === "draft";
                     const isExpanded = expandedActivities.has(rdo.id);
                     const visibleActivities = isExpanded ? activities : activities.slice(0, 6);
 
@@ -378,6 +430,9 @@ export default function RdoSabesp() {
                                   {new Date(`${rdo.report_date}T12:00:00`).toLocaleDateString("pt-BR")}
                                 </span>
                                 <Badge variant="secondary">Sabesp</Badge>
+                                <Badge variant={isDraft ? "secondary" : "default"}>
+                                  {isDraft ? "Rascunho" : "Finalizado"}
+                                </Badge>
                                 {rdo.criadouro && (
                                   <Badge className="bg-blue-500 hover:bg-blue-500/90">
                                     {getCriadouroLabel(rdo.criadouro, rdo.criadouro_outro)}
@@ -398,6 +453,10 @@ export default function RdoSabesp() {
                               </div>
 
                               <p className="text-sm text-muted-foreground">{rdo.rua_beco || "—"}</p>
+
+                              <p className="text-xs text-muted-foreground">
+                                {activities.length} atividade(s) com apontamento e {totalQuantity} unidade(s) registradas.
+                              </p>
 
                               {activities.length > 0 ? (
                                 <div className="space-y-2">
@@ -444,6 +503,8 @@ export default function RdoSabesp() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              disabled={isDraft}
+                              title={isDraft ? "Finalize o RDO para liberar a exportacao em PDF." : "Baixar PDF"}
                               onClick={async () => {
                                 try {
                                   await downloadRdoSabespPdf(rdo);
