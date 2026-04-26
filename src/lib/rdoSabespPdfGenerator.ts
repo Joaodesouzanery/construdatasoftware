@@ -289,6 +289,12 @@ export async function renderRdoSabespPdfPreviewPages(rdo: RdoSabespData, scale =
   await ensurePdfWorker();
 
   const blob = await generateRdoSabespPdfBlob(rdo);
+  return renderPdfBlobToImages(blob, scale);
+}
+
+export async function renderPdfBlobToImages(blob: Blob, scale = 1.35) {
+  await ensurePdfWorker();
+
   const data = new Uint8Array(await blob.arrayBuffer());
   const pdf = await pdfjsLib.getDocument({
     data,
@@ -328,6 +334,30 @@ export async function renderRdoSabespPdfPreviewPages(rdo: RdoSabespData, scale =
   return images;
 }
 
+export async function mergePdfBlobsIntoSinglePdf(blobs: Blob[]) {
+  const merged = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  let firstPage = true;
+
+  for (const blob of blobs) {
+    const pages = await renderPdfBlobToImages(blob, 1.5);
+    for (const page of pages) {
+      if (!firstPage) merged.addPage("a4", "portrait");
+      firstPage = false;
+      merged.addImage(page, "PNG", 0, 0, 210, 297);
+    }
+  }
+
+  return merged.output("blob");
+}
+
+export async function generateRdoSabespCombinedPdfBlob(rdos: RdoSabespData[]) {
+  const blobs: Blob[] = [];
+  for (const rdo of rdos) {
+    blobs.push(await generateRdoSabespPdfBlob(rdo));
+  }
+  return mergePdfBlobsIntoSinglePdf(blobs);
+}
+
 export async function downloadRdoSabespBatchZip(rdos: RdoSabespData[]) {
   const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
@@ -341,6 +371,16 @@ export async function downloadRdoSabespBatchZip(rdos: RdoSabespData[]) {
   const a = document.createElement("a");
   a.href = url;
   a.download = `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadRdoSabespCombinedPdf(rdos: RdoSabespData[], filename?: string) {
+  const blob = await generateRdoSabespCombinedPdfBlob(rdos);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename || `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.pdf`;
   a.click();
   URL.revokeObjectURL(url);
 }

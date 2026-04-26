@@ -246,6 +246,20 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
     set(path, rows);
   };
 
+  const addServiceRow = (path: "servicos_esgoto" | "servicos_agua") => {
+    if (!set) return;
+    const rows = [...data[path]];
+    rows.push({
+      codigo: "",
+      descricao: "",
+      unidade: "UN",
+      quantidade: 0,
+      opcoes: [],
+      opcoesDisponiveis: [],
+    });
+    set(path, rows);
+  };
+
   const maxRows = Math.max(workforces.length, 8);
   const maxEquipments = Math.max(equipments.length, 7);
   const maxServices = Math.max(esgoto.length, agua.length);
@@ -497,6 +511,17 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
                     );
                   }}
                 />
+                {!readOnly && (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => addServiceRow("servicos_esgoto")}
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Adicionar Atividades
+                    </button>
+                  </div>
+                )}
               </td>
               <td className={shell} colSpan={7}>
                 <SectionTable
@@ -558,6 +583,17 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
                     );
                   }}
                 />
+                {!readOnly && (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => addServiceRow("servicos_esgoto")}
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Adicionar Atividades
+                    </button>
+                  </div>
+                )}
               </td>
               <td className={shell} colSpan={7}>
                 <SectionTable
@@ -588,6 +624,17 @@ export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<
                     );
                   }}
                 />
+                {!readOnly && (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => addServiceRow("servicos_agua")}
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Adicionar Atividades
+                    </button>
+                  </div>
+                )}
               </td>
             </tr>
 

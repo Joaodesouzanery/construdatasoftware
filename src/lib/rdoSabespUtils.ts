@@ -116,6 +116,20 @@ export function getExecutedActivities(rdo: Partial<RdoSabespData>) {
     }));
 }
 
+export function getRdoSabespExecutedServices(rdo: Partial<RdoSabespData>) {
+  return [...(rdo.servicos_esgoto || []), ...(rdo.servicos_agua || [])]
+    .filter((service: any) => Number(service?.quantidade) > 0)
+    .map((service: any) => ({
+      service_id: `${service.codigo || "sem-codigo"}-${normalizeText(service.descricao)}`,
+      quantity: Number(service.quantidade) || 0,
+      unit: service.unidade || "",
+      services_catalog: {
+        name: getServiceDisplayLabel(service) || service.descricao || "Servico Sabesp",
+        unit: service.unidade || "",
+      },
+    }));
+}
+
 export function compareRdoSabespData(
   current: Partial<RdoSabespData>,
   original: any,

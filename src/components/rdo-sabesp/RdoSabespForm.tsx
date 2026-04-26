@@ -83,6 +83,41 @@ const toDataUrl = (blob: Blob) =>
     reader.readAsDataURL(blob);
   });
 
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+
+const cropImageByPercent = async (
+  src: string,
+  region: { x: number; y: number; width: number; height: number },
+) => {
+  const image = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  const sx = image.naturalWidth * region.x;
+  const sy = image.naturalHeight * region.y;
+  const sw = image.naturalWidth * region.width;
+  const sh = image.naturalHeight * region.height;
+
+  canvas.width = Math.max(1, Math.round(sw));
+  canvas.height = Math.max(1, Math.round(sh));
+
+  const context = canvas.getContext("2d");
+  if (!context) return src;
+
+  context.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png");
+};
+
+const extractSignatureCrops = async (src: string) => ({
+  empreiteira: await cropImageByPercent(src, { x: 0.05, y: 0.74, width: 0.38, height: 0.18 }),
+  consorcio: await cropImageByPercent(src, { x: 0.57, y: 0.74, width: 0.38, height: 0.18 }),
+});
+
 export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
   const [data, setData] = useState<any>(() => initialData || empty(projectId));
   const [step, setStep] = useState<Step>(initialData ? "edit" : "import");
@@ -132,6 +167,12 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
                 ...rows[index],
                 quantidade: Number(service.quantidade) || 0,
               };
+            } else {
+              rows.push({
+                ...service,
+                quantidade: Number(service.quantidade) || 0,
+                opcoes: Array.isArray(service.opcoes) ? service.opcoes : [],
+              });
             }
           }
           merged[key] = rows;
@@ -282,11 +323,15 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       setSourceSnapshot(extractedSnapshot);
 
       const extracted = { ...extractedSnapshot };
+      const signatureCrops = await extractSignatureCrops(base64).catch(() => ({
+        empreiteira: base64,
+        consorcio: base64,
+      }));
       if (extracted.assinatura_empreiteira_presente) {
-        extracted.assinatura_empreiteira_url = base64;
+        extracted.assinatura_empreiteira_url = signatureCrops.empreiteira;
       }
       if (extracted.assinatura_consorcio_presente) {
-        extracted.assinatura_consorcio_url = base64;
+        extracted.assinatura_consorcio_url = signatureCrops.consorcio;
       }
       delete extracted.assinatura_empreiteira_presente;
       delete extracted.assinatura_consorcio_presente;
@@ -603,6 +648,23 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
                     )}
                   </div>
                 </div>
+
+                {(data.assinatura_empreiteira_url || data.assinatura_consorcio_url) && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {data.assinatura_empreiteira_url && (
+                      <div className="rounded-lg border p-3">
+                        <div className="mb-2 text-sm font-medium">Assinatura extraída - empreiteira</div>
+                        <img src={data.assinatura_empreiteira_url} alt="Assinatura empreiteira extraída" className="h-24 w-full object-contain rounded-md bg-muted/30" />
+                      </div>
+                    )}
+                    {data.assinatura_consorcio_url && (
+                      <div className="rounded-lg border p-3">
+                        <div className="mb-2 text-sm font-medium">Assinatura extraída - consórcio</div>
+                        <img src={data.assinatura_consorcio_url} alt="Assinatura consórcio extraída" className="h-24 w-full object-contain rounded-md bg-muted/30" />
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
