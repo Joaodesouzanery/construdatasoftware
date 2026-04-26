@@ -25,32 +25,21 @@ import { toast } from "sonner";
 import { RdoSabespForm } from "@/components/rdo-sabesp/RdoSabespForm";
 import { downloadRdoSabespPdf, downloadRdoSabespBatchZip } from "@/lib/rdoSabespPdfGenerator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CRIADOUROS } from "@/lib/rdoSabespCatalog";
+import { getCriadouroLabel, getExecutedActivities } from "@/lib/rdoSabespUtils";
 
 type PeriodFilter = "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual" | "custom";
 
 const periodLabels: Record<PeriodFilter, string> = {
-  daily: "Diario",
+  daily: "Diário",
   weekly: "Semanal",
   monthly: "Mensal",
   quarterly: "Trimestral",
   semiannual: "Semestral",
   annual: "Anual",
-  custom: "Periodo selecionado",
+  custom: "Período selecionado",
 };
 
 const getTodayDateString = () => new Date().toISOString().slice(0, 10);
-
-const getCriadouroLabel = (value?: string | null, outro?: string | null) => {
-  if (value === "outro") return outro?.trim() || "Outro";
-  return CRIADOUROS.find((item) => item.value === value)?.label || "Local nao informado";
-};
-
-const getSabespActivities = (rdo: any) => {
-  return [...(rdo.servicos_esgoto || []), ...(rdo.servicos_agua || [])]
-    .filter((item: any) => Number(item.quantidade) > 0)
-    .map((item: any) => `${item.descricao} - ${item.quantidade} ${item.unidade}`);
-};
 
 const getDateRangeForPeriod = (period: PeriodFilter, customStart: string, customEnd: string) => {
   if (period === "custom") {
@@ -170,7 +159,7 @@ export default function RdoSabesp() {
       }
     }
 
-    toast.success("RDO Sabesp excluido");
+    toast.success("RDO Sabesp excluído");
     load();
   };
 
@@ -239,7 +228,7 @@ export default function RdoSabesp() {
         <Card>
           <CardHeader>
             <CardTitle>Projeto (opcional)</CardTitle>
-            <CardDescription>Voce pode criar RDOs Sabesp sem vincular a nenhum projeto.</CardDescription>
+            <CardDescription>Você pode criar RDOs Sabesp sem vincular a nenhum projeto.</CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={projectId} onValueChange={setProjectId}>
@@ -270,7 +259,7 @@ export default function RdoSabesp() {
           }}
         >
           <TabsList>
-            <TabsTrigger value="lista">Historico ({filteredList.length})</TabsTrigger>
+            <TabsTrigger value="lista">Histórico ({filteredList.length})</TabsTrigger>
             <TabsTrigger value="novo">
               <Plus className="w-4 h-4 mr-1" /> {editing ? "Editando" : "Novo RDO Sabesp"}
             </TabsTrigger>
@@ -279,15 +268,15 @@ export default function RdoSabesp() {
           <TabsContent value="lista" className="space-y-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Periodo do historico</CardTitle>
+                <CardTitle className="text-base">Período do histórico</CardTitle>
                 <CardDescription>
-                  Escolha um periodo rapido ou selecione um intervalo personalizado.
+                  Escolha um período rápido ou selecione um intervalo personalizado.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 lg:grid-cols-[220px,1fr]">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Filtro rapido</label>
+                    <label className="text-sm font-medium">Filtro rápido</label>
                     <Select
                       value={periodFilter}
                       onValueChange={(value) => {
@@ -302,13 +291,13 @@ export default function RdoSabesp() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="daily">Diario</SelectItem>
+                        <SelectItem value="daily">Diário</SelectItem>
                         <SelectItem value="weekly">Semanal</SelectItem>
                         <SelectItem value="monthly">Mensal</SelectItem>
                         <SelectItem value="quarterly">Trimestral</SelectItem>
                         <SelectItem value="semiannual">Semestral</SelectItem>
                         <SelectItem value="annual">Anual</SelectItem>
-                        <SelectItem value="custom">Periodo selecionado</SelectItem>
+                        <SelectItem value="custom">Período selecionado</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -325,7 +314,7 @@ export default function RdoSabesp() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Ate</label>
+                      <label className="text-sm font-medium">Até</label>
                       <input
                         type="date"
                         value={customEnd}
@@ -345,7 +334,7 @@ export default function RdoSabesp() {
               </CardContent>
             </Card>
 
-            <div className="flex gap-2 justify-end flex-wrap">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button variant="outline" onClick={toggleAll}>
                 {selected.size === filteredList.length && filteredList.length ? "Desmarcar todos" : "Selecionar todos"}
               </Button>
@@ -359,15 +348,14 @@ export default function RdoSabesp() {
               <CardContent className="p-4 space-y-4">
                 {filteredList.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
-                    Nenhum RDO Sabesp encontrado para o periodo selecionado.
+                    Nenhum RDO Sabesp encontrado para o período selecionado.
                   </p>
                 ) : (
                   filteredList.map((rdo) => {
                     const photoCount = Array.isArray(rdo.photo_paths) ? rdo.photo_paths.length : 0;
-                    const activities = getSabespActivities(rdo);
+                    const activities = getExecutedActivities(rdo);
                     const isExpanded = expandedActivities.has(rdo.id);
                     const visibleActivities = isExpanded ? activities : activities.slice(0, 6);
-                    const localLabel = getCriadouroLabel(rdo.criadouro, rdo.criadouro_outro);
 
                     return (
                       <div key={rdo.id} className="rounded-lg border bg-background p-4 shadow-sm">
@@ -383,13 +371,18 @@ export default function RdoSabesp() {
                               }}
                               className="mt-1"
                             />
+
                             <div className="space-y-3">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-lg font-semibold">
                                   {new Date(`${rdo.report_date}T12:00:00`).toLocaleDateString("pt-BR")}
                                 </span>
                                 <Badge variant="secondary">Sabesp</Badge>
-                                <Badge className="bg-blue-500 hover:bg-blue-500/90">{localLabel}</Badge>
+                                {rdo.criadouro && (
+                                  <Badge className="bg-blue-500 hover:bg-blue-500/90">
+                                    {getCriadouroLabel(rdo.criadouro, rdo.criadouro_outro)}
+                                  </Badge>
+                                )}
                                 {photoCount > 0 ? (
                                   <Badge variant="outline" className="gap-1 border-green-300 text-green-700">
                                     <ImageIcon className="h-3 w-3" />
@@ -404,18 +397,18 @@ export default function RdoSabesp() {
                                 {rdo.encarregado && <span className="text-sm text-muted-foreground">• {rdo.encarregado}</span>}
                               </div>
 
-                              <p className="text-sm text-muted-foreground">{rdo.rua_beco || "Rua nao informada"}</p>
+                              <p className="text-sm text-muted-foreground">{rdo.rua_beco || "—"}</p>
 
                               {activities.length > 0 ? (
                                 <div className="space-y-2">
                                   <div className="flex flex-wrap gap-2">
                                     {visibleActivities.map((activity) => (
                                       <Badge
-                                        key={`${rdo.id}-${activity}`}
+                                        key={activity.id}
                                         variant="outline"
-                                        className="rounded-full px-3 py-1 text-xs font-normal"
+                                        className="h-auto max-w-full rounded-full whitespace-normal break-words px-3 py-1 text-left text-xs font-normal leading-tight"
                                       >
-                                        {activity}
+                                        {activity.label}
                                       </Badge>
                                     ))}
                                   </div>
@@ -447,7 +440,7 @@ export default function RdoSabesp() {
                             </div>
                           </div>
 
-                          <div className="flex gap-2 self-end lg:self-start">
+                          <div className="flex flex-wrap gap-1 lg:justify-end">
                             <Button size="sm" variant="ghost" onClick={() => downloadRdoSabespPdf(rdo)}>
                               <FileDown className="w-4 h-4" />
                             </Button>

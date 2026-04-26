@@ -24,11 +24,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { EditRDODialog } from "./EditRDODialog";
-import { downloadRdoSabespPdf } from "@/lib/rdoSabespPdfGenerator";
+import {
+  downloadRdoSabespPdf,
+  generateRdoSabespPdfBlob,
+  mergePdfBlobsIntoSinglePdf,
+} from "@/lib/rdoSabespPdfGenerator";
+import { getRdoSabespExecutedServices } from "@/lib/rdoSabespUtils";
 
 interface RDOHistoryViewProps {
   projectId: string;
 }
+
+const SABESP_UNLINKED_PROJECT_VALUE = "__sabesp_sem_projeto__";
 
 export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [rdos, setRdos] = useState<any[]>([]);
@@ -48,12 +55,19 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [selectedRdoIds, setSelectedRdoIds] = useState<Set<string>>(new Set());
   const [isBulkExporting, setIsBulkExporting] = useState(false);
   const queryClient = useQueryClient();
+  const isSabespUnlinkedScope = projectId === SABESP_UNLINKED_PROJECT_VALUE;
 
   const deleteMutation = useMutation({
     mutationFn: async (rdo: any) => {
       if (rdo._source === 'rdos') {
         const { error } = await supabase
           .from('rdos')
+          .delete()
+          .eq('id', rdo.id);
+        if (error) throw error;
+      } else if (rdo._source === 'rdo_sabesp') {
+        const { error } = await supabase
+          .from('rdo_sabesp' as any)
           .delete()
           .eq('id', rdo.id);
         if (error) throw error;
@@ -85,7 +99,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     setIsLoading(true);
     try {
       const dateFilter = getDateFilter();
+      let dailyReportsData: any[] = [];
+      let rdosData: any[] = [];
       
+      if (!isSabespUnlinkedScope) {
       // Buscar da tabela daily_reports (sistema novo)
       let dailyReportsQuery = supabase
         .from('daily_reports')
@@ -115,10 +132,12 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       
       dailyReportsQuery = dailyReportsQuery.order('report_date', { ascending: false });
 
-      const { data: dailyReportsData, error: dailyReportsError } = await dailyReportsQuery;
+      const { data: loadedDailyReports, error: dailyReportsError } = await dailyReportsQuery;
       
       if (dailyReportsError) {
         console.error("Erro ao carregar daily_reports:", dailyReportsError);
+      } else if (loadedDailyReports) {
+        dailyReportsData = loadedDailyReports;
       }
 
       // Buscar da tabela rdos (sistema antigo) relacionada com obras
@@ -127,7 +146,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         .select('id')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
-      let rdosData: any[] = [];
       if (obrasData && obrasData.length > 0) {
         let rdosQuery = supabase
           .from('rdos')
@@ -154,13 +172,14 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
           rdosData = rdos;
         }
       }
+      }
 
       // Consolidar dados
       const allRdos: any[] = [];
       
       // Adicionar daily_reports
       if (dailyReportsData) {
-        allRdos.push(...dailyReportsData);
+        allRdos.push(...dailyReportsData.map((rdo: any) => ({ ...rdo, _source: 'daily_reports' })));
       }
       
       // Adicionar rdos (converter para formato compatível)
@@ -179,7 +198,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
       // Adicionar RDOs Sabesp
       try {
-        let sabespQuery = supabase.from('rdo_sabesp' as any).select('*').eq('project_id', projectId);
+        let sabespQuery = supabase.from('rdo_sabesp' as any).select('*');
+        sabespQuery = isSabespUnlinkedScope
+          ? sabespQuery.is('project_id', null)
+          : sabespQuery.eq('project_id', projectId);
         if (specificDate) sabespQuery = sabespQuery.eq('report_date', specificDate);
         else if (dateRangeStart && dateRangeEnd) sabespQuery = sabespQuery.gte('report_date', dateRangeStart).lte('report_date', dateRangeEnd);
         else sabespQuery = sabespQuery.gte('report_date', dateFilter.start).lte('report_date', dateFilter.end);
@@ -189,7 +211,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
             ...r,
             construction_sites: { name: r.rua_beco || 'Rua não especificada' },
             service_fronts: { name: r.encarregado || 'Encarregado não especificado' },
-            executed_services: [],
+            executed_services: getRdoSabespExecutedServices(r),
             justifications: [],
             _source: 'rdo_sabesp',
             _sabesp_full: r,
@@ -204,7 +226,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       setRdos(allRdos);
 
       // Load photo counts for daily_reports
-      const dailyReportIds = allRdos.filter(r => r._source !== 'rdos').map(r => r.id);
+      const dailyReportIds = allRdos.filter(r => r._source === 'daily_reports').map(r => r.id);
       if (dailyReportIds.length > 0) {
         const { data: photosData } = await supabase
           .from('rdo_validation_photos')
@@ -403,6 +425,31 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     return { ...completeRDO, photos: photosWithSignedUrls };
   };
 
+  const getExportableRdos = () => getFilteredData().filter(r => r._source !== 'rdos');
+  const hasSelectedSabespRdos = () => getExportableRdos().some(rdo => selectedRdoIds.has(rdo.id) && rdo._source === 'rdo_sabesp');
+
+  const getHistoryItemPdfBlob = async (rdo: any) => {
+    if (rdo._source === 'rdo_sabesp') {
+      return generateRdoSabespPdfBlob(rdo._sabesp_full || rdo);
+    }
+
+    const fullRDO = await fetchFullRDOForExport(rdo.id);
+    if (!fullRDO) throw new Error('RDO não encontrado');
+
+    const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
+    const blob = await generateRDOReportPDF(fullRDO, consolidateServices, true);
+    if (!blob) throw new Error('Não foi possível gerar o PDF deste RDO');
+    return blob;
+  };
+
+  const getHistoryItemDownloadName = (rdo: any) => {
+    if (rdo._source === 'rdo_sabesp') {
+      return `RDO-Sabesp_${rdo.report_date}_${(rdo.id || '').slice(0, 8)}.pdf`;
+    }
+
+    return `RDO-${rdo.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto'}-${rdo.report_date}.pdf`;
+  };
+
   // Fetch ALL daily_report IDs for project (no filter, paginated)
   const fetchAllProjectRDOIds = async (): Promise<string[]> => {
     const allIds: string[] = [];
@@ -430,33 +477,22 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
   const handleExportPDF = async () => {
     try {
-      toast.info('Buscando TODOS os RDOs do projeto para gerar PDFs completos...');
-      
-      const allIds = await fetchAllProjectRDOIds();
-      if (allIds.length === 0) {
-        toast.error("Nenhum RDO encontrado neste projeto");
+      const items = getExportableRdos();
+      if (items.length === 0) {
+        toast.error("Nenhum RDO encontrado para exportação");
         return;
       }
 
-      toast.info(`Gerando ${allIds.length} PDF(s) completo(s)...`);
-
-      const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
+      toast.info(`Gerando ${items.length} PDF(s)...`);
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
-      for (let i = 0; i < allIds.length; i += 5) {
-        const batch = allIds.slice(i, i + 5);
-        const rdos = await Promise.all(batch.map(id => fetchFullRDOForExport(id)));
-        
-        for (const rdo of rdos) {
-          if (!rdo) continue;
+      for (let i = 0; i < items.length; i += 5) {
+        const batch = items.slice(i, i + 5);
+        for (const rdo of batch) {
           try {
-            const blob = await generateRDOReportPDF(rdo, consolidateServices, true);
-            if (blob) {
-              const projectName = rdo.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
-              const fileName = `RDO-${projectName}-${rdo.report_date}.pdf`;
-              zip.file(fileName, blob);
-            }
+            const blob = await getHistoryItemPdfBlob(rdo);
+            zip.file(getHistoryItemDownloadName(rdo), blob);
           } catch (e) {
             console.error('Erro ao gerar PDF para RDO:', rdo.id, e);
           }
@@ -473,7 +509,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success(`${allIds.length} PDF(s) completo(s) exportado(s) em ZIP!`);
+      toast.success(`${items.length} PDF(s) exportado(s) em ZIP!`);
     } catch (error: any) {
       console.error("Erro ao exportar PDFs:", error);
       toast.error("Erro ao exportar PDFs: " + (error.message || "Erro desconhecido"));
@@ -525,6 +561,10 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
   const handleExportAllHydroNetwork = async () => {
     try {
+      if (isSabespUnlinkedScope) {
+        toast.error('HydroNetwork nÃ£o estÃ¡ disponÃ­vel para RDOs Sabesp sem projeto');
+        return;
+      }
       toast.info('Buscando TODOS os RDOs do projeto para HydroNetwork...');
       
       const allIds = await fetchAllProjectRDOIds();
@@ -636,6 +676,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
 
   const handleBulkExportHydroNetwork = async () => {
     if (selectedRdoIds.size === 0) { toast.error('Selecione pelo menos um RDO'); return; }
+    if (hasSelectedSabespRdos()) { toast.error('HydroNetwork não está disponível para RDOs Sabesp'); return; }
     setIsBulkExporting(true);
     try {
       const ids = Array.from(selectedRdoIds);
@@ -753,6 +794,128 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     } finally { setIsExportingPeriod(false); }
   };
 
+  const toggleSelectAllExportables = () => {
+    const filtered = getExportableRdos();
+    if (selectedRdoIds.size === filtered.length) {
+      setSelectedRdoIds(new Set());
+    } else {
+      setSelectedRdoIds(new Set(filtered.map(rdo => rdo.id)));
+    }
+  };
+
+  const handleFlexibleExportSingleRDO = async (rdo: any) => {
+    try {
+      if (rdo._source === 'rdo_sabesp') {
+        await downloadRdoSabespPdf(rdo._sabesp_full || rdo);
+      } else {
+        const fullRDO = await fetchFullRDOForExport(rdo.id);
+        if (!fullRDO) throw new Error('RDO não encontrado');
+        const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
+        await generateRDOReportPDF(fullRDO, consolidateServices);
+      }
+
+      toast.success('RDO exportado em PDF com sucesso!');
+      setExportingRdo(null);
+      setConsolidateServices(false);
+    } catch (error: any) {
+      toast.error('Erro ao exportar RDO em PDF: ' + (error.message || 'Erro desconhecido'));
+    }
+  };
+
+  const handleFlexibleBulkExportPDF = async () => {
+    if (selectedRdoIds.size === 0) { toast.error('Selecione pelo menos um RDO'); return; }
+    setIsBulkExporting(true);
+    try {
+      const items = getExportableRdos().filter(rdo => selectedRdoIds.has(rdo.id));
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      for (const rdo of items) {
+        const blob = await getHistoryItemPdfBlob(rdo);
+        zip.file(getHistoryItemDownloadName(rdo), blob);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RDOs-Selecionados-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${items.length} PDF(s) exportado(s) em ZIP!`);
+    } catch (error: any) {
+      toast.error('Erro ao exportar PDFs: ' + (error.message || 'Erro'));
+    } finally {
+      setIsBulkExporting(false);
+    }
+  };
+
+  const handleFlexibleExportPeriodSinglePDF = async () => {
+    setIsExportingPeriod(true);
+    try {
+      const items = getExportableRdos();
+      if (items.length === 0) { toast.error('Nenhum RDO no período selecionado'); return; }
+
+      const blobs: Blob[] = [];
+      for (const rdo of items) {
+        blobs.push(await getHistoryItemPdfBlob(rdo));
+      }
+
+      const merged = await mergePdfBlobsIntoSinglePdf(blobs);
+      const dates = items.map(rdo => rdo.report_date).sort();
+      const start = dates[0];
+      const end = dates[dates.length - 1];
+      const scopeName = isSabespUnlinkedScope ? 'Sabesp-Sem-Projeto' : 'Projeto';
+
+      const url = URL.createObjectURL(merged);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RDO-Consolidado-${scopeName}-${start}_a_${end}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`PDF consolidado com ${items.length} RDO(s) gerado!`);
+    } catch (error: any) {
+      toast.error('Erro: ' + (error.message || 'Erro'));
+    } finally {
+      setIsExportingPeriod(false);
+    }
+  };
+
+  const handleFlexibleExportPeriodZipPDF = async () => {
+    setIsExportingPeriod(true);
+    try {
+      const items = getExportableRdos();
+      if (items.length === 0) { toast.error('Nenhum RDO no período selecionado'); return; }
+
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      for (const rdo of items) {
+        const blob = await getHistoryItemPdfBlob(rdo);
+        zip.file(getHistoryItemDownloadName(rdo), blob);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `RDOs-Periodo-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`${items.length} PDF(s) exportado(s) em ZIP!`);
+    } catch (error: any) {
+      toast.error('Erro: ' + (error.message || 'Erro'));
+    } finally {
+      setIsExportingPeriod(false);
+    }
+  };
+
   const chartData = getChartData();
   const serviceData = getServiceDistribution();
 
@@ -842,7 +1005,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                 <Download className="w-4 h-4 mr-2" />
                 PDF
               </Button>
-              <Button onClick={handleExportAllHydroNetwork} variant="outline" className="flex-1 text-xs">
+              <Button onClick={handleExportAllHydroNetwork} variant="outline" className="flex-1 text-xs" disabled={isSabespUnlinkedScope}>
                 <FileJson className="w-4 h-4 mr-2" />
                 HydroNetwork
               </Button>
@@ -892,7 +1055,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                   size="sm"
                   className="flex-1"
                   disabled={!dateRangeStart || !dateRangeEnd || isExportingPeriod}
-                  onClick={handleExportPeriodSinglePDF}
+                  onClick={handleFlexibleExportPeriodSinglePDF}
                 >
                   <Download className="w-4 h-4 mr-1" />
                   PDF Único
@@ -902,7 +1065,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                   size="sm"
                   className="flex-1"
                   disabled={!dateRangeStart || !dateRangeEnd || isExportingPeriod}
-                  onClick={handleExportPeriodZipPDF}
+                  onClick={handleFlexibleExportPeriodZipPDF}
                 >
                   <Download className="w-4 h-4 mr-1" />
                   ZIP PDFs
@@ -1011,11 +1174,11 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                 <Button variant="outline" size="sm" onClick={() => setSelectedRdoIds(new Set())} disabled={isBulkExporting}>
                   Limpar seleção
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleBulkExportHydroNetwork} disabled={isBulkExporting}>
+                <Button variant="outline" size="sm" onClick={handleBulkExportHydroNetwork} disabled={isBulkExporting || isSabespUnlinkedScope || hasSelectedSabespRdos()}>
                   <FileJson className="w-4 h-4 mr-2" />
                   HydroNetwork (JSON)
                 </Button>
-                <Button size="sm" onClick={handleBulkExportPDF} disabled={isBulkExporting}>
+                <Button size="sm" onClick={handleFlexibleBulkExportPDF} disabled={isBulkExporting}>
                   <Download className="w-4 h-4 mr-2" />
                   PDF (ZIP)
                 </Button>
@@ -1036,8 +1199,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
             <div className="flex items-center gap-2">
               <Checkbox
                 id="select-all"
-                checked={getFilteredData().filter(r => r._source !== 'rdos').length > 0 && selectedRdoIds.size === getFilteredData().filter(r => r._source !== 'rdos').length}
-                onCheckedChange={toggleSelectAll}
+                checked={getExportableRdos().length > 0 && selectedRdoIds.size === getExportableRdos().length}
+                onCheckedChange={toggleSelectAllExportables}
               />
               <Label htmlFor="select-all" className="text-sm">Selecionar todos</Label>
             </div>
@@ -1068,7 +1231,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>Local: {rdo.construction_sites?.name} | Frente: {rdo.service_fronts?.name}</span>
-                        {rdo._source !== 'rdos' && (
+                        {rdo._source === 'daily_reports' && (
                           rdoPhotoCounts[rdo.id] > 0 ? (
                             <Badge variant="outline" className="text-green-600 border-green-300 gap-1">
                               <ImageIcon className="h-3 w-3" />
@@ -1086,7 +1249,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
                     </div>
                     <div className="flex gap-2">
                       {/* Botão Editar - apenas para daily_reports (não para rdos antigos) */}
-                      {rdo._source !== 'rdos' && (
+                      {rdo._source === 'daily_reports' && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -1200,15 +1363,15 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
               }}>
                 Cancelar
               </Button>
-              <Button type="button" variant="outline" onClick={() => exportingRdo && handleExportHydroNetwork(exportingRdo)}>
+              <Button type="button" variant="outline" onClick={() => exportingRdo && handleExportHydroNetwork(exportingRdo)} disabled={exportingRdo?._source === 'rdo_sabesp'}>
                 <FileJson className="w-4 h-4 mr-2" />
                 HydroNetwork
               </Button>
-              <Button type="button" variant="outline" onClick={() => exportingRdo && handleExportDXF(exportingRdo)}>
+              <Button type="button" variant="outline" onClick={() => exportingRdo && handleExportDXF(exportingRdo)} disabled={exportingRdo?._source === 'rdo_sabesp'}>
                 <Download className="w-4 h-4 mr-2" />
                 DXF (CAD)
               </Button>
-              <Button type="button" onClick={() => exportingRdo && handleExportSingleRDO(exportingRdo)}>
+              <Button type="button" onClick={() => exportingRdo && handleFlexibleExportSingleRDO(exportingRdo)}>
                 <Download className="w-4 h-4 mr-2" />
                 PDF
               </Button>
