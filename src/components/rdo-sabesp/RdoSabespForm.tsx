@@ -850,12 +850,18 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
-                onClick={() => {
+                onClick={async () => {
                   if (uniqueMissingLabels.length > 0) {
                     toast.error(`Preencha os ${uniqueMissingLabels.length} campo(s) obrigatórios(s) antes de gerar o PDF.`);
                     return;
                   }
-                  downloadRdoSabespPdf(data);
+                  try {
+                    await downloadRdoSabespPdf(data);
+                    toast.success("PDF do RDO gerado com sucesso.");
+                  } catch (error: any) {
+                    console.error("Erro ao gerar PDF do RDO Sabesp na revisÃ£o:", error);
+                    toast.error("Erro ao gerar PDF: " + (error?.message || "Erro desconhecido."));
+                  }
                 }}
                 disabled={uniqueMissingLabels.length > 0 || reviewBusy}
                 title={uniqueMissingLabels.length > 0 ? "Complete os campos obrigatórios" : ""}

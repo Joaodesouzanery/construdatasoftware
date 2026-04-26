@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import JSZip from "jszip";
 import logoSabesp from "@/assets/logo-sabesp.png";
 import logoCslnr from "@/assets/logo-cslnr.jpg";
 import { CRIADOUROS } from "./rdoSabespCatalog";
@@ -36,15 +37,28 @@ const checkbox = (checked: boolean) => (checked ? "[X]" : "[ ]");
 let workerConfigured = false;
 let pdfjsLibPromise: Promise<any> | null = null;
 
-const triggerBlobDownload = (blob: Blob, filename: string) => {
+const waitForNextFrame = () =>
+  new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+
+const triggerBlobDownload = async (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.style.display = "none";
+
   document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  try {
+    await waitForNextFrame();
+    anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+  } finally {
+    document.body.removeChild(anchor);
+    window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
 };
 
 const getPdfjsLib = async () => {
@@ -362,7 +376,7 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
 
 export async function downloadRdoSabespPdf(rdo: RdoSabespData) {
   const blob = await generateRdoSabespPdfBlob(rdo);
-  triggerBlobDownload(blob, `RDO-Sabesp_${rdo.report_date || "sem-data"}.pdf`);
+  await triggerBlobDownload(blob, `RDO-Sabesp_${rdo.report_date || "sem-data"}.pdf`);
 }
 
 export async function generateRdoSabespPdfBlob(rdo: RdoSabespData) {
@@ -444,7 +458,6 @@ export async function generateRdoSabespCombinedPdfBlob(rdos: RdoSabespData[]) {
 }
 
 export async function downloadRdoSabespBatchZip(rdos: RdoSabespData[]) {
-  const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
   for (const rdo of rdos) {
     const doc = await generateRdoSabespPdf(rdo);
@@ -452,10 +465,10 @@ export async function downloadRdoSabespBatchZip(rdos: RdoSabespData[]) {
     zip.file(`RDO-Sabesp_${rdo.report_date}_${(rdo.id || "").slice(0, 8)}.pdf`, blob);
   }
   const content = await zip.generateAsync({ type: "blob" });
-  triggerBlobDownload(content, `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.zip`);
+  await triggerBlobDownload(content, `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.zip`);
 }
 
 export async function downloadRdoSabespCombinedPdf(rdos: RdoSabespData[], filename?: string) {
   const blob = await generateRdoSabespCombinedPdfBlob(rdos);
-  triggerBlobDownload(blob, filename || `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.pdf`);
+  await triggerBlobDownload(blob, filename || `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.pdf`);
 }

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import JSZip from "jszip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
@@ -36,6 +37,24 @@ interface RDOHistoryViewProps {
 }
 
 const SABESP_UNLINKED_PROJECT_VALUE = "__sabesp_sem_projeto__";
+
+const triggerBlobDownload = async (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+
+  try {
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+  } finally {
+    document.body.removeChild(anchor);
+    window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+};
 
 export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
   const [rdos, setRdos] = useState<any[]>([]);
@@ -484,7 +503,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       }
 
       toast.info(`Gerando ${items.length} PDF(s)...`);
-      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       for (let i = 0; i < items.length; i += 5) {
@@ -500,14 +518,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RDOs-Completos-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await triggerBlobDownload(zipBlob, `RDOs-Completos-${new Date().toISOString().split('T')[0]}.zip`);
 
       toast.success(`${items.length} PDF(s) exportado(s) em ZIP!`);
     } catch (error: any) {
@@ -641,7 +652,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       const ids = Array.from(selectedRdoIds);
       toast.info(`Gerando ${ids.length} PDF(s) completo(s)...`);
       const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
-      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       for (let i = 0; i < ids.length; i += 5) {
@@ -660,14 +670,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RDOs-Selecionados-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await triggerBlobDownload(zipBlob, `RDOs-Selecionados-${new Date().toISOString().split('T')[0]}.zip`);
       toast.success(`${ids.length} PDF(s) exportado(s) em ZIP!`);
     } catch (error: any) {
       toast.error('Erro ao exportar PDFs: ' + (error.message || 'Erro'));
@@ -738,15 +741,8 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
         if (cur % 5 === 0 || cur === total) toast.info(`Processando RDO ${cur}/${total}...`);
       });
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const projectName = allReports[0]?.project?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Projeto';
-      a.download = `RDO-Consolidado-${projectName}-${start}_a_${end}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await triggerBlobDownload(blob, `RDO-Consolidado-${projectName}-${start}_a_${end}.pdf`);
       toast.success(`PDF consolidado com ${allReports.length} RDO(s) gerado!`);
     } catch (error: any) {
       toast.error('Erro: ' + (error.message || 'Erro'));
@@ -761,7 +757,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       toast.info(`Gerando ${ids.length} PDF(s) individuais em ZIP...`);
 
       const { generateRDOReportPDF } = await import('@/lib/rdoReportGenerator');
-      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       for (let i = 0; i < ids.length; i += 5) {
@@ -780,14 +775,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RDOs-Periodo-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await triggerBlobDownload(zipBlob, `RDOs-Periodo-${new Date().toISOString().split('T')[0]}.zip`);
       toast.success(`${ids.length} PDF(s) exportado(s) em ZIP!`);
     } catch (error: any) {
       toast.error('Erro: ' + (error.message || 'Erro'));
@@ -827,7 +815,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
     setIsBulkExporting(true);
     try {
       const items = getExportableRdos().filter(rdo => selectedRdoIds.has(rdo.id));
-      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       for (const rdo of items) {
@@ -836,14 +823,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RDOs-Selecionados-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await triggerBlobDownload(zipBlob, `RDOs-Selecionados-${new Date().toISOString().split('T')[0]}.zip`);
       toast.success(`${items.length} PDF(s) exportado(s) em ZIP!`);
     } catch (error: any) {
       toast.error('Erro ao exportar PDFs: ' + (error.message || 'Erro'));
@@ -869,14 +849,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       const end = dates[dates.length - 1];
       const scopeName = isSabespUnlinkedScope ? 'Sabesp-Sem-Projeto' : 'Projeto';
 
-      const url = URL.createObjectURL(merged);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RDO-Consolidado-${scopeName}-${start}_a_${end}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await triggerBlobDownload(merged, `RDO-Consolidado-${scopeName}-${start}_a_${end}.pdf`);
       toast.success(`PDF consolidado com ${items.length} RDO(s) gerado!`);
     } catch (error: any) {
       toast.error('Erro: ' + (error.message || 'Erro'));
@@ -891,7 +864,6 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       const items = getExportableRdos();
       if (items.length === 0) { toast.error('Nenhum RDO no período selecionado'); return; }
 
-      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
       for (const rdo of items) {
@@ -900,14 +872,7 @@ export const RDOHistoryView = ({ projectId }: RDOHistoryViewProps) => {
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `RDOs-Periodo-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await triggerBlobDownload(zipBlob, `RDOs-Periodo-${new Date().toISOString().split('T')[0]}.zip`);
       toast.success(`${items.length} PDF(s) exportado(s) em ZIP!`);
     } catch (error: any) {
       toast.error('Erro: ' + (error.message || 'Erro'));

@@ -441,7 +441,19 @@ export default function RdoSabesp() {
                           </div>
 
                           <div className="flex flex-wrap gap-1 lg:justify-end">
-                            <Button size="sm" variant="ghost" onClick={() => downloadRdoSabespPdf(rdo)}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                try {
+                                  await downloadRdoSabespPdf(rdo);
+                                  toast.success("PDF do RDO gerado com sucesso.");
+                                } catch (error: any) {
+                                  console.error("Erro ao baixar PDF do RDO Sabesp:", error);
+                                  toast.error("Erro ao baixar PDF: " + (error?.message || "Erro desconhecido."));
+                                }
+                              }}
+                            >
                               <FileDown className="w-4 h-4" />
                             </Button>
                             <Button
