@@ -49,10 +49,10 @@ const triggerBlobDownload = async (blob: Blob, filename: string) => {
 
   try {
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-    anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+    anchor.click();
   } finally {
     document.body.removeChild(anchor);
-    window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+    window.setTimeout(() => URL.revokeObjectURL(url), 120000);
   }
 };
 

@@ -53,10 +53,10 @@ const triggerBlobDownload = async (blob: Blob, filename: string) => {
 
   try {
     await waitForNextFrame();
-    anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+    anchor.click();
   } finally {
     document.body.removeChild(anchor);
-    window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+    window.setTimeout(() => URL.revokeObjectURL(url), 120000);
   }
 };
 
