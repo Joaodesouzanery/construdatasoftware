@@ -3,6 +3,7 @@ import "jspdf-autotable";
 import logoSabesp from "@/assets/logo-sabesp.png";
 import logoCslnr from "@/assets/logo-cslnr.jpg";
 import { CRIADOUROS } from "./rdoSabespCatalog";
+import { supabase } from "./supabase";
 
 const loadDataUrl = (src: string) =>
   new Promise<string>((resolve, reject) => {
@@ -16,21 +17,39 @@ const loadDataUrl = (src: string) =>
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0);
         resolve(canvas.toDataURL("image/png"));
-      } catch (e) {
-        reject(e);
+      } catch (error) {
+        reject(error);
       }
     };
     img.onerror = reject;
     img.src = src;
   });
 
-const fmtDate = (d: string) => {
-  if (!d) return "";
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
+const fmtDate = (dateValue: string) => {
+  if (!dateValue) return "";
+  const [year, month, day] = dateValue.split("-");
+  return `${day}/${month}/${year}`;
 };
 
 const checkbox = (checked: boolean) => (checked ? "[X]" : "[ ]");
+
+const resolveSabespPhotoUrls = async (photoPaths?: string[] | null) => {
+  if (!Array.isArray(photoPaths) || photoPaths.length === 0) return [];
+
+  const signedPhotos = await Promise.all(
+    photoPaths.map(async (path) => {
+      try {
+        const { data } = await supabase.storage.from("rdo-sabesp-photos").createSignedUrl(path, 60 * 60);
+        return data?.signedUrl || null;
+      } catch (error) {
+        console.error("Erro ao assinar foto do RDO Sabesp:", error);
+        return null;
+      }
+    }),
+  );
+
+  return signedPhotos.filter((url): url is string => Boolean(url));
+};
 
 export interface RdoSabespData {
   id?: string;
@@ -50,6 +69,7 @@ export interface RdoSabespData {
   servicos_esgoto?: any[];
   servicos_agua?: any[];
   observacoes?: string | null;
+  photo_paths?: string[] | null;
   responsavel_empreiteira?: string | null;
   responsavel_consorcio?: string | null;
   assinatura_empreiteira_url?: string | null;
@@ -59,36 +79,36 @@ export interface RdoSabespData {
 
 export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 8;
 
-  // === Header com logos ===
   try {
     const sabesp = await loadDataUrl(logoSabesp);
     doc.addImage(sabesp, "PNG", margin, 6, 28, 18);
   } catch {}
+
   try {
     const cslnr = await loadDataUrl(logoCslnr);
-    doc.addImage(cslnr, "PNG", pageW - margin - 22, 6, 22, 22);
+    doc.addImage(cslnr, "PNG", pageWidth - margin - 22, 6, 22, 22);
   } catch {}
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text("RELATÓRIO DIÁRIO DE OBRA (RDO)", pageW / 2, 14, { align: "center" });
+  doc.text("RELATORIO DIARIO DE OBRA (RDO)", pageWidth / 2, 14, { align: "center" });
   doc.setFontSize(9);
-  doc.text("SABESP - Consórcio Se Liga Na Rede", pageW / 2, 19, { align: "center" });
+  doc.text("SABESP - Consorcio Se Liga Na Rede", pageWidth / 2, 19, { align: "center" });
 
   let y = 30;
 
-  // === Linha: Criadouros ===
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.text("CRIADOUROS:", margin, y);
   doc.setFont("helvetica", "normal");
   let x = margin + 22;
-  for (const c of CRIADOUROS.filter((c) => c.value !== "outro")) {
-    const sel = rdo.criadouro === c.value;
-    doc.text(`${checkbox(sel)} ${c.label}`, x, y);
+  for (const criadouro of CRIADOUROS.filter((item) => item.value !== "outro")) {
+    const selected = rdo.criadouro === criadouro.value;
+    doc.text(`${checkbox(selected)} ${criadouro.label}`, x, y);
     x += 32;
   }
   if (rdo.criadouro === "outro" && rdo.criadouro_outro) {
@@ -96,103 +116,106 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   }
   y += 5;
 
-  // === Rua/Beco, Encarregado, Data ===
   doc.setFont("helvetica", "bold");
   doc.text("RUA/BECO:", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(rdo.rua_beco || "—", margin + 18, y);
+  doc.text(rdo.rua_beco || "-", margin + 18, y);
   doc.setFont("helvetica", "bold");
   doc.text("ENCARREGADO:", 90, y);
   doc.setFont("helvetica", "normal");
-  doc.text(rdo.encarregado || "—", 117, y);
+  doc.text(rdo.encarregado || "-", 117, y);
   doc.setFont("helvetica", "bold");
   doc.text("DATA:", 165, y);
   doc.setFont("helvetica", "normal");
   doc.text(fmtDate(rdo.report_date), 175, y);
   y += 5;
 
-  // === EPI ===
   doc.setFont("helvetica", "bold");
-  doc.text(
-    "1. TODOS OS FUNCIONÁRIOS ESTÃO UTILIZANDO OS EPIs?",
-    margin,
-    y,
-  );
+  doc.text("1. TODOS OS FUNCIONARIOS ESTAO UTILIZANDO OS EPIs?", margin, y);
   doc.setFont("helvetica", "normal");
-  doc.text(`${checkbox(!!rdo.epi_utilizado)} SIM   ${checkbox(!rdo.epi_utilizado)} NÃO`, 105, y);
+  doc.text(`${checkbox(!!rdo.epi_utilizado)} SIM   ${checkbox(rdo.epi_utilizado === false)} NAO`, 105, y);
   y += 4;
 
-  // === Condições / Qualidade / Paralisações / Horários ===
-  const cc = rdo.condicoes_climaticas || {};
-  const q = rdo.qualidade || {};
+  const clima = rdo.condicoes_climaticas || {};
+  const qualidade = rdo.qualidade || {};
   const horarios = rdo.horarios || {};
-  const para = rdo.paralisacoes || [];
+  const paralisacoes = rdo.paralisacoes || [];
 
   (doc as any).autoTable({
     startY: y,
     margin: { left: margin, right: margin },
-    styles: { fontSize: 7, cellPadding: 1.2, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: "linebreak", cellWidth: "wrap" },
+    styles: {
+      fontSize: 7,
+      cellPadding: 1.2,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.1,
+      overflow: "linebreak",
+      cellWidth: "wrap",
+    },
     headStyles: { fillColor: [220, 230, 241], textColor: 0, fontStyle: "bold", halign: "center" },
-    head: [["CONDIÇÕES CLIMÁTICAS", "QUALIDADE", "PARALISAÇÕES", "HORÁRIO"]],
+    head: [["CONDICOES CLIMATICAS", "QUALIDADE", "PARALISACOES", "HORARIO"]],
     body: [
       [
-        `Manhã: ${cc.manha || "—"}\nTarde: ${cc.tarde || "—"}\nNoite: ${cc.noite || "—"}`,
-        `Ordem de Serviço: ${checkbox(!!q.ordem_servico)}\nBandeirola: ${checkbox(!!q.bandeirola)}\nProjeto: ${checkbox(!!q.projeto)}\nObs: ${q.obs || "—"}`,
+        `Manha: ${clima.manha || "-"}\nTarde: ${clima.tarde || "-"}\nNoite: ${clima.noite || "-"}`,
+        `Ordem de Servico: ${checkbox(!!qualidade.ordem_servico)}\nBandeirola: ${checkbox(!!qualidade.bandeirola)}\nProjeto: ${checkbox(!!qualidade.projeto)}\nObs: ${qualidade.obs || "-"}`,
         (() => {
-          const lines = para.length
-            ? para.map((p: any) => `• ${p.motivo || "—"}${p.inicio ? ` ${p.inicio}` : ""}${p.fim ? `→${p.fim}` : ""}`)
+          const lines = paralisacoes.length
+            ? paralisacoes.map((item: any) => `* ${item.motivo || "-"}${item.inicio ? ` ${item.inicio}` : ""}${item.fim ? ` -> ${item.fim}` : ""}`)
             : [];
           if (rdo.paralisacao_outro) lines.push(`Outro: ${rdo.paralisacao_outro}`);
-          return lines.length ? lines.join("\n") : "—";
+          return lines.length ? lines.join("\n") : "-";
         })(),
-        `Diurno: ${horarios?.diurno?.inicio || "—"} → ${horarios?.diurno?.fim || "—"}\nNoturno: ${horarios?.noturno?.inicio || "—"} → ${horarios?.noturno?.fim || "—"}`,
+        `Diurno: ${horarios?.diurno?.inicio || "-"} -> ${horarios?.diurno?.fim || "-"}\nNoturno: ${horarios?.noturno?.inicio || "-"} -> ${horarios?.noturno?.fim || "-"}`,
       ],
     ],
-    columnStyles: { 0: { cellWidth: 45 }, 1: { cellWidth: 50 }, 2: { cellWidth: 50 }, 3: { cellWidth: 48 } },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 48 },
+    },
   });
   y = (doc as any).lastAutoTable.finalY + 2;
 
-  // === Mão de obra ===
-  const mo = (rdo.mao_de_obra || []).filter((m: any) => m.cargo);
-  if (mo.length) {
+  const maoDeObra = (rdo.mao_de_obra || []).filter((item: any) => item.cargo);
+  if (maoDeObra.length > 0) {
     (doc as any).autoTable({
       startY: y,
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
       headStyles: { fillColor: [220, 230, 241], textColor: 0, halign: "center" },
-      head: [["MÃO DE OBRA - CARGO", "TERC.", "CONTRAT."]],
-      body: mo.map((m: any) => [m.cargo, String(m.terc ?? 0), String(m.contrat ?? 0)]),
+      head: [["MAO DE OBRA - CARGO", "TERC.", "CONTRAT."]],
+      body: maoDeObra.map((item: any) => [item.cargo, String(item.terc ?? 0), String(item.contrat ?? 0)]),
       columnStyles: { 1: { halign: "center", cellWidth: 25 }, 2: { halign: "center", cellWidth: 25 } },
     });
     y = (doc as any).lastAutoTable.finalY + 2;
   }
 
-  // === Equipamentos ===
-  const eq = (rdo.equipamentos || []).filter((e: any) => e.descricao);
-  if (eq.length) {
+  const equipamentos = (rdo.equipamentos || []).filter((item: any) => item.descricao);
+  if (equipamentos.length > 0) {
     (doc as any).autoTable({
       startY: y,
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1 },
       headStyles: { fillColor: [220, 230, 241], textColor: 0, halign: "center" },
-      head: [["EQUIPAMENTOS / VEÍCULOS", "TERC.", "CONTRAT."]],
-      body: eq.map((e: any) => [e.descricao, String(e.terc ?? 0), String(e.contrat ?? 0)]),
+      head: [["EQUIPAMENTOS / VEICULOS", "TERC.", "CONTRAT."]],
+      body: equipamentos.map((item: any) => [item.descricao, String(item.terc ?? 0), String(item.contrat ?? 0)]),
       columnStyles: { 1: { halign: "center", cellWidth: 25 }, 2: { halign: "center", cellWidth: 25 } },
     });
     y = (doc as any).lastAutoTable.finalY + 2;
   }
 
-  // === Serviços ===
   const renderServicos = (titulo: string, lista: any[]) => {
-    const filt = (lista || []).filter((s: any) => Number(s.quantidade) > 0);
-    if (!filt.length) return;
+    const servicos = (lista || []).filter((item: any) => Number(item.quantidade) > 0);
+    if (servicos.length === 0) return;
+
     (doc as any).autoTable({
       startY: y,
       margin: { left: margin, right: margin },
       styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: "linebreak" },
       headStyles: { fillColor: [200, 220, 240], textColor: 0, halign: "center" },
-      head: [[`${titulo} - CÓD.`, "ATIVIDADE EXECUTADA", "EXEC.", "UN."]],
-      body: filt.map((s: any) => [s.codigo || "—", s.descricao, String(s.quantidade), s.unidade]),
+      head: [[`${titulo} - COD.`, "ATIVIDADE EXECUTADA", "EXEC.", "UN."]],
+      body: servicos.map((item: any) => [item.codigo || "-", item.descricao, String(item.quantidade), item.unidade]),
       columnStyles: {
         0: { cellWidth: 22 },
         2: { halign: "center", cellWidth: 18 },
@@ -201,60 +224,106 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
     });
     y = (doc as any).lastAutoTable.finalY + 2;
   };
-  renderServicos("ESGOTO", rdo.servicos_esgoto || []);
-  renderServicos("ÁGUA", rdo.servicos_agua || []);
 
-  // === Observações ===
+  renderServicos("ESGOTO", rdo.servicos_esgoto || []);
+  renderServicos("AGUA", rdo.servicos_agua || []);
+
   if (rdo.observacoes) {
     if (y > 250) {
       doc.addPage();
       y = 15;
     }
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.text("OBSERVAÇÕES:", margin, y);
+    doc.text("OBSERVACOES:", margin, y);
     y += 4;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    const lines = doc.splitTextToSize(rdo.observacoes, pageW - margin * 2);
+    const lines = doc.splitTextToSize(rdo.observacoes, pageWidth - margin * 2);
     doc.text(lines, margin, y);
     y += lines.length * 4 + 2;
   }
 
-  // === Assinaturas ===
   if (y > 260) {
     doc.addPage();
     y = 20;
   }
+
   y = Math.max(y, 270);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  // Assinaturas (imagem) acima da linha, se houver
-  const drawSig = async (url: string | null | undefined, cx: number) => {
+
+  const drawSignature = async (url: string | null | undefined, centerX: number) => {
     if (!url) return;
     try {
       const dataUrl = url.startsWith("data:") ? url : await loadDataUrl(url);
-      doc.addImage(dataUrl, "PNG", cx - 25, y - 18, 50, 16);
-    } catch (e) {
-      console.warn("sig load fail", e);
+      doc.addImage(dataUrl, "PNG", centerX - 25, y - 18, 50, 16);
+    } catch (error) {
+      console.warn("Nao foi possivel carregar assinatura do RDO Sabesp:", error);
     }
   };
-  await drawSig(rdo.assinatura_empreiteira_url, margin + 40);
-  await drawSig(rdo.assinatura_consorcio_url, pageW - margin - 40);
-  doc.line(margin + 5, y, margin + 75, y);
-  doc.line(pageW - margin - 75, y, pageW - margin - 5, y);
-  doc.text(rdo.responsavel_empreiteira || "RESPONSÁVEL DA EMPREITEIRA", margin + 40, y + 4, { align: "center" });
-  doc.text(rdo.responsavel_consorcio || "RESPONSÁVEL DO CONSÓRCIO", pageW - margin - 40, y + 4, { align: "center" });
 
-  // Rodapé
+  await drawSignature(rdo.assinatura_empreiteira_url, margin + 40);
+  await drawSignature(rdo.assinatura_consorcio_url, pageWidth - margin - 40);
+  doc.line(margin + 5, y, margin + 75, y);
+  doc.line(pageWidth - margin - 75, y, pageWidth - margin - 5, y);
+  doc.text(rdo.responsavel_empreiteira || "RESPONSAVEL DA EMPREITEIRA", margin + 40, y + 4, { align: "center" });
+  doc.text(rdo.responsavel_consorcio || "RESPONSAVEL DO CONSORCIO", pageWidth - margin - 40, y + 4, {
+    align: "center",
+  });
+
+  const photoUrls = await resolveSabespPhotoUrls(rdo.photo_paths);
+  if (photoUrls.length > 0) {
+    doc.addPage();
+    let photoY = 16;
+    const gap = 6;
+    const photoWidth = (pageWidth - margin * 2 - gap) / 2;
+    const photoHeight = 58;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0);
+    doc.text("FOTOS DO RDO", margin, photoY);
+    photoY += 6;
+
+    for (let index = 0; index < photoUrls.length; index++) {
+      if (index > 0 && index % 4 === 0) {
+        doc.addPage();
+        photoY = 16;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("FOTOS DO RDO", margin, photoY);
+        photoY += 6;
+      }
+
+      const column = index % 2;
+      const row = Math.floor((index % 4) / 2);
+      const imageX = margin + column * (photoWidth + gap);
+      const imageY = photoY + row * (photoHeight + 14);
+
+      doc.setDrawColor(210);
+      doc.rect(imageX, imageY, photoWidth, photoHeight);
+
+      try {
+        const dataUrl = await loadDataUrl(photoUrls[index]);
+        doc.addImage(dataUrl, "PNG", imageX + 1, imageY + 1, photoWidth - 2, photoHeight - 2);
+      } catch (error) {
+        console.warn("Nao foi possivel carregar foto do RDO Sabesp para o PDF:", error);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text("Foto indisponivel", imageX + photoWidth / 2, imageY + photoHeight / 2, { align: "center" });
+      }
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(`Foto ${index + 1}`, imageX, imageY + photoHeight + 5);
+    }
+  }
+
   doc.setFontSize(6);
   doc.setTextColor(120);
-  doc.text(
-    "Gerado automaticamente pela ConstruData",
-    pageW / 2,
-    doc.internal.pageSize.getHeight() - 5,
-    { align: "center" },
-  );
+  doc.text("Gerado automaticamente pela ConstruData", pageWidth / 2, pageHeight - 5, { align: "center" });
 
   return doc;
 }
@@ -267,16 +336,18 @@ export async function downloadRdoSabespPdf(rdo: RdoSabespData) {
 export async function downloadRdoSabespBatchZip(rdos: RdoSabespData[]) {
   const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
-  for (const r of rdos) {
-    const d = await generateRdoSabespPdf(r);
-    const blob = d.output("blob");
-    zip.file(`RDO-Sabesp_${r.report_date}_${(r.id || "").slice(0, 8)}.pdf`, blob);
+
+  for (const rdo of rdos) {
+    const doc = await generateRdoSabespPdf(rdo);
+    const blob = doc.output("blob");
+    zip.file(`RDO-Sabesp_${rdo.report_date}_${(rdo.id || "").slice(0, 8)}.pdf`, blob);
   }
+
   const content = await zip.generateAsync({ type: "blob" });
   const url = URL.createObjectURL(content);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.zip`;
-  a.click();
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `RDOs-Sabesp_${new Date().toISOString().slice(0, 10)}.zip`;
+  anchor.click();
   URL.revokeObjectURL(url);
 }

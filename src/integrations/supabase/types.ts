@@ -3292,6 +3292,7 @@ export type Database = {
           observacoes: string | null
           paralisacao_outro: string | null
           paralisacoes: Json | null
+          photo_paths: Json | null
           planilha_foto_url: string | null
           project_id: string | null
           qualidade: Json | null
@@ -3321,6 +3322,7 @@ export type Database = {
           observacoes?: string | null
           paralisacao_outro?: string | null
           paralisacoes?: Json | null
+          photo_paths?: Json | null
           planilha_foto_url?: string | null
           project_id?: string | null
           qualidade?: Json | null
@@ -3350,6 +3352,7 @@ export type Database = {
           observacoes?: string | null
           paralisacao_outro?: string | null
           paralisacoes?: Json | null
+          photo_paths?: Json | null
           planilha_foto_url?: string | null
           project_id?: string | null
           qualidade?: Json | null

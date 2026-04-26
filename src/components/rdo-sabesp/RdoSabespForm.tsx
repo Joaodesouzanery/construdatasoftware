@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, MessageSquare, Loader2, FileDown, Save, ArrowRight, ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Upload, MessageSquare, Loader2, FileDown, Save, ArrowRight, ArrowLeft, AlertTriangle, CheckCircle2, ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import {
@@ -44,6 +44,7 @@ const empty = (projectId: string | null) => ({
   responsavel_consorcio: "",
   assinatura_empreiteira_url: null as string | null,
   assinatura_consorcio_url: null as string | null,
+  photo_paths: [] as string[],
   planilha_foto_url: null as string | null,
   whatsapp_text: null as string | null,
 });
@@ -55,7 +56,9 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
   const [step, setStep] = useState<Step>(initialData ? "edit" : "import");
   const [saving, setSaving] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [whatsappText, setWhatsappText] = useState("");
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<Array<{ path: string; url: string }>>([]);
 
   const set = (path: string, val: any) => {
     setData((d: any) => {
@@ -103,6 +106,90 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       }
       return merged;
     });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPhotoPreviews = async () => {
+      const photoPaths = Array.isArray(data.photo_paths) ? data.photo_paths.filter(Boolean) : [];
+
+      if (!photoPaths.length) {
+        setPhotoPreviewUrls([]);
+        return;
+      }
+
+      const previews = await Promise.all(
+        photoPaths.map(async (path: string) => {
+          try {
+            const { data: signed } = await supabase.storage
+              .from("rdo-sabesp-photos")
+              .createSignedUrl(path, 60 * 60);
+
+            return signed?.signedUrl ? { path, url: signed.signedUrl } : null;
+          } catch (error) {
+            console.error("Erro ao gerar preview da foto do RDO Sabesp:", error);
+            return null;
+          }
+        }),
+      );
+
+      if (!cancelled) {
+        setPhotoPreviewUrls(previews.filter((preview): preview is { path: string; url: string } => Boolean(preview)));
+      }
+    };
+
+    loadPhotoPreviews();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.photo_paths]);
+
+  const handleAdditionalPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+
+    setUploadingPhotos(true);
+    try {
+      const folder = projectId || "no-project";
+      const uploadedPaths: string[] = [];
+
+      for (const file of Array.from(files)) {
+        const safeName = file.name.replace(/\s+/g, "_");
+        const path = `${folder}/attachments/${crypto.randomUUID()}_${safeName}`;
+        const { error } = await supabase.storage.from("rdo-sabesp-photos").upload(path, file);
+
+        if (error) {
+          console.error("Erro ao subir foto do RDO Sabesp:", error);
+          toast.error(`Nao foi possivel enviar ${file.name}.`);
+          continue;
+        }
+
+        uploadedPaths.push(path);
+      }
+
+      if (uploadedPaths.length > 0) {
+        set("photo_paths", [...(Array.isArray(data.photo_paths) ? data.photo_paths : []), ...uploadedPaths]);
+        toast.success(`${uploadedPaths.length} foto(s) adicionada(s) ao RDO.`);
+      }
+    } finally {
+      setUploadingPhotos(false);
+    }
+  };
+
+  const handleRemovePhoto = async (path: string) => {
+    try {
+      const { error } = await supabase.storage.from("rdo-sabesp-photos").remove([path]);
+      if (error) throw error;
+
+      set(
+        "photo_paths",
+        (Array.isArray(data.photo_paths) ? data.photo_paths : []).filter((photoPath: string) => photoPath !== path),
+      );
+      toast.success("Foto removida do RDO.");
+    } catch (error: any) {
+      toast.error("Erro ao remover foto: " + (error.message || error));
+    }
   };
 
   const handlePhoto = async (file: File) => {
@@ -195,6 +282,7 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
   const missing = getMissingRequired(data);
   const missingLabels = Array.from(missing).map((k) => REQUIRED_LABELS[k] || k);
   const uniqueMissingLabels = Array.from(new Set(missingLabels));
+  const photoCount = Array.isArray(data.photo_paths) ? data.photo_paths.length : 0;
 
   return (
     <div className="space-y-4">
@@ -257,6 +345,56 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
       {step === "edit" && (
         <>
           <RdoSabespSheet data={data} set={set} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Fotos do RDO</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  As fotos ficam anexadas ao RDO e entram no PDF/exportacao logo depois das assinaturas.
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-2 text-sm font-medium hover:bg-muted">
+                    <ImagePlus className="h-4 w-4" />
+                    <span>Adicionar fotos</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      disabled={uploadingPhotos}
+                      onChange={(e) => {
+                        handleAdditionalPhotos(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {uploadingPhotos && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+              </div>
+
+              {photoCount > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {photoPreviewUrls.map((photo, index) => (
+                    <div key={photo.path} className="overflow-hidden rounded-md border bg-muted/20">
+                      <img src={photo.url} alt={`Foto do RDO ${index + 1}`} className="h-48 w-full object-cover" />
+                      <div className="flex items-center justify-between gap-2 p-3">
+                        <span className="text-xs text-muted-foreground">Foto {index + 1}</span>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => handleRemovePhoto(photo.path)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Nenhuma foto adicionada ao RDO.
+                </div>
+              )}
+            </CardContent>
+          </Card>
           <div className="flex gap-2 justify-between sticky bottom-0 bg-background py-3 border-t">
             <Button variant="outline" onClick={() => setStep("import")}>
               <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
@@ -291,6 +429,27 @@ export function RdoSabespForm({ projectId, initialData, onSaved }: Props) {
           )}
 
           <RdoSabespSheet data={data} readOnly missing={missing} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Fotos do RDO</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {photoCount > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {photoPreviewUrls.map((photo, index) => (
+                    <div key={photo.path} className="overflow-hidden rounded-md border bg-muted/20">
+                      <img src={photo.url} alt={`Foto do RDO ${index + 1}`} className="h-48 w-full object-cover" />
+                      <div className="p-3 text-xs text-muted-foreground">Foto {index + 1}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Este RDO ainda nao possui fotos anexadas.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="flex gap-2 justify-between sticky bottom-0 bg-background py-3 border-t flex-wrap">
             <Button variant="outline" onClick={() => setStep("edit")}>

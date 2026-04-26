@@ -6,11 +6,88 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Building2, FileDown, Pencil, Trash2, Package, Loader2, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  FileDown,
+  Pencil,
+  Trash2,
+  Package,
+  Loader2,
+  Plus,
+  CalendarRange,
+  ChevronDown,
+  ChevronUp,
+  ImageIcon,
+  ImageOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import { RdoSabespForm } from "@/components/rdo-sabesp/RdoSabespForm";
 import { downloadRdoSabespPdf, downloadRdoSabespBatchZip } from "@/lib/rdoSabespPdfGenerator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CRIADOUROS } from "@/lib/rdoSabespCatalog";
+
+type PeriodFilter = "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual" | "custom";
+
+const periodLabels: Record<PeriodFilter, string> = {
+  daily: "Diario",
+  weekly: "Semanal",
+  monthly: "Mensal",
+  quarterly: "Trimestral",
+  semiannual: "Semestral",
+  annual: "Anual",
+  custom: "Periodo selecionado",
+};
+
+const getTodayDateString = () => new Date().toISOString().slice(0, 10);
+
+const getCriadouroLabel = (value?: string | null, outro?: string | null) => {
+  if (value === "outro") return outro?.trim() || "Outro";
+  return CRIADOUROS.find((item) => item.value === value)?.label || "Local nao informado";
+};
+
+const getSabespActivities = (rdo: any) => {
+  return [...(rdo.servicos_esgoto || []), ...(rdo.servicos_agua || [])]
+    .filter((item: any) => Number(item.quantidade) > 0)
+    .map((item: any) => `${item.descricao} - ${item.quantidade} ${item.unidade}`);
+};
+
+const getDateRangeForPeriod = (period: PeriodFilter, customStart: string, customEnd: string) => {
+  if (period === "custom") {
+    if (customStart && customEnd) {
+      return { start: customStart, end: customEnd };
+    }
+    return null;
+  }
+
+  const end = getTodayDateString();
+  const start = new Date(`${end}T12:00:00`);
+
+  switch (period) {
+    case "daily":
+      break;
+    case "weekly":
+      start.setDate(start.getDate() - 6);
+      break;
+    case "monthly":
+      start.setMonth(start.getMonth() - 1);
+      break;
+    case "quarterly":
+      start.setMonth(start.getMonth() - 3);
+      break;
+    case "semiannual":
+      start.setMonth(start.getMonth() - 6);
+      break;
+    case "annual":
+      start.setFullYear(start.getFullYear() - 1);
+      break;
+  }
+
+  return {
+    start: start.toISOString().slice(0, 10),
+    end,
+  };
+};
 
 export default function RdoSabesp() {
   const navigate = useNavigate();
@@ -20,16 +97,25 @@ export default function RdoSabesp() {
   const [editing, setEditing] = useState<any | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("monthly");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/auth"); return; }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
       const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
       if (data?.length) setProjects(data);
-      // padrão: sem projeto vinculado
       setProjectId("__none__");
       setLoading(false);
     })();
@@ -37,47 +123,109 @@ export default function RdoSabesp() {
 
   const load = async () => {
     if (!projectId) return;
+
     let query = supabase.from("rdo_sabesp" as any).select("*").order("report_date", { ascending: false });
-    if (projectId === "__none__") query = query.is("project_id", null);
-    else query = query.eq("project_id", projectId);
+    query = projectId === "__none__" ? query.is("project_id", null) : query.eq("project_id", projectId);
+
     const { data, error } = await query;
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
     setList(data || []);
   };
-  useEffect(() => { load(); }, [projectId]);
 
-  const remove = async (id: string) => {
+  useEffect(() => {
+    load();
+  }, [projectId]);
+
+  useEffect(() => {
+    setSelected(new Set());
+    setExpandedActivities(new Set());
+  }, [projectId, periodFilter, customStart, customEnd]);
+
+  const getFilteredList = () => {
+    const range = getDateRangeForPeriod(periodFilter, customStart, customEnd);
+    if (!range) return list;
+
+    return list.filter((item) => item.report_date >= range.start && item.report_date <= range.end);
+  };
+
+  const filteredList = getFilteredList();
+
+  const remove = async (rdo: any) => {
     if (!confirm("Excluir este RDO Sabesp?")) return;
-    const { error } = await supabase.from("rdo_sabesp" as any).delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Excluído");
+
+    const { error } = await supabase.from("rdo_sabesp" as any).delete().eq("id", rdo.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    if (Array.isArray(rdo.photo_paths) && rdo.photo_paths.length > 0) {
+      const { error: storageError } = await supabase.storage.from("rdo-sabesp-photos").remove(rdo.photo_paths);
+      if (storageError) {
+        console.error("Erro ao remover fotos do RDO Sabesp:", storageError);
+      }
+    }
+
+    toast.success("RDO Sabesp excluido");
     load();
   };
 
   const toggleAll = () => {
-    if (selected.size === list.length) setSelected(new Set());
-    else setSelected(new Set(list.map((r) => r.id)));
+    if (selected.size === filteredList.length) {
+      setSelected(new Set());
+      return;
+    }
+
+    setSelected(new Set(filteredList.map((item) => item.id)));
   };
 
   const exportSelected = async () => {
-    if (!selected.size) return toast.error("Selecione ao menos um RDO");
+    if (!selected.size) {
+      toast.error("Selecione ao menos um RDO");
+      return;
+    }
+
     setBulkLoading(true);
     try {
-      const items = list.filter((r) => selected.has(r.id));
+      const items = filteredList.filter((item) => selected.has(item.id));
       await downloadRdoSabespBatchZip(items);
       toast.success("ZIP gerado");
-    } catch (e: any) { toast.error(e.message); }
-    finally { setBulkLoading(false); }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+  const toggleActivities = (id: string) => {
+    setExpandedActivities((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}><ArrowLeft className="w-5 h-5" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="flex items-center gap-2 text-primary">
               <Building2 className="w-7 h-7" />
               <span className="text-xl font-bold">RDO Sabesp</span>
@@ -88,63 +236,256 @@ export default function RdoSabesp() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-4">
-        <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Projeto (opcional)</CardTitle>
+            <CardDescription>Voce pode criar RDOs Sabesp sem vincular a nenhum projeto.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sem projeto vinculado</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        <Tabs
+          value={showNew || editing ? "novo" : "lista"}
+          onValueChange={(value) => {
+            if (value === "lista") {
+              setShowNew(false);
+              setEditing(null);
+            } else {
+              setShowNew(true);
+            }
+          }}
+        >
+          <TabsList>
+            <TabsTrigger value="lista">Historico ({filteredList.length})</TabsTrigger>
+            <TabsTrigger value="novo">
+              <Plus className="w-4 h-4 mr-1" /> {editing ? "Editando" : "Novo RDO Sabesp"}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="lista" className="space-y-3">
             <Card>
-              <CardHeader><CardTitle>Projeto (opcional)</CardTitle><CardDescription>Você pode criar RDOs Sabesp sem vincular a nenhum projeto.</CardDescription></CardHeader>
-              <CardContent>
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sem projeto vinculado</SelectItem>
-                    {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <CardHeader>
+                <CardTitle className="text-base">Periodo do historico</CardTitle>
+                <CardDescription>
+                  Escolha um periodo rapido ou selecione um intervalo personalizado.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-[220px,1fr]">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Filtro rapido</label>
+                    <Select
+                      value={periodFilter}
+                      onValueChange={(value) => {
+                        setPeriodFilter(value as PeriodFilter);
+                        if (value !== "custom") {
+                          setCustomStart("");
+                          setCustomEnd("");
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Diario</SelectItem>
+                        <SelectItem value="weekly">Semanal</SelectItem>
+                        <SelectItem value="monthly">Mensal</SelectItem>
+                        <SelectItem value="quarterly">Trimestral</SelectItem>
+                        <SelectItem value="semiannual">Semestral</SelectItem>
+                        <SelectItem value="annual">Anual</SelectItem>
+                        <SelectItem value="custom">Periodo selecionado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">De</label>
+                      <input
+                        type="date"
+                        value={customStart}
+                        disabled={periodFilter !== "custom"}
+                        onChange={(e) => setCustomStart(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Ate</label>
+                      <input
+                        type="date"
+                        value={customEnd}
+                        disabled={periodFilter !== "custom"}
+                        onChange={(e) => setCustomEnd(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <div className="flex h-10 w-full items-center rounded-md border border-dashed px-3 text-sm text-muted-foreground">
+                        <CalendarRange className="mr-2 h-4 w-4" />
+                        {periodLabels[periodFilter]}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Tabs value={showNew || editing ? "novo" : "lista"} onValueChange={(v) => { if (v === "lista") { setShowNew(false); setEditing(null); } else { setShowNew(true); } }}>
-              <TabsList>
-                <TabsTrigger value="lista">Histórico ({list.length})</TabsTrigger>
-                <TabsTrigger value="novo"><Plus className="w-4 h-4 mr-1" /> {editing ? "Editando" : "Novo RDO Sabesp"}</TabsTrigger>
-              </TabsList>
+            <div className="flex gap-2 justify-end flex-wrap">
+              <Button variant="outline" onClick={toggleAll}>
+                {selected.size === filteredList.length && filteredList.length ? "Desmarcar todos" : "Selecionar todos"}
+              </Button>
+              <Button onClick={exportSelected} disabled={bulkLoading || !selected.size}>
+                {bulkLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Package className="w-4 h-4 mr-1" />}
+                Exportar selecionados (ZIP)
+              </Button>
+            </div>
 
-              <TabsContent value="lista" className="space-y-3">
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={toggleAll}>{selected.size === list.length && list.length ? "Desmarcar todos" : "Selecionar todos"}</Button>
-                  <Button onClick={exportSelected} disabled={bulkLoading || !selected.size}>
-                    {bulkLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Package className="w-4 h-4 mr-1" />}
-                    Exportar selecionados (ZIP)
-                  </Button>
-                </div>
-                <Card>
-                  <CardContent className="p-0">
-                    {list.length === 0 ? (
-                      <p className="p-6 text-center text-muted-foreground text-sm">Nenhum RDO Sabesp ainda. Clique em "Novo RDO Sabesp".</p>
-                    ) : list.map((r) => (
-                      <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0">
-                        <Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => { const s = new Set(selected); if (v) s.add(r.id); else s.delete(r.id); setSelected(s); }} />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{new Date(r.report_date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
-                            <Badge variant="secondary">Sabesp</Badge>
-                            {r.encarregado && <span className="text-xs text-muted-foreground">• {r.encarregado}</span>}
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                {filteredList.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    Nenhum RDO Sabesp encontrado para o periodo selecionado.
+                  </p>
+                ) : (
+                  filteredList.map((rdo) => {
+                    const photoCount = Array.isArray(rdo.photo_paths) ? rdo.photo_paths.length : 0;
+                    const activities = getSabespActivities(rdo);
+                    const isExpanded = expandedActivities.has(rdo.id);
+                    const visibleActivities = isExpanded ? activities : activities.slice(0, 6);
+                    const localLabel = getCriadouroLabel(rdo.criadouro, rdo.criadouro_outro);
+
+                    return (
+                      <div key={rdo.id} className="rounded-lg border bg-background p-4 shadow-sm">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex gap-3">
+                            <Checkbox
+                              checked={selected.has(rdo.id)}
+                              onCheckedChange={(checked) => {
+                                const next = new Set(selected);
+                                if (checked) next.add(rdo.id);
+                                else next.delete(rdo.id);
+                                setSelected(next);
+                              }}
+                              className="mt-1"
+                            />
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-lg font-semibold">
+                                  {new Date(`${rdo.report_date}T12:00:00`).toLocaleDateString("pt-BR")}
+                                </span>
+                                <Badge variant="secondary">Sabesp</Badge>
+                                <Badge className="bg-blue-500 hover:bg-blue-500/90">{localLabel}</Badge>
+                                {photoCount > 0 ? (
+                                  <Badge variant="outline" className="gap-1 border-green-300 text-green-700">
+                                    <ImageIcon className="h-3 w-3" />
+                                    {photoCount} foto{photoCount > 1 ? "s" : ""}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="gap-1 text-muted-foreground">
+                                    <ImageOff className="h-3 w-3" />
+                                    Sem foto
+                                  </Badge>
+                                )}
+                                {rdo.encarregado && <span className="text-sm text-muted-foreground">• {rdo.encarregado}</span>}
+                              </div>
+
+                              <p className="text-sm text-muted-foreground">{rdo.rua_beco || "Rua nao informada"}</p>
+
+                              {activities.length > 0 ? (
+                                <div className="space-y-2">
+                                  <div className="flex flex-wrap gap-2">
+                                    {visibleActivities.map((activity) => (
+                                      <Badge
+                                        key={`${rdo.id}-${activity}`}
+                                        variant="outline"
+                                        className="rounded-full px-3 py-1 text-xs font-normal"
+                                      >
+                                        {activity}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                  {activities.length > 6 && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-auto px-0 text-sm text-primary"
+                                      onClick={() => toggleActivities(rdo.id)}
+                                    >
+                                      {isExpanded ? (
+                                        <>
+                                          <ChevronUp className="mr-1 h-4 w-4" />
+                                          Ocultar atividades
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="mr-1 h-4 w-4" />
+                                          Visualizar todas as atividades
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">Nenhuma atividade registrada neste RDO.</p>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground">{r.rua_beco || "—"}</p>
-                        </div>
-                        <Button size="sm" variant="ghost" onClick={() => downloadRdoSabespPdf(r)}><FileDown className="w-4 h-4" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setEditing(r); setShowNew(false); }}><Pencil className="w-4 h-4" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
-              <TabsContent value="novo">
-                <RdoSabespForm projectId={projectId === "__none__" ? null : projectId} initialData={editing || undefined} onSaved={() => { setShowNew(false); setEditing(null); load(); }} />
-              </TabsContent>
-            </Tabs>
-        </>
+                          <div className="flex gap-2 self-end lg:self-start">
+                            <Button size="sm" variant="ghost" onClick={() => downloadRdoSabespPdf(rdo)}>
+                              <FileDown className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditing(rdo);
+                                setShowNew(false);
+                              }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => remove(rdo)}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="novo">
+            <RdoSabespForm
+              projectId={projectId === "__none__" ? null : projectId}
+              initialData={editing || undefined}
+              onSaved={() => {
+                setShowNew(false);
+                setEditing(null);
+                load();
+              }}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
