@@ -1,13 +1,8 @@
+import { Check as CheckIcon } from "lucide-react";
 import { CRIADOUROS, MOTIVOS_PARALISACAO } from "@/lib/rdoSabespCatalog";
+import { cn } from "@/lib/utils";
 import logoSabesp from "@/assets/logo-sabesp.png";
 import logoCslnr from "@/assets/logo-cslnr.jpg";
-
-/**
- * Réplica visual da planilha RDO Sabesp.
- * - readOnly=false: campos editáveis (formulário)
- * - readOnly=true:  apenas leitura (preview/revisão)
- * - missing: lista de paths obrigatórios faltando, p/ destacar em vermelho
- */
 
 interface SheetProps {
   data: any;
@@ -16,11 +11,11 @@ interface SheetProps {
   missing?: Set<string>;
 }
 
-const cell = "border border-black px-1 py-[2px] text-[11px] align-middle break-words whitespace-normal";
-const head = "border border-black px-1 py-[2px] text-[11px] font-bold text-center bg-gray-200 break-words whitespace-normal";
-const subhead = "border border-black px-1 py-[2px] text-[10px] font-bold text-center bg-gray-100 break-words whitespace-normal";
-const orange = "border border-black px-1 py-[2px] text-[12px] font-bold text-center bg-orange-400";
-const blue = "border border-black px-1 py-[2px] text-[12px] font-bold text-center bg-sky-300";
+const shell = "border border-black px-2 py-1.5 text-[11px] align-top leading-tight whitespace-normal break-words";
+const head = "border border-black px-2 py-1.5 text-[11px] font-bold text-center bg-slate-200 whitespace-normal break-words";
+const subhead = "border border-black px-2 py-1.5 text-[10px] font-bold text-center bg-slate-100 whitespace-normal break-words";
+const orange = "border border-black px-2 py-1.5 text-[12px] font-bold text-center bg-orange-300";
+const blue = "border border-black px-2 py-1.5 text-[12px] font-bold text-center bg-sky-300";
 
 function Field({
   value,
@@ -41,18 +36,63 @@ function Field({
 }) {
   if (readOnly) {
     return (
-      <span className={`${className} ${missing ? "bg-red-200 text-red-700 font-semibold px-1" : ""}`}>
+      <div className={cn("min-h-[20px] whitespace-pre-wrap break-words", missing && "rounded bg-red-100 px-1 py-0.5 font-semibold text-red-700", className)}>
         {value || (missing ? "(faltando)" : "")}
-      </span>
+      </div>
     );
   }
+
   return (
     <input
       type={type}
       value={value ?? ""}
       placeholder={placeholder}
       onChange={(e) => onChange?.(e.target.value)}
-      className={`bg-transparent outline-none w-full ${missing ? "bg-red-100 ring-1 ring-red-500" : ""} ${className}`}
+      className={cn(
+        "h-8 w-full rounded-sm border border-transparent bg-transparent px-1.5 text-[11px] outline-none transition focus:border-slate-300 focus:bg-slate-50",
+        missing && "border-red-400 bg-red-50",
+        className,
+      )}
+    />
+  );
+}
+
+function MultilineField({
+  value,
+  onChange,
+  readOnly,
+  rows = 2,
+  missing,
+  placeholder,
+  className = "",
+}: {
+  value: any;
+  onChange?: (v: string) => void;
+  readOnly?: boolean;
+  rows?: number;
+  missing?: boolean;
+  placeholder?: string;
+  className?: string;
+}) {
+  if (readOnly) {
+    return (
+      <div className={cn("min-h-[40px] whitespace-pre-wrap break-words", missing && "rounded bg-red-100 px-1 py-0.5 font-semibold text-red-700", className)}>
+        {value || (missing ? "(faltando)" : "")}
+      </div>
+    );
+  }
+
+  return (
+    <textarea
+      value={value ?? ""}
+      rows={rows}
+      placeholder={placeholder}
+      onChange={(e) => onChange?.(e.target.value)}
+      className={cn(
+        "w-full resize-none rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-[11px] leading-tight outline-none transition focus:border-slate-300 focus:bg-slate-50",
+        missing && "border-red-400 bg-red-50",
+        className,
+      )}
     />
   );
 }
@@ -63,378 +103,540 @@ function Check({
   readOnly,
   label,
   missing,
-}: { checked: boolean; onToggle?: () => void; readOnly?: boolean; label?: string; missing?: boolean }) {
+  compact = false,
+}: {
+  checked: boolean;
+  onToggle?: () => void;
+  readOnly?: boolean;
+  label?: string;
+  missing?: boolean;
+  compact?: boolean;
+}) {
   return (
-    <label className={`inline-flex items-center gap-1 cursor-pointer ${missing ? "ring-1 ring-red-500 px-0.5" : ""}`}>
+    <button
+      type="button"
+      disabled={readOnly}
+      onClick={() => !readOnly && onToggle?.()}
+      className={cn(
+        "inline-flex items-center rounded-md border border-slate-400 bg-white text-slate-700 transition",
+        compact ? "gap-1 px-1.5 py-1 text-[10px]" : "gap-2 px-2 py-1 text-[11px]",
+        checked && "border-emerald-600 bg-emerald-50 text-emerald-700",
+        !readOnly && "hover:border-slate-500 hover:bg-slate-50",
+        readOnly && "cursor-default",
+        missing && "ring-1 ring-red-500 ring-offset-1",
+      )}
+    >
       <span
-        onClick={() => !readOnly && onToggle?.()}
-        className={`inline-block w-3 h-3 border border-black ${checked ? "bg-black" : "bg-white"}`}
-      />
-      {label && <span className="text-[11px]">{label}</span>}
-    </label>
+        className={cn(
+          "flex items-center justify-center rounded-sm border transition",
+          compact ? "h-3.5 w-3.5" : "h-4 w-4",
+          checked ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-400 bg-white text-transparent",
+        )}
+      >
+        <CheckIcon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
+      </span>
+      {label && <span className="text-left leading-tight whitespace-normal break-words">{label}</span>}
+    </button>
   );
 }
 
-export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<string>() }: SheetProps) {
-  const m = (k: string) => missing.has(k);
-  const cc = data.condicoes_climaticas || {};
-  const q = data.qualidade || {};
-  const h = data.horarios || {};
-  const para = data.paralisacoes || [];
-  const mo = data.mao_de_obra || [];
-  const eq = data.equipamentos || [];
+function ServiceOptions({
+  service,
+  readOnly,
+  onToggle,
+}: {
+  service: any;
+  readOnly?: boolean;
+  onToggle: (option: string) => void;
+}) {
+  const available = Array.isArray(service?.opcoesDisponiveis) ? service.opcoesDisponiveis : [];
+  const selected = Array.isArray(service?.opcoes) ? service.opcoes : [];
 
-  const setCC = (p: string, period: "manha" | "tarde" | "noite") => {
-    if (!set) return;
-    set(`condicoes_climaticas.${period}`, cc[period] === p ? "" : p);
-  };
-
-  // Mão de obra em 2 colunas (par/ímpar)
-  const moLeft = mo.filter((_: any, i: number) => i % 2 === 0);
-  const moRight = mo.filter((_: any, i: number) => i % 2 === 1);
-  const eqLeft = eq.filter((_: any, i: number) => i % 2 === 0);
-  const eqRight = eq.filter((_: any, i: number) => i % 2 === 1);
-  const maxRows = Math.max(moLeft.length, moRight.length, 7);
-  const maxEq = Math.max(eqLeft.length, eqRight.length, 6);
-
-  const updateMo = (originalIdx: number, field: string, val: any) => {
-    if (!set) return;
-    const arr = [...mo];
-    arr[originalIdx] = { ...arr[originalIdx], [field]: val };
-    set("mao_de_obra", arr);
-  };
-  const updateEq = (originalIdx: number, field: string, val: any) => {
-    if (!set) return;
-    const arr = [...eq];
-    arr[originalIdx] = { ...arr[originalIdx], [field]: val };
-    set("equipamentos", arr);
-  };
-
-  const esgoto = data.servicos_esgoto || [];
-  const agua = data.servicos_agua || [];
-  const maxServ = Math.max(esgoto.length, agua.length);
-
-  const updateServ = (key: "servicos_esgoto" | "servicos_agua", i: number, field: string, val: any) => {
-    if (!set) return;
-    const arr = [...data[key]];
-    arr[i] = { ...arr[i], [field]: field === "quantidade" ? Number(val) || 0 : val };
-    set(key, arr);
-  };
+  if (!available.length) return null;
 
   return (
-    <div className="bg-white text-black border border-black overflow-x-auto">
-      <table className="w-full border-collapse" style={{ minWidth: 900 }}>
-        <tbody>
-          {/* === HEADER === */}
-          <tr>
-            <td className={cell} colSpan={2} style={{ width: 130 }}>
-              <img src={logoSabesp} alt="Sabesp" className="h-10 mx-auto object-contain" />
-            </td>
-            <td className={`${cell} text-center font-bold text-[14px]`} colSpan={6}>
-              RELATÓRIO DIÁRIO DE OBRA (RDO)
-            </td>
-            <td className={cell} colSpan={4}>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-                {CRIADOUROS.filter((c) => c.value !== "outro").map((c) => (
-                  <Check
-                    key={c.value}
-                    checked={data.criadouro === c.value}
-                    onToggle={() => set?.("criadouro", data.criadouro === c.value ? "" : c.value)}
-                    readOnly={readOnly}
-                    label={c.label}
-                    missing={m("criadouro")}
-                  />
-                ))}
-              </div>
-            </td>
-            <td className={cell} colSpan={2} style={{ width: 80 }}>
-              <img src={logoCslnr} alt="CSLNR" className="h-10 mx-auto object-contain" />
-            </td>
-          </tr>
-
-          {/* RUA / ENCARREGADO / DATA */}
-          <tr>
-            <td className={`${cell} font-bold`}>RUA/BECO:</td>
-            <td className={cell} colSpan={5}>
-              <Field value={data.rua_beco} onChange={(v) => set?.("rua_beco", v)} readOnly={readOnly} missing={m("rua_beco")} />
-            </td>
-            <td className={`${cell} font-bold`}>ENCARREGADO:</td>
-            <td className={cell} colSpan={4}>
-              <Field value={data.encarregado} onChange={(v) => set?.("encarregado", v)} readOnly={readOnly} missing={m("encarregado")} />
-            </td>
-            <td className={`${cell} font-bold`}>DATA:</td>
-            <td className={cell}>
-              <Field type="date" value={data.report_date} onChange={(v) => set?.("report_date", v)} readOnly={readOnly} missing={m("report_date")} />
-            </td>
-          </tr>
-
-          {/* EPI */}
-          <tr>
-            <td className={`${cell} font-bold`} colSpan={6}>
-              1. TODOS OS FUNCIONÁRIOS DA OBRA DA ATIVIDADE ESTÃO UTILIZANDO OS EPI's?
-            </td>
-            <td className={cell} colSpan={3}>
-              <div className="flex gap-3 justify-center">
-                <Check checked={data.epi_utilizado === true} onToggle={() => set?.("epi_utilizado", true)} readOnly={readOnly} label="SIM" missing={m("epi_utilizado")} />
-                <Check checked={data.epi_utilizado === false} onToggle={() => set?.("epi_utilizado", false)} readOnly={readOnly} label="NÃO" />
-              </div>
-            </td>
-            <td className={`${cell} font-bold text-center`} colSpan={2}>
-              {data.criadouro === "outro" ? (
-                <Field value={data.criadouro_outro} onChange={(v) => set?.("criadouro_outro", v)} readOnly={readOnly} placeholder="Outro criadouro" />
-              ) : ""}
-            </td>
-            <td className={cell}></td>
-          </tr>
-
-          {/* === CABEÇALHOS DE BLOCO === */}
-          <tr>
-            <td className={head} colSpan={4}>CONDIÇÕES CLIMÁTICAS</td>
-            <td className={head} colSpan={2}>QUALIDADE</td>
-            <td className={head} colSpan={4}>PARALISAÇÕES DE OBRA</td>
-            <td className={head} colSpan={2}>HORÁRIO DAS ATIVIDADES</td>
-          </tr>
-          <tr>
-            <td className={subhead} rowSpan={2}>PERÍODO</td>
-            <td className={subhead} colSpan={3}>TEMPO</td>
-            <td className={subhead} colSpan={2} rowSpan={2}>
-              <div className="space-y-1">
-                <div className="flex justify-between gap-1">Ordem de Serviço
-                  <span className="font-normal">
-                    <Check checked={!!q.ordem_servico} onToggle={() => set?.("qualidade.ordem_servico", !q.ordem_servico)} readOnly={readOnly} label="Sim" missing={m("qualidade.ordem_servico")} />
-                  </span>
-                </div>
-                <div className="flex justify-between gap-1">Bandeirola
-                  <span className="font-normal">
-                    <Check checked={!!q.bandeirola} onToggle={() => set?.("qualidade.bandeirola", !q.bandeirola)} readOnly={readOnly} label="Sim" missing={m("qualidade.bandeirola")} />
-                  </span>
-                </div>
-                <div className="flex justify-between gap-1">Projeto
-                  <span className="font-normal">
-                    <Check checked={!!q.projeto} onToggle={() => set?.("qualidade.projeto", !q.projeto)} readOnly={readOnly} label="Sim" missing={m("qualidade.projeto")} />
-                  </span>
-                </div>
-                <div className="text-left font-normal">
-                  Obs: <Field value={q.obs} onChange={(v) => set?.("qualidade.obs", v)} readOnly={readOnly} className="w-full" />
-                </div>
-              </div>
-            </td>
-            <td className={subhead} colSpan={2}>MOTIVO</td>
-            <td className={subhead}>INÍCIO</td>
-            <td className={subhead}>FIM</td>
-            <td className={subhead}>DIURNO</td>
-            <td className={subhead}>NOTURNO</td>
-          </tr>
-          <tr>
-            <td className={subhead}>Bom</td>
-            <td className={subhead}>Chuva</td>
-            <td className={subhead}>Improdutivo</td>
-            <td className={subhead} colSpan={2}>—</td>
-            <td className={subhead}></td>
-            <td className={subhead}></td>
-            <td className={subhead}>Hora Inicial</td>
-            <td className={subhead}>Hora Inicial</td>
-          </tr>
-
-          {/* Linhas: Manhã / Tarde / Noite */}
-          {(["manha", "tarde", "noite"] as const).map((p, idx) => {
-            const labelP = p === "manha" ? "Manhã" : p === "tarde" ? "Tarde" : "Noite";
-            const linhaPara = para[idx] || {};
-            return (
-              <tr key={p}>
-                <td className={`${cell} font-bold text-center`}>{labelP}</td>
-                {(["bom", "chuva", "improdutivo"] as const).map((tp) => (
-                  <td key={tp} className={`${cell} text-center`}>
-                    <Check checked={cc[p] === tp} onToggle={() => setCC(tp, p)} readOnly={readOnly} missing={m(`condicoes_climaticas.${p}`)} />
-                  </td>
-                ))}
-                {idx === 0 && <td className={cell} colSpan={2} rowSpan={3}></td>}
-                <td className={cell} colSpan={2}>
-                  {readOnly ? (
-                    <span>{linhaPara.motivo || ""}</span>
-                  ) : (
-                    <select
-                      value={linhaPara.motivo || ""}
-                      onChange={(e) => {
-                        const arr = [...para];
-                        while (arr.length <= idx) arr.push({});
-                        arr[idx] = { ...arr[idx], motivo: e.target.value };
-                        set?.("paralisacoes", arr);
-                      }}
-                      className="bg-transparent outline-none w-full text-[11px]"
-                    >
-                      <option value="">—</option>
-                      {MOTIVOS_PARALISACAO.map((mot) => <option key={mot} value={mot}>{mot}</option>)}
-                    </select>
-                  )}
-                </td>
-                <td className={cell}>
-                  <Field type="time" value={linhaPara.inicio} readOnly={readOnly} onChange={(v) => {
-                    const arr = [...para]; while (arr.length <= idx) arr.push({}); arr[idx] = { ...arr[idx], inicio: v }; set?.("paralisacoes", arr);
-                  }} />
-                </td>
-                <td className={cell}>
-                  <Field type="time" value={linhaPara.fim} readOnly={readOnly} onChange={(v) => {
-                    const arr = [...para]; while (arr.length <= idx) arr.push({}); arr[idx] = { ...arr[idx], fim: v }; set?.("paralisacoes", arr);
-                  }} />
-                </td>
-                {idx === 0 && (
-                  <>
-                    <td className={cell} rowSpan={3}>
-                      <div className="space-y-1">
-                        <Field type="time" value={h.diurno?.inicio} readOnly={readOnly} onChange={(v) => set?.("horarios.diurno.inicio", v)} />
-                        <div className="text-[10px]">Hora Final:</div>
-                        <Field type="time" value={h.diurno?.fim} readOnly={readOnly} onChange={(v) => set?.("horarios.diurno.fim", v)} />
-                      </div>
-                    </td>
-                    <td className={cell} rowSpan={3}>
-                      <div className="space-y-1">
-                        <Field type="time" value={h.noturno?.inicio} readOnly={readOnly} onChange={(v) => set?.("horarios.noturno.inicio", v)} />
-                        <div className="text-[10px]">Hora Final:</div>
-                        <Field type="time" value={h.noturno?.fim} readOnly={readOnly} onChange={(v) => set?.("horarios.noturno.fim", v)} />
-                      </div>
-                    </td>
-                  </>
-                )}
-              </tr>
-            );
-          })}
-
-          {/* === MÃO DE OBRA / EQUIPAMENTOS === */}
-          <tr>
-            <td className={head} colSpan={6}>MÃO DE OBRA</td>
-            <td className={head} colSpan={6}>EQUIPAMENTOS / VEÍCULOS</td>
-          </tr>
-          <tr>
-            <td className={subhead} colSpan={2}>DESCRIÇÃO DE CARGOS</td>
-            <td className={subhead}>TERC.</td>
-            <td className={subhead}>CONTRAT.</td>
-            <td className={subhead} colSpan={2}>DESCRIÇÃO DE CARGOS</td>
-            <td className={subhead} colSpan={2}>DESCRIÇÃO EQUIPAMENTOS</td>
-            <td className={subhead}>TERC.</td>
-            <td className={subhead} colSpan={2}>DESCRIÇÃO EQUIPAMENTOS</td>
-            <td className={subhead}>CONTRAT.</td>
-          </tr>
-          {Array.from({ length: maxRows }).map((_, i) => {
-            const lOrig = i * 2;
-            const rOrig = i * 2 + 1;
-            const l = mo[lOrig];
-            const r = mo[rOrig];
-            return (
-              <tr key={`mo-${i}`}>
-                <td className={cell} colSpan={2}><Field value={l?.cargo} onChange={(v) => updateMo(lOrig, "cargo", v)} readOnly={readOnly} /></td>
-                <td className={cell}><Field type="number" value={l?.terc} onChange={(v) => updateMo(lOrig, "terc", Number(v) || 0)} readOnly={readOnly} className="text-center" /></td>
-                <td className={cell}><Field type="number" value={l?.contrat} onChange={(v) => updateMo(lOrig, "contrat", Number(v) || 0)} readOnly={readOnly} className="text-center" /></td>
-                <td className={cell} colSpan={2}><Field value={r?.cargo} onChange={(v) => updateMo(rOrig, "cargo", v)} readOnly={readOnly} /></td>
-                {/* Equipamentos */}
-                {(() => {
-                  const eL = eq[i * 2];
-                  const eR = eq[i * 2 + 1];
-                  return (
-                    <>
-                      <td className={cell} colSpan={2}><Field value={eL?.descricao} onChange={(v) => updateEq(i * 2, "descricao", v)} readOnly={readOnly} /></td>
-                      <td className={cell}><Field type="number" value={eL?.terc} onChange={(v) => updateEq(i * 2, "terc", Number(v) || 0)} readOnly={readOnly} className="text-center" /></td>
-                      <td className={cell} colSpan={2}><Field value={eR?.descricao} onChange={(v) => updateEq(i * 2 + 1, "descricao", v)} readOnly={readOnly} /></td>
-                      <td className={cell}><Field type="number" value={eR?.contrat} onChange={(v) => updateEq(i * 2 + 1, "contrat", Number(v) || 0)} readOnly={readOnly} className="text-center" /></td>
-                    </>
-                  );
-                })()}
-              </tr>
-            );
-          })}
-
-          {/* === SERVIÇOS === */}
-          <tr>
-            <td className={orange} colSpan={6}>ESGOTO</td>
-            <td className={blue} colSpan={6}>ÁGUA</td>
-          </tr>
-          <tr>
-            <td className={subhead}>CÓDIGO</td>
-            <td className={subhead} colSpan={3}>ATIVIDADES EXECUTADAS</td>
-            <td className={subhead}>EXECUTADO</td>
-            <td className={subhead}>UN</td>
-            <td className={subhead}>CÓDIGO</td>
-            <td className={subhead} colSpan={3}>ATIVIDADES EXECUTADAS</td>
-            <td className={subhead}>EXECUTADO</td>
-            <td className={subhead}>UN</td>
-          </tr>
-          {Array.from({ length: maxServ }).map((_, i) => {
-            const e = esgoto[i];
-            const a = agua[i];
-            return (
-              <tr key={`serv-${i}`}>
-                <td className={cell}><Field value={e?.codigo} onChange={(v) => updateServ("servicos_esgoto", i, "codigo", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell} colSpan={3}><Field value={e?.descricao} onChange={(v) => updateServ("servicos_esgoto", i, "descricao", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell}><Field type="number" value={e?.quantidade} onChange={(v) => updateServ("servicos_esgoto", i, "quantidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
-                <td className={cell}><Field value={e?.unidade} onChange={(v) => updateServ("servicos_esgoto", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
-                <td className={cell}><Field value={a?.codigo} onChange={(v) => updateServ("servicos_agua", i, "codigo", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell} colSpan={3}><Field value={a?.descricao} onChange={(v) => updateServ("servicos_agua", i, "descricao", v)} readOnly={readOnly} className="text-[10px]" /></td>
-                <td className={cell}><Field type="number" value={a?.quantidade} onChange={(v) => updateServ("servicos_agua", i, "quantidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
-                <td className={cell}><Field value={a?.unidade} onChange={(v) => updateServ("servicos_agua", i, "unidade", v)} readOnly={readOnly} className="text-center text-[10px]" /></td>
-              </tr>
-            );
-          })}
-
-          {/* === OBSERVAÇÕES + RESPONSÁVEIS === */}
-          {(para.some((p: any) => p?.motivo === "Outro") || data.paralisacao_outro) && (
-            <tr>
-              <td className={`${cell} font-bold`} colSpan={3}>PARALISAÇÃO — OUTRO (descrever):</td>
-              <td className={cell} colSpan={9}>
-                <Field
-                  value={data.paralisacao_outro}
-                  onChange={(v) => set?.("paralisacao_outro", v)}
-                  readOnly={readOnly}
-                  placeholder="Descreva o motivo da paralisação"
-                />
-              </td>
-            </tr>
-          )}
-          <tr>
-            <td className={`${head}`} colSpan={12}>OBSERVAÇÕES</td>
-          </tr>
-          <tr>
-            <td className={cell} colSpan={12}>
-              {readOnly ? (
-                <div className="whitespace-pre-wrap min-h-[40px]">{data.observacoes || "—"}</div>
-              ) : (
-                <textarea
-                  value={data.observacoes || ""}
-                  onChange={(e) => set?.("observacoes", e.target.value)}
-                  rows={3}
-                  className="w-full bg-transparent outline-none text-[11px]"
-                />
-              )}
-            </td>
-          </tr>
-          <tr>
-            <td className={`${cell} text-center`} colSpan={6}>
-              <div className="border-t border-black mt-6 pt-1 text-[10px]">
-                {data.assinatura_empreiteira_url && (
-                  <img src={data.assinatura_empreiteira_url} alt="Assinatura empreiteira" className="h-12 mx-auto object-contain" />
-                )}
-                <Field value={data.responsavel_empreiteira} onChange={(v) => set?.("responsavel_empreiteira", v)} readOnly={readOnly} className="text-center" placeholder="Nome" />
-                <div>RESPONSÁVEL DA EMPREITEIRA</div>
-              </div>
-            </td>
-            <td className={`${cell} text-center`} colSpan={6}>
-              <div className="border-t border-black mt-6 pt-1 text-[10px]">
-                {data.assinatura_consorcio_url && (
-                  <img src={data.assinatura_consorcio_url} alt="Assinatura consórcio" className="h-12 mx-auto object-contain" />
-                )}
-                <Field value={data.responsavel_consorcio} onChange={(v) => set?.("responsavel_consorcio", v)} readOnly={readOnly} className="text-center" placeholder="Nome" />
-                <div>RESPONSÁVEL DO CONSÓRCIO</div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {available.map((option) => (
+        <Check
+          key={option}
+          checked={selected.includes(option)}
+          onToggle={() => onToggle(option)}
+          readOnly={readOnly}
+          label={option}
+          compact
+        />
+      ))}
     </div>
   );
 }
 
-/**
- * Lista de campos obrigatórios do cabeçalho. Retorna Set de paths faltantes.
- */
+function SectionTable({
+  title,
+  rows,
+  renderRow,
+  headers,
+  titleClassName,
+}: {
+  title: string;
+  rows: number;
+  headers: string[];
+  renderRow: (index: number) => JSX.Element;
+  titleClassName?: string;
+}) {
+  return (
+    <table className="w-full border-collapse">
+      <thead>
+        <tr>
+          <th colSpan={headers.length} className={cn("border border-black px-2 py-1.5 text-center text-[11px] font-bold", titleClassName)}>
+            {title}
+          </th>
+        </tr>
+        <tr>
+          {headers.map((header) => (
+            <th key={header} className={subhead}>
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>{Array.from({ length: rows }).map((_, index) => renderRow(index))}</tbody>
+    </table>
+  );
+}
+
+export function RdoSabespSheet({ data, set, readOnly = false, missing = new Set<string>() }: SheetProps) {
+  const m = (key: string) => missing.has(key);
+  const cc = data.condicoes_climaticas || {};
+  const q = data.qualidade || {};
+  const h = data.horarios || {};
+  const stoppages = data.paralisacoes || [];
+  const workforces = data.mao_de_obra || [];
+  const equipments = data.equipamentos || [];
+  const esgoto = data.servicos_esgoto || [];
+  const agua = data.servicos_agua || [];
+
+  const setClimate = (value: string, period: "manha" | "tarde" | "noite") => {
+    if (!set) return;
+    set(`condicoes_climaticas.${period}`, cc[period] === value ? "" : value);
+  };
+
+  const updateRow = (path: "mao_de_obra" | "equipamentos", index: number, field: string, value: any) => {
+    if (!set) return;
+    const rows = [...data[path]];
+    rows[index] = { ...rows[index], [field]: value };
+    set(path, rows);
+  };
+
+  const updateService = (path: "servicos_esgoto" | "servicos_agua", index: number, field: string, value: any) => {
+    if (!set) return;
+    const rows = [...data[path]];
+    rows[index] = { ...rows[index], [field]: field === "quantidade" ? Number(value) || 0 : value };
+    set(path, rows);
+  };
+
+  const toggleServiceOption = (path: "servicos_esgoto" | "servicos_agua", index: number, option: string) => {
+    if (!set) return;
+    const rows = [...data[path]];
+    const row = rows[index] || {};
+    const current = Array.isArray(row.opcoes) ? row.opcoes : [];
+    rows[index] = {
+      ...row,
+      opcoes: current.includes(option) ? current.filter((item: string) => item !== option) : [...current, option],
+    };
+    set(path, rows);
+  };
+
+  const maxRows = Math.max(workforces.length, 8);
+  const maxEquipments = Math.max(equipments.length, 7);
+  const maxServices = Math.max(esgoto.length, agua.length);
+  const qualityMissing = m("qualidade.ordem_servico") || m("qualidade.bandeirola") || m("qualidade.projeto");
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1180px] border-collapse bg-white text-black">
+          <tbody>
+            <tr>
+              <td className={shell} colSpan={2}>
+                <img src={logoSabesp} alt="Sabesp" className="mx-auto h-12 object-contain" />
+              </td>
+              <td className="border border-black px-2 py-1.5 text-center text-[15px] font-bold" colSpan={5}>
+                RELATÓRIO DIÁRIO DE OBRA (RDO)
+              </td>
+              <td className={shell} colSpan={5}>
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600">Local / criadouro</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CRIADOUROS.map((item) => (
+                      <Check
+                        key={item.value}
+                        checked={data.criadouro === item.value}
+                        onToggle={() => set?.("criadouro", data.criadouro === item.value ? "" : item.value)}
+                        readOnly={readOnly}
+                        label={item.label}
+                        missing={m("criadouro")}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </td>
+              <td className={shell} colSpan={2}>
+                <img src={logoCslnr} alt="CSLNR" className="mx-auto h-12 object-contain" />
+              </td>
+            </tr>
+
+            <tr>
+              <td className={cn(shell, "font-bold")} colSpan={1}>RUA / BECO</td>
+              <td className={shell} colSpan={5}>
+                <Field value={data.rua_beco} onChange={(value) => set?.("rua_beco", value)} readOnly={readOnly} missing={m("rua_beco")} />
+              </td>
+              <td className={cn(shell, "font-bold")} colSpan={1}>ENCARREGADO</td>
+              <td className={shell} colSpan={4}>
+                <Field value={data.encarregado} onChange={(value) => set?.("encarregado", value)} readOnly={readOnly} missing={m("encarregado")} />
+              </td>
+              <td className={cn(shell, "font-bold")} colSpan={1}>DATA</td>
+              <td className={shell} colSpan={2}>
+                <Field type="date" value={data.report_date} onChange={(value) => set?.("report_date", value)} readOnly={readOnly} missing={m("report_date")} className="min-w-[128px]" />
+              </td>
+            </tr>
+
+            {data.criadouro === "outro" && (
+              <tr>
+                <td className={cn(shell, "font-bold")} colSpan={2}>DESCRIÇÃO DO LOCAL</td>
+                <td className={shell} colSpan={12}>
+                  <Field
+                    value={data.criadouro_outro}
+                    onChange={(value) => set?.("criadouro_outro", value)}
+                    readOnly={readOnly}
+                    placeholder="Informe o local quando não estiver na lista."
+                  />
+                </td>
+              </tr>
+            )}
+
+            <tr>
+              <td className={cn(shell, "font-bold")} colSpan={8}>
+                1. TODOS OS FUNCIONÁRIOS DA OBRA DA ATIVIDADE ESTÃO UTILIZANDO OS EPI&apos;s?
+              </td>
+              <td className={shell} colSpan={4}>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Check checked={data.epi_utilizado === true} onToggle={() => set?.("epi_utilizado", true)} readOnly={readOnly} label="SIM" missing={m("epi_utilizado")} />
+                  <Check checked={data.epi_utilizado === false} onToggle={() => set?.("epi_utilizado", false)} readOnly={readOnly} label="NÃO" missing={m("epi_utilizado")} />
+                </div>
+              </td>
+              <td className={shell} colSpan={2}>
+                <div className="text-[10px] text-slate-600">
+                  {readOnly ? "Revise visualmente assinatura, marcações e quebra de linha no preview." : "Use a revisão para validar antes de exportar."}
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td className={head} colSpan={4}>CONDIÇÕES CLIMÁTICAS</td>
+              <td className={head} colSpan={3}>QUALIDADE</td>
+              <td className={head} colSpan={4}>PARALISAÇÕES DE OBRA</td>
+              <td className={head} colSpan={3}>HORÁRIO DAS ATIVIDADES</td>
+            </tr>
+
+            <tr>
+              <td className={subhead}>PERÍODO</td>
+              <td className={subhead}>BOM</td>
+              <td className={subhead}>CHUVA</td>
+              <td className={subhead}>IMPRODUTIVO</td>
+              <td className={shell} colSpan={3} rowSpan={4}>
+                <div className={cn("space-y-2 rounded-md border border-dashed border-slate-300 p-2", qualityMissing && "border-red-400 bg-red-50/60")}>
+                  <div className="flex flex-col gap-1">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600">Checklist</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Check checked={!!q.ordem_servico} onToggle={() => set?.("qualidade.ordem_servico", !q.ordem_servico)} readOnly={readOnly} label="Ordem de Serviço" missing={qualityMissing} />
+                      <Check checked={!!q.bandeirola} onToggle={() => set?.("qualidade.bandeirola", !q.bandeirola)} readOnly={readOnly} label="Bandeirola" missing={qualityMissing} />
+                      <Check checked={!!q.projeto} onToggle={() => set?.("qualidade.projeto", !q.projeto)} readOnly={readOnly} label="Projeto" missing={qualityMissing} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600">Observação</div>
+                    <MultilineField value={q.obs} onChange={(value) => set?.("qualidade.obs", value)} readOnly={readOnly} rows={4} />
+                  </div>
+                </div>
+              </td>
+              <td className={subhead}>PERÍODO</td>
+              <td className={subhead}>MOTIVO</td>
+              <td className={subhead}>INÍCIO</td>
+              <td className={subhead}>FIM</td>
+              <td className={shell} colSpan={3} rowSpan={4}>
+                <div className="space-y-3 rounded-md border border-dashed border-slate-300 p-2">
+                  {(["diurno", "noturno"] as const).map((period) => (
+                    <div key={period} className="space-y-1 rounded-md border border-slate-200 p-2">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-600">{period}</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="mb-1 text-[10px] text-slate-500">Início</div>
+                          <Field type="time" value={h[period]?.inicio} readOnly={readOnly} onChange={(value) => set?.(`horarios.${period}.inicio`, value)} />
+                        </div>
+                        <div>
+                          <div className="mb-1 text-[10px] text-slate-500">Fim</div>
+                          <Field type="time" value={h[period]?.fim} readOnly={readOnly} onChange={(value) => set?.(`horarios.${period}.fim`, value)} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </td>
+            </tr>
+
+            {(["manha", "tarde", "noite"] as const).map((period, index) => {
+              const label = period === "manha" ? "Manhã" : period === "tarde" ? "Tarde" : "Noite";
+              const stoppage = stoppages[index] || {};
+
+              return (
+                <tr key={period}>
+                  <td className={cn(shell, "text-center font-bold")}>{label}</td>
+                  {(["bom", "chuva", "improdutivo"] as const).map((climate) => (
+                    <td key={climate} className={cn(shell, "text-center")}>
+                      <div className="flex justify-center">
+                        <Check
+                          checked={cc[period] === climate}
+                          onToggle={() => setClimate(climate, period)}
+                          readOnly={readOnly}
+                          missing={m(`condicoes_climaticas.${period}`)}
+                          compact
+                        />
+                      </div>
+                    </td>
+                  ))}
+                  <td className={cn(shell, "text-center font-bold")}>{label}</td>
+                  <td className={shell}>
+                    {readOnly ? (
+                      <div className="min-h-[20px] whitespace-pre-wrap break-words">{stoppage.motivo || ""}</div>
+                    ) : (
+                      <select
+                        value={stoppage.motivo || ""}
+                        onChange={(e) => {
+                          const rows = [...stoppages];
+                          while (rows.length <= index) rows.push({});
+                          rows[index] = { ...rows[index], motivo: e.target.value };
+                          set?.("paralisacoes", rows);
+                        }}
+                        className="h-8 w-full rounded-sm border border-transparent bg-transparent px-1.5 text-[11px] outline-none transition focus:border-slate-300 focus:bg-slate-50"
+                      >
+                        <option value="">Selecione</option>
+                        {MOTIVOS_PARALISACAO.map((item) => (
+                          <option key={item} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                  <td className={shell}>
+                    <Field
+                      type="time"
+                      value={stoppage.inicio}
+                      readOnly={readOnly}
+                      onChange={(value) => {
+                        const rows = [...stoppages];
+                        while (rows.length <= index) rows.push({});
+                        rows[index] = { ...rows[index], inicio: value };
+                        set?.("paralisacoes", rows);
+                      }}
+                    />
+                  </td>
+                  <td className={shell}>
+                    <Field
+                      type="time"
+                      value={stoppage.fim}
+                      readOnly={readOnly}
+                      onChange={(value) => {
+                        const rows = [...stoppages];
+                        while (rows.length <= index) rows.push({});
+                        rows[index] = { ...rows[index], fim: value };
+                        set?.("paralisacoes", rows);
+                      }}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+
+            {(stoppages.some((item: any) => item?.motivo === "Outro") || data.paralisacao_outro) && (
+              <tr>
+                <td className={cn(shell, "font-bold")} colSpan={2}>PARALISAÇÃO - OUTRO</td>
+                <td className={shell} colSpan={12}>
+                  <MultilineField
+                    value={data.paralisacao_outro}
+                    onChange={(value) => set?.("paralisacao_outro", value)}
+                    readOnly={readOnly}
+                    rows={2}
+                    placeholder="Descreva aqui o motivo da paralisação."
+                  />
+                </td>
+              </tr>
+            )}
+
+            <tr>
+              <td className={shell} colSpan={7}>
+                <SectionTable
+                  title="MÃO DE OBRA"
+                  titleClassName="bg-slate-200"
+                  headers={["DESCRIÇÃO DE CARGOS", "TERC.", "CONTRAT."]}
+                  rows={maxRows}
+                  renderRow={(index) => {
+                    const row = workforces[index];
+                    return (
+                      <tr key={`workforce-${index}`}>
+                        <td className={shell}>
+                          <MultilineField value={row?.cargo} onChange={(value) => updateRow("mao_de_obra", index, "cargo", value)} readOnly={readOnly} rows={2} />
+                        </td>
+                        <td className={shell}>
+                          <Field type="number" value={row?.terc} onChange={(value) => updateRow("mao_de_obra", index, "terc", Number(value) || 0)} readOnly={readOnly} className="text-center" />
+                        </td>
+                        <td className={shell}>
+                          <Field type="number" value={row?.contrat} onChange={(value) => updateRow("mao_de_obra", index, "contrat", Number(value) || 0)} readOnly={readOnly} className="text-center" />
+                        </td>
+                      </tr>
+                    );
+                  }}
+                />
+              </td>
+              <td className={shell} colSpan={7}>
+                <SectionTable
+                  title="EQUIPAMENTOS / VEÍCULOS"
+                  titleClassName="bg-slate-200"
+                  headers={["DESCRIÇÃO DOS EQUIPAMENTOS", "TERC.", "CONTRAT."]}
+                  rows={maxEquipments}
+                  renderRow={(index) => {
+                    const row = equipments[index];
+                    return (
+                      <tr key={`equipment-${index}`}>
+                        <td className={shell}>
+                          <MultilineField value={row?.descricao} onChange={(value) => updateRow("equipamentos", index, "descricao", value)} readOnly={readOnly} rows={2} />
+                        </td>
+                        <td className={shell}>
+                          <Field type="number" value={row?.terc} onChange={(value) => updateRow("equipamentos", index, "terc", Number(value) || 0)} readOnly={readOnly} className="text-center" />
+                        </td>
+                        <td className={shell}>
+                          <Field type="number" value={row?.contrat} onChange={(value) => updateRow("equipamentos", index, "contrat", Number(value) || 0)} readOnly={readOnly} className="text-center" />
+                        </td>
+                      </tr>
+                    );
+                  }}
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td className={orange} colSpan={7}>ESGOTO</td>
+              <td className={blue} colSpan={7}>ÁGUA</td>
+            </tr>
+            <tr>
+              <td className={shell} colSpan={7}>
+                <SectionTable
+                  title="ATIVIDADES EXECUTADAS - ESGOTO"
+                  titleClassName="bg-orange-100"
+                  headers={["CÓDIGO", "ATIVIDADE", "EXECUTADO", "UN"]}
+                  rows={maxServices}
+                  renderRow={(index) => {
+                    const service = esgoto[index];
+                    return (
+                      <tr key={`esgoto-${index}`}>
+                        <td className={shell}>
+                          <Field value={service?.codigo} onChange={(value) => updateService("servicos_esgoto", index, "codigo", value)} readOnly={readOnly} className="text-[10px]" />
+                        </td>
+                        <td className={shell}>
+                          <div className="space-y-1">
+                            <MultilineField value={service?.descricao} onChange={(value) => updateService("servicos_esgoto", index, "descricao", value)} readOnly={readOnly} rows={3} className="text-[10px]" />
+                            <ServiceOptions service={service} readOnly={readOnly} onToggle={(option) => toggleServiceOption("servicos_esgoto", index, option)} />
+                          </div>
+                        </td>
+                        <td className={shell}>
+                          <Field type="number" value={service?.quantidade} onChange={(value) => updateService("servicos_esgoto", index, "quantidade", value)} readOnly={readOnly} className="text-center text-[10px]" />
+                        </td>
+                        <td className={shell}>
+                          <Field value={service?.unidade} onChange={(value) => updateService("servicos_esgoto", index, "unidade", value)} readOnly={readOnly} className="text-center text-[10px]" />
+                        </td>
+                      </tr>
+                    );
+                  }}
+                />
+              </td>
+              <td className={shell} colSpan={7}>
+                <SectionTable
+                  title="ATIVIDADES EXECUTADAS - ÁGUA"
+                  titleClassName="bg-sky-100"
+                  headers={["CÓDIGO", "ATIVIDADE", "EXECUTADO", "UN"]}
+                  rows={maxServices}
+                  renderRow={(index) => {
+                    const service = agua[index];
+                    return (
+                      <tr key={`agua-${index}`}>
+                        <td className={shell}>
+                          <Field value={service?.codigo} onChange={(value) => updateService("servicos_agua", index, "codigo", value)} readOnly={readOnly} className="text-[10px]" />
+                        </td>
+                        <td className={shell}>
+                          <div className="space-y-1">
+                            <MultilineField value={service?.descricao} onChange={(value) => updateService("servicos_agua", index, "descricao", value)} readOnly={readOnly} rows={3} className="text-[10px]" />
+                            <ServiceOptions service={service} readOnly={readOnly} onToggle={(option) => toggleServiceOption("servicos_agua", index, option)} />
+                          </div>
+                        </td>
+                        <td className={shell}>
+                          <Field type="number" value={service?.quantidade} onChange={(value) => updateService("servicos_agua", index, "quantidade", value)} readOnly={readOnly} className="text-center text-[10px]" />
+                        </td>
+                        <td className={shell}>
+                          <Field value={service?.unidade} onChange={(value) => updateService("servicos_agua", index, "unidade", value)} readOnly={readOnly} className="text-center text-[10px]" />
+                        </td>
+                      </tr>
+                    );
+                  }}
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td className={head} colSpan={14}>OBSERVAÇÕES</td>
+            </tr>
+            <tr>
+              <td className={shell} colSpan={14}>
+                <MultilineField
+                  value={data.observacoes}
+                  onChange={(value) => set?.("observacoes", value)}
+                  readOnly={readOnly}
+                  rows={4}
+                  placeholder="Observações gerais da frente de serviço."
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <td className={shell} colSpan={7}>
+                <div className="pt-4 text-center">
+                  {data.assinatura_empreiteira_url && (
+                    <img src={data.assinatura_empreiteira_url} alt="Assinatura empreiteira" className="mx-auto mb-2 h-14 max-w-full object-contain" />
+                  )}
+                  <div className="border-t border-black pt-2">
+                    <Field value={data.responsavel_empreiteira} onChange={(value) => set?.("responsavel_empreiteira", value)} readOnly={readOnly} className="text-center" placeholder="Nome do responsável" />
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em]">Responsável da empreiteira</div>
+                  </div>
+                </div>
+              </td>
+              <td className={shell} colSpan={7}>
+                <div className="pt-4 text-center">
+                  {data.assinatura_consorcio_url && (
+                    <img src={data.assinatura_consorcio_url} alt="Assinatura consórcio" className="mx-auto mb-2 h-14 max-w-full object-contain" />
+                  )}
+                  <div className="border-t border-black pt-2">
+                    <Field value={data.responsavel_consorcio} onChange={(value) => set?.("responsavel_consorcio", value)} readOnly={readOnly} className="text-center" placeholder="Nome do responsável" />
+                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em]">Responsável do consórcio</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function getMissingRequired(data: any): Set<string> {
   const missing = new Set<string>();
   const required: Array<[string, () => boolean]> = [
@@ -447,14 +649,18 @@ export function getMissingRequired(data: any): Set<string> {
     ["condicoes_climaticas.tarde", () => !data.condicoes_climaticas?.tarde],
     ["condicoes_climaticas.noite", () => !data.condicoes_climaticas?.noite],
   ];
-  for (const [p, f] of required) if (f()) missing.add(p);
-  // qualidade: ao menos um marcado
-  const q = data.qualidade || {};
-  if (!q.ordem_servico && !q.bandeirola && !q.projeto) {
+
+  for (const [path, predicate] of required) {
+    if (predicate()) missing.add(path);
+  }
+
+  const quality = data.qualidade || {};
+  if (!quality.ordem_servico && !quality.bandeirola && !quality.projeto) {
     missing.add("qualidade.ordem_servico");
     missing.add("qualidade.bandeirola");
     missing.add("qualidade.projeto");
   }
+
   return missing;
 }
 
@@ -463,10 +669,10 @@ export const REQUIRED_LABELS: Record<string, string> = {
   rua_beco: "Rua / Beco",
   encarregado: "Encarregado",
   criadouro: "Criadouro",
-  epi_utilizado: "EPI utilizado (Sim/Não)",
-  "condicoes_climaticas.manha": "Condição climática — Manhã",
-  "condicoes_climaticas.tarde": "Condição climática — Tarde",
-  "condicoes_climaticas.noite": "Condição climática — Noite",
+  epi_utilizado: "EPI utilizado (Sim/Nao)",
+  "condicoes_climaticas.manha": "Condicao climatica - Manha",
+  "condicoes_climaticas.tarde": "Condicao climatica - Tarde",
+  "condicoes_climaticas.noite": "Condicao climatica - Noite",
   "qualidade.ordem_servico": "Qualidade (marcar OS, Bandeirola ou Projeto)",
   "qualidade.bandeirola": "Qualidade (marcar OS, Bandeirola ou Projeto)",
   "qualidade.projeto": "Qualidade (marcar OS, Bandeirola ou Projeto)",

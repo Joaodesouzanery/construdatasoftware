@@ -4,6 +4,7 @@ export interface ServicoCatalogo {
   codigo: string;
   descricao: string;
   unidade: "M" | "UN";
+  opcoesDisponiveis?: string[];
 }
 
 export const SERVICOS_ESGOTO: ServicoCatalogo[] = [
@@ -28,8 +29,18 @@ export const SERVICOS_ESGOTO: ServicoCatalogo[] = [
   { codigo: "500019", descricao: "LIGAÇÃO INTRA TIPO 1 (UM IMÓVEL)", unidade: "UN" },
   { codigo: "500020", descricao: "LIGAÇÃO INTRA TIPO 2 (DOIS IMÓVEIS NA MESMA LIGAÇÃO)", unidade: "UN" },
   { codigo: "500023", descricao: "LIGAÇÃO DE ESGOTO ATÉ CAIXA DE INSPEÇÃO ATÉ 2M", unidade: "UN" },
-  { codigo: "", descricao: "REPOSIÇÃO DO PAVIMENTO - VALA DE REDE (CIMENTADO/ASFALTO - DN150/200/300)", unidade: "M" },
-  { codigo: "", descricao: "REPOSIÇÃO DO PAVIMENTO - LIGAÇÃO NAS RESIDÊNCIAS (CIMENTADO/ASFALTO)", unidade: "UN" },
+  {
+    codigo: "",
+    descricao: "REPOSIÇÃO DO PAVIMENTO - VALA DE REDE (CIMENTADO/ASFALTO - DN150/200/300)",
+    unidade: "M",
+    opcoesDisponiveis: ["Cimentado", "Asfalto", "DN150", "DN200", "DN300"],
+  },
+  {
+    codigo: "",
+    descricao: "REPOSIÇÃO DO PAVIMENTO - LIGAÇÃO NAS RESIDÊNCIAS (CIMENTADO/ASFALTO)",
+    unidade: "UN",
+    opcoesDisponiveis: ["Cimentado", "Asfalto"],
+  },
 ];
 
 export const SERVICOS_AGUA: ServicoCatalogo[] = [
@@ -53,9 +64,24 @@ export const SERVICOS_AGUA: ServicoCatalogo[] = [
   { codigo: "500045", descricao: "INSTALAÇÃO VALVULA PVC 50 A 100", unidade: "UN" },
   { codigo: "500046", descricao: "INSTALAÇÃO VALVULA FF 50 A 100", unidade: "UN" },
   { codigo: "500047", descricao: "INSTALAÇÃO VALVULA FF 150 A 250", unidade: "UN" },
-  { codigo: "", descricao: "REPOSIÇÃO DO PAVIMENTO - VALA DE REDE", unidade: "M" },
-  { codigo: "", descricao: "REPOSIÇÃO DO PAVIMENTO - LIGAÇÃO NAS RESIDÊNCIAS", unidade: "UN" },
-  { codigo: "", descricao: "REPOSIÇÃO DO PAVIMENTO - INTERLIGAÇÕES", unidade: "UN" },
+  {
+    codigo: "",
+    descricao: "REPOSIÇÃO DO PAVIMENTO - VALA DE REDE",
+    unidade: "M",
+    opcoesDisponiveis: ["Cimentado", "Asfalto"],
+  },
+  {
+    codigo: "",
+    descricao: "REPOSIÇÃO DO PAVIMENTO - LIGAÇÃO NAS RESIDÊNCIAS",
+    unidade: "UN",
+    opcoesDisponiveis: ["Cimentado", "Asfalto"],
+  },
+  {
+    codigo: "",
+    descricao: "REPOSIÇÃO DO PAVIMENTO - INTERLIGAÇÕES",
+    unidade: "UN",
+    opcoesDisponiveis: ["Cimentado", "Asfalto"],
+  },
 ];
 
 export const CARGOS_PADRAO = [
@@ -92,7 +118,7 @@ export const EQUIPAMENTOS_PADRAO = [
 
 export const CRIADOUROS = [
   { value: "sao_manoel", label: "São Manoel" },
-  { value: "morro_do_teteu", label: "Morro do Tetèu" },
+  { value: "morro_do_teteu", label: "Morro do Tetéu" },
   { value: "joao_carlos", label: "João Carlos" },
   { value: "pantanal_baixo", label: "Pantanal Baixo" },
   { value: "vila_israel", label: "Vila Israel" },

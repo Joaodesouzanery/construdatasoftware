@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { RdoSabespForm } from "@/components/rdo-sabesp/RdoSabespForm";
 import { downloadRdoSabespPdf, downloadRdoSabespBatchZip } from "@/lib/rdoSabespPdfGenerator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getCriadouroLabel, getExecutedActivities } from "@/lib/rdoSabespUtils";
 
 export default function RdoSabesp() {
   const navigate = useNavigate();
@@ -109,7 +110,7 @@ export default function RdoSabesp() {
               </TabsList>
 
               <TabsContent value="lista" className="space-y-3">
-                <div className="flex gap-2 justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
                   <Button variant="outline" onClick={toggleAll}>{selected.size === list.length && list.length ? "Desmarcar todos" : "Selecionar todos"}</Button>
                   <Button onClick={exportSelected} disabled={bulkLoading || !selected.size}>
                     {bulkLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Package className="w-4 h-4 mr-1" />}
@@ -121,19 +122,37 @@ export default function RdoSabesp() {
                     {list.length === 0 ? (
                       <p className="p-6 text-center text-muted-foreground text-sm">Nenhum RDO Sabesp ainda. Clique em "Novo RDO Sabesp".</p>
                     ) : list.map((r) => (
-                      <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0">
-                        <Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => { const s = new Set(selected); if (v) s.add(r.id); else s.delete(r.id); setSelected(s); }} />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                      <div key={r.id} className="border-b px-4 py-4 last:border-b-0">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                          <div className="pt-1">
+                            <Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => { const s = new Set(selected); if (v) s.add(r.id); else s.delete(r.id); setSelected(s); }} />
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-3">
+                            <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">{new Date(r.report_date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                             <Badge variant="secondary">Sabesp</Badge>
+                            {r.criadouro && <Badge className="h-auto py-1 whitespace-normal break-words">{getCriadouroLabel(r.criadouro, r.criadouro_outro)}</Badge>}
                             {r.encarregado && <span className="text-xs text-muted-foreground">• {r.encarregado}</span>}
                           </div>
-                          <p className="text-xs text-muted-foreground">{r.rua_beco || "—"}</p>
+                            <p className="text-sm text-muted-foreground">{r.rua_beco || "—"}</p>
+
+                            {getExecutedActivities(r).length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {getExecutedActivities(r).map((activity) => (
+                                  <Badge key={activity.id} variant="outline" className="h-auto max-w-full whitespace-normal break-words py-1 text-left leading-tight">
+                                    {activity.label}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-1 lg:justify-end">
+                            <Button size="sm" variant="ghost" onClick={() => downloadRdoSabespPdf(r)}><FileDown className="w-4 h-4" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setEditing(r); setShowNew(false); }}><Pencil className="w-4 h-4" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                          </div>
                         </div>
-                        <Button size="sm" variant="ghost" onClick={() => downloadRdoSabespPdf(r)}><FileDown className="w-4 h-4" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setEditing(r); setShowNew(false); }}><Pencil className="w-4 h-4" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                       </div>
                     ))}
                   </CardContent>

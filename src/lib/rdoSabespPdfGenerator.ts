@@ -1,8 +1,10 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import * as pdfjsLib from "pdfjs-dist";
 import logoSabesp from "@/assets/logo-sabesp.png";
 import logoCslnr from "@/assets/logo-cslnr.jpg";
 import { CRIADOUROS } from "./rdoSabespCatalog";
+import { getServiceDisplayLabel } from "./rdoSabespUtils";
 
 const loadDataUrl = (src: string) =>
   new Promise<string>((resolve, reject) => {
@@ -31,6 +33,20 @@ const fmtDate = (d: string) => {
 };
 
 const checkbox = (checked: boolean) => (checked ? "[X]" : "[ ]");
+let workerConfigured = false;
+
+const ensurePdfWorker = async () => {
+  if (workerConfigured) return;
+
+  try {
+    const workerUrl = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+  } catch {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+  }
+
+  workerConfigured = true;
+};
 
 export interface RdoSabespData {
   id?: string;
@@ -86,7 +102,7 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
   doc.text("CRIADOUROS:", margin, y);
   doc.setFont("helvetica", "normal");
   let x = margin + 22;
-  for (const c of CRIADOUROS.filter((c) => c.value !== "outro")) {
+  for (const c of CRIADOUROS.filter((item) => item.value !== "outro")) {
     const sel = rdo.criadouro === c.value;
     doc.text(`${checkbox(sel)} ${c.label}`, x, y);
     x += 32;
@@ -192,7 +208,7 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
       styles: { fontSize: 7, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1, overflow: "linebreak" },
       headStyles: { fillColor: [200, 220, 240], textColor: 0, halign: "center" },
       head: [[`${titulo} - CÓD.`, "ATIVIDADE EXECUTADA", "EXEC.", "UN."]],
-      body: filt.map((s: any) => [s.codigo || "—", s.descricao, String(s.quantidade), s.unidade]),
+      body: filt.map((s: any) => [s.codigo || "—", getServiceDisplayLabel(s) || s.descricao || "—", String(s.quantidade), s.unidade]),
       columnStyles: {
         0: { cellWidth: 22 },
         2: { halign: "center", cellWidth: 18 },
@@ -262,6 +278,54 @@ export async function generateRdoSabespPdf(rdo: RdoSabespData): Promise<jsPDF> {
 export async function downloadRdoSabespPdf(rdo: RdoSabespData) {
   const doc = await generateRdoSabespPdf(rdo);
   doc.save(`RDO-Sabesp_${rdo.report_date || "sem-data"}.pdf`);
+}
+
+export async function generateRdoSabespPdfBlob(rdo: RdoSabespData) {
+  const doc = await generateRdoSabespPdf(rdo);
+  return doc.output("blob");
+}
+
+export async function renderRdoSabespPdfPreviewPages(rdo: RdoSabespData, scale = 1.35) {
+  await ensurePdfWorker();
+
+  const blob = await generateRdoSabespPdfBlob(rdo);
+  const data = new Uint8Array(await blob.arrayBuffer());
+  const pdf = await pdfjsLib.getDocument({
+    data,
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    useSystemFonts: true,
+  }).promise;
+
+  const images: string[] = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) continue;
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    await page.render({ canvasContext: context, viewport }).promise;
+    images.push(canvas.toDataURL("image/png"));
+
+    try {
+      await (page as any).cleanup?.();
+    } catch {
+      // ignore cleanup failures
+    }
+  }
+
+  try {
+    await (pdf as any).destroy?.();
+  } catch {
+    // ignore destroy failures
+  }
+
+  return images;
 }
 
 export async function downloadRdoSabespBatchZip(rdos: RdoSabespData[]) {
