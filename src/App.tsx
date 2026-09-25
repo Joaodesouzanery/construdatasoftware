@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAlertNotifications } from "@/hooks/useAlertNotifications";
 import { useProductionUpdates } from "@/hooks/useProductionUpdates";
 import MaintenanceOverlay from "@/components/MaintenanceOverlay";
+import { RestrictedEmployeeGate } from "@/components/auth/RestrictedEmployeeGate";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -63,6 +64,7 @@ import ExecucaoEquipes from "./pages/features/ExecucaoEquipes";
 import ManutencaoPredial from "./pages/features/ManutencaoPredial";
 import CRM from "./pages/CRM";
 import RHConstruData from "./pages/RHConstruData";
+import MeuPonto from "./pages/MeuPonto";
 import Approvals from "./pages/Approvals";
 import UserMetrics from "./pages/UserMetrics";
 import CustomDashboard from "./pages/CustomDashboard";
@@ -83,8 +85,10 @@ const AppContent = () => {
   
   return (
     <BrowserRouter>
+      <RestrictedEmployeeGate>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/meu-ponto" element={<MeuPonto />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/system-test" element={<SystemTest />} />
         <Route path="/approvals" element={<Approvals />} />
@@ -160,6 +164,7 @@ const AppContent = () => {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </RestrictedEmployeeGate>
     </BrowserRouter>
   );
 };

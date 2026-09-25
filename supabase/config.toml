@@ -29,3 +29,12 @@ verify_jwt = false
 
 [functions.maintenance-request-upload]
 verify_jwt = false
+
+[functions.create-funcionario-login]
+verify_jwt = false
+
+[functions.registrar-ponto]
+verify_jwt = false
+
+[functions.calcular-banco-horas]
+verify_jwt = false

@@ -8,13 +8,15 @@ import { Funcionarios } from "@/components/rh/Funcionarios";
 import { Unidades } from "@/components/rh/Unidades";
 import { DashboardPrimeCost } from "@/components/rh/DashboardPrimeCost";
 import { FeriodosFaltas } from "@/components/rh/FeriodosFaltas";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Users, 
-  Building2, 
+import { PontoEletronicoTab } from "@/components/ponto/PontoEletronicoTab";
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Building2,
   PieChart,
-  CalendarOff
+  CalendarOff,
+  Clock
 } from "lucide-react";
 
 const RHConstruData = () => {
@@ -63,6 +65,10 @@ const RHConstruData = () => {
                     <PieChart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Prime Cost</span>
                   </TabsTrigger>
+                  <TabsTrigger value="ponto" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Ponto Eletrônico</span>
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -88,6 +94,10 @@ const RHConstruData = () => {
               
               <TabsContent value="prime-cost" className="mt-0">
                 <DashboardPrimeCost />
+              </TabsContent>
+
+              <TabsContent value="ponto" className="mt-0">
+                <PontoEletronicoTab />
               </TabsContent>
             </Tabs>
           </div>

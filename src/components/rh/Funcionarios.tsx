@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Pencil, Trash2, User } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, User, KeyRound, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { formatarMoeda } from "@/utils/cltValidation";
 
@@ -34,6 +34,7 @@ interface Funcionario {
   telefone: string | null;
   unidade_id: string | null;
   unidade?: { id: string; nome: string } | null;
+  auth_user_id?: string | null;
 }
 
 export const Funcionarios = () => {
@@ -163,6 +164,46 @@ export const Funcionarios = () => {
     },
   });
 
+  // Ponto Eletrônico: cria o login individual do funcionário (edge function
+  // create-funcionario-login, autorizada só para o gestor dono deste
+  // funcionário) - mesmo padrão de chamada autenticada de src/pages/Admin.tsx.
+  const [acessoDialogFuncionario, setAcessoDialogFuncionario] = useState<Funcionario | null>(null);
+  const [acessoEmail, setAcessoEmail] = useState("");
+
+  const criarAcessoMutation = useMutation({
+    mutationFn: async ({ funcionarioId, email }: { funcionarioId: string; email: string }) => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) throw new Error("Sessão não encontrada");
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-funcionario-login`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ funcionario_id: funcionarioId, email }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Erro ao criar acesso");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rh-funcionarios"] });
+      toast({ title: "Acesso criado!", description: "O funcionário receberá um convite por email para definir a senha." });
+      setAcessoDialogFuncionario(null);
+      setAcessoEmail("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao criar acesso", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const abrirDialogAcesso = (func: Funcionario) => {
+    setAcessoDialogFuncionario(func);
+    setAcessoEmail(func.email || "");
+  };
+
   const resetForm = () => {
     setFormData({
       nome: "",
@@ -279,12 +320,22 @@ export const Funcionarios = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {func.auth_user_id ? (
+                          <Badge variant="outline" className="text-green-600 gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Acesso criado
+                          </Badge>
+                        ) : (
+                          <Button variant="ghost" size="icon" title="Criar acesso ao Ponto Eletrônico" onClick={() => abrirDialogAcesso(func)}>
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => openEdit(func)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => deleteMutation.mutate(func.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -414,6 +465,43 @@ export const Funcionarios = () => {
             <Button variant="outline" onClick={resetForm}>Cancelar</Button>
             <Button onClick={handleSubmit}>
               {editingFuncionario ? "Salvar" : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(acessoDialogFuncionario)} onOpenChange={(open) => !open && setAcessoDialogFuncionario(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar acesso ao Ponto Eletrônico</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {acessoDialogFuncionario?.nome} vai receber um convite por email para criar a própria senha. A conta só
+              enxerga a tela de bater ponto.
+            </p>
+            <div>
+              <Label>Email *</Label>
+              <Input type="email" value={acessoEmail} onChange={(e) => setAcessoEmail(e.target.value)} placeholder="funcionario@email.com" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcessoDialogFuncionario(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (!acessoEmail.trim()) {
+                  toast({ title: "Email é obrigatório", variant: "destructive" });
+                  return;
+                }
+                if (acessoDialogFuncionario) {
+                  criarAcessoMutation.mutate({ funcionarioId: acessoDialogFuncionario.id, email: acessoEmail.trim() });
+                }
+              }}
+              disabled={criarAcessoMutation.isPending}
+            >
+              {criarAcessoMutation.isPending ? "Criando..." : "Criar Acesso"}
             </Button>
           </DialogFooter>
         </DialogContent>
