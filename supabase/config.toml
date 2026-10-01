@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.calcular-banco-horas]
 verify_jwt = false
+
+[functions.op-ingest-sheet]
+verify_jwt = false
+
+[functions.op-ingest-status]
+verify_jwt = false

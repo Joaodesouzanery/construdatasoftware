@@ -65,6 +65,7 @@ import ManutencaoPredial from "./pages/features/ManutencaoPredial";
 import CRM from "./pages/CRM";
 import RHConstruData from "./pages/RHConstruData";
 import MeuPonto from "./pages/MeuPonto";
+import Operacional from "./pages/Operacional";
 import Approvals from "./pages/Approvals";
 import UserMetrics from "./pages/UserMetrics";
 import CustomDashboard from "./pages/CustomDashboard";
@@ -161,6 +162,8 @@ const AppContent = () => {
         <Route path="/satisfaction-survey" element={<SatisfactionSurvey />} />
         <Route path="/planning" element={<Planning />} />
         
+        <Route path="/operacional" element={<Operacional />} />
+
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

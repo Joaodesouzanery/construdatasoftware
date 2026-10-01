@@ -1,0 +1,345 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Pencil, Trash2, Database, KeyRound, Copy, AlertTriangle, Pause, Play } from "lucide-react";
+
+interface FonteOperacional {
+  id: string;
+  profile: "caixa" | "operacional_sabesp" | "gestao_empresa";
+  label: string;
+  drive_file_id: string;
+  active: boolean;
+  last_checked_at: string | null;
+}
+
+const PERFIL_LABEL: Record<string, string> = {
+  caixa: "Controle de Caixa",
+  operacional_sabesp: "Operacional Sabesp",
+  gestao_empresa: "Gestão da Empresa",
+};
+
+// Gera um token aleatório e devolve ele + o hash SHA-256 (hex) a ser guardado.
+// O token em si NUNCA é persistido - só o hash, exatamente como o backend
+// (op-ingest-sheet) espera comparar.
+async function gerarTokenEHash(): Promise<{ token: string; hash: string }> {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const token = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  const hash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return { token, hash };
+}
+
+export const FontesOperacional = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingFonte, setEditingFonte] = useState<FonteOperacional | null>(null);
+  const [tokenGerado, setTokenGerado] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({
+    profile: "caixa" as FonteOperacional["profile"],
+    label: "",
+    drive_file_id: "",
+  });
+
+  const { data: fontes = [], isLoading } = useQuery({
+    queryKey: ["op-fontes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("op_sources")
+        .select("id, profile, label, drive_file_id, active, last_checked_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as FonteOperacional[];
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Não autenticado");
+
+      const { token, hash } = await gerarTokenEHash();
+
+      const { error } = await supabase.from("op_sources").insert({
+        organization_id: userData.user.id,
+        profile: data.profile,
+        label: data.label,
+        drive_file_id: data.drive_file_id,
+        token_hash: hash,
+      });
+      if (error) throw error;
+
+      return token;
+    },
+    onSuccess: (token) => {
+      queryClient.invalidateQueries({ queryKey: ["op-fontes"] });
+      setTokenGerado(token);
+      resetForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao cadastrar fonte", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      const { error } = await supabase
+        .from("op_sources")
+        .update({ profile: data.profile, label: data.label, drive_file_id: data.drive_file_id })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["op-fontes"] });
+      toast({ title: "Fonte atualizada!" });
+      resetForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const regenerarTokenMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { token, hash } = await gerarTokenEHash();
+      const { error } = await supabase.from("op_sources").update({ token_hash: hash }).eq("id", id);
+      if (error) throw error;
+      return token;
+    },
+    onSuccess: (token) => {
+      setTokenGerado(token);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao gerar novo token", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleAtivoMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from("op_sources").update({ active }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["op-fontes"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("op_sources").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["op-fontes"] });
+      toast({ title: "Fonte removida" });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({ profile: "caixa", label: "", drive_file_id: "" });
+    setEditingFonte(null);
+    setIsDialogOpen(false);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.label.trim() || !formData.drive_file_id.trim()) {
+      toast({ title: "Nome e ID do arquivo são obrigatórios", variant: "destructive" });
+      return;
+    }
+    if (editingFonte) {
+      updateMutation.mutate({ id: editingFonte.id, data: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const openEdit = (fonte: FonteOperacional) => {
+    setEditingFonte(fonte);
+    setFormData({ profile: fonte.profile, label: fonte.label, drive_file_id: fonte.drive_file_id });
+    setIsDialogOpen(true);
+  };
+
+  const copiarToken = () => {
+    if (tokenGerado) {
+      navigator.clipboard.writeText(tokenGerado);
+      toast({ title: "Token copiado" });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          onClick={() => {
+            resetForm();
+            setIsDialogOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Fonte
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Perfil</TableHead>
+                <TableHead>ID do arquivo (Drive)</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              ) : fontes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Nenhuma fonte cadastrada
+                  </TableCell>
+                </TableRow>
+              ) : (
+                fontes.map((fonte) => (
+                  <TableRow key={fonte.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Database className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="font-medium">{fonte.label}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{PERFIL_LABEL[fonte.profile]}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{fonte.drive_file_id}</TableCell>
+                    <TableCell>
+                      <Badge variant={fonte.active ? "outline" : "secondary"} className={fonte.active ? "text-green-600" : ""}>
+                        {fonte.active ? "Ativa" : "Inativa"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Gerar novo token"
+                          onClick={() => regenerarTokenMutation.mutate(fonte.id)}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={fonte.active ? "Desativar" : "Ativar"}
+                          onClick={() => toggleAtivoMutation.mutate({ id: fonte.id, active: !fonte.active })}
+                        >
+                          {fonte.active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(fonte)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(fonte.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingFonte ? "Editar Fonte" : "Nova Fonte"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome *</Label>
+              <Input value={formData.label} onChange={(e) => setFormData({ ...formData, label: e.target.value })} placeholder="Controle de Caixa Atual" />
+            </div>
+            <div>
+              <Label>Perfil *</Label>
+              <Select value={formData.profile} onValueChange={(v) => setFormData({ ...formData, profile: v as FonteOperacional["profile"] })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="caixa">Controle de Caixa</SelectItem>
+                  <SelectItem value="operacional_sabesp">Operacional Sabesp</SelectItem>
+                  <SelectItem value="gestao_empresa">Gestão da Empresa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>ID do arquivo no Google Drive *</Label>
+              <Input
+                value={formData.drive_file_id}
+                onChange={(e) => setFormData({ ...formData, drive_file_id: e.target.value })}
+                placeholder="1AbC..."
+              />
+            </div>
+            {!editingFonte && (
+              <p className="text-xs text-muted-foreground">
+                Ao cadastrar, um token de acesso é gerado e mostrado uma única vez - guarde-o para configurar no n8n.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetForm}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit}>{editingFonte ? "Salvar" : "Cadastrar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(tokenGerado)} onOpenChange={(open) => !open && setTokenGerado(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Token de acesso</DialogTitle>
+          </DialogHeader>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Mostrado uma única vez</AlertTitle>
+            <AlertDescription>
+              Copie agora e configure no n8n (header <code>x-ingest-token</code>). Depois de fechar esta janela, não será possível
+              recuperá-lo - só gerar um novo.
+            </AlertDescription>
+          </Alert>
+          <div className="flex items-center gap-2 bg-muted p-3 rounded-md font-mono text-xs break-all">
+            {tokenGerado}
+            <Button variant="ghost" size="icon" onClick={copiarToken} className="shrink-0">
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setTokenGerado(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
