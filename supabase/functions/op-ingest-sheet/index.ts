@@ -18,6 +18,13 @@ import {
   interpretarOcorrencias,
   interpretarFaturamento,
 } from '../_shared/op/operacionalSabesp.ts'
+import {
+  interpretarPlacarSemanal,
+  interpretarResultadoPorObra,
+  interpretarFunilComercial,
+  interpretarPonteLucroCaixa,
+  interpretarChecksIntegridade,
+} from '../_shared/op/gestaoEmpresa.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: ingestão de planilhas (n8n -> este endpoint)
@@ -98,6 +105,15 @@ function getInterpreter(profile: string, sheetName: string): Interpreter | null 
     if (nome === '09. MEDICAO') return interpretarMedicao
     if (nome === '11. OCORRENCIAS') return interpretarOcorrencias
     if (nome === '12. FATURAMENTO') return interpretarFaturamento
+  }
+  if (profile === 'gestao_empresa') {
+    if (nome === '01C. PLACAR SEMANAL') return interpretarPlacarSemanal
+    // "08C" pode chegar como aba única com seletor ou como cópia por obra
+    // (ex. "08C — ZN") - casa pelo prefixo para cobrir os dois casos.
+    if (nome.startsWith('08C')) return interpretarResultadoPorObra
+    if (nome === '01B. FUNIL COMERCIAL') return interpretarFunilComercial
+    if (nome === '11. CONCILIACAO E WIP') return interpretarPonteLucroCaixa
+    if (nome === '13. CHECKS') return interpretarChecksIntegridade
   }
   return null
 }
