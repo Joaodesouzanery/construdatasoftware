@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, AlertTriangle, Info, RefreshCw } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, RefreshCw, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ConfiguracaoAlertas } from "./ConfiguracaoAlertas";
 
 interface Alerta {
   id: string;
@@ -34,6 +35,7 @@ export const AlertasOperacional = () => {
   const queryClient = useQueryClient();
   const [filtroSeveridade, setFiltroSeveridade] = useState<string>("todos");
   const [filtroFonte, setFiltroFonte] = useState<string>("todos");
+  const [configuracaoAberta, setConfiguracaoAberta] = useState(false);
 
   const { data: fontes = [] } = useQuery({
     queryKey: ["op-fontes-alertas"],
@@ -62,10 +64,19 @@ export const AlertasOperacional = () => {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) throw new Error("Sessão não encontrada");
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/op-evaluate-alerts`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.session.access_token}`, "Content-Type": "application/json" },
-      });
+      let response: Response;
+      try {
+        response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/op-evaluate-alerts`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.session.access_token}`, "Content-Type": "application/json" },
+        });
+      } catch {
+        // fetch() rejeitou antes de qualquer resposta - rede/CORS/função não
+        // publicada, não um erro de negócio. Mensagem diferente de propósito,
+        // para não confundir com uma regra de alerta que falhou.
+        throw new Error("Não foi possível conectar à function op-evaluate-alerts. Verifique se ela está publicada no projeto Supabase.");
+      }
+
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Erro ao verificar alertas");
       return result;
@@ -124,11 +135,19 @@ export const AlertasOperacional = () => {
             </Select>
           </div>
         </div>
-        <Button onClick={() => verificarAgoraMutation.mutate()} disabled={verificarAgoraMutation.isPending}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${verificarAgoraMutation.isPending ? "animate-spin" : ""}`} />
-          Verificar agora
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setConfiguracaoAberta(true)}>
+            <Settings className="h-4 w-4 mr-2" />
+            Configurar regras
+          </Button>
+          <Button onClick={() => verificarAgoraMutation.mutate()} disabled={verificarAgoraMutation.isPending}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${verificarAgoraMutation.isPending ? "animate-spin" : ""}`} />
+            Verificar agora
+          </Button>
+        </div>
       </div>
+
+      <ConfiguracaoAlertas open={configuracaoAberta} onClose={() => setConfiguracaoAberta(false)} />
 
       <Card className="p-0">
         <CardContent className="p-0">

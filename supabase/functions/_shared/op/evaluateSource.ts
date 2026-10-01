@@ -10,6 +10,7 @@
 // um agendamento/cron futuro).
 
 import { avaliarAlertasCaixa, avaliarAlertasOperacionalSabesp, avaliarAlertasGestaoEmpresa, avaliarFonteSemLeitura, type AlertaCandidato } from "./alerts.ts";
+import { construirRulesConfig } from "./alertRuleDefaults.ts";
 
 export interface FonteParaAvaliar {
   id: string;
@@ -28,6 +29,16 @@ export async function avaliarEReconciliarAlertasDeFonte(
 ): Promise<number> {
   let candidatos: AlertaCandidato[] = [];
 
+  // Limiares/severidade configuráveis (op_alert_rules) - qualquer regra sem
+  // linha cadastrada ainda usa o default de alertRuleDefaults.ts. Lido de
+  // novo a cada avaliação de propósito: mudar um parâmetro na tela de
+  // configuração vale a partir da PRÓXIMA chamada, sem redeploy.
+  const { data: regrasCadastradas } = await supabaseAdmin
+    .from("op_alert_rules")
+    .select("code, enabled, severity, params")
+    .eq("organization_id", source.organization_id);
+  const rules = construirRulesConfig(regrasCadastradas ?? []);
+
   if (source.profile === "caixa") {
     const [despesas, horasExtras, ausencias, excecoes] = await Promise.all([
       supabaseAdmin.from("op_records").select("natural_key, data").eq("source_id", source.id).eq("sheet_key", "caixa.despesa").eq("status", "ativo"),
@@ -35,12 +46,15 @@ export async function avaliarEReconciliarAlertasDeFonte(
       supabaseAdmin.from("op_records").select("natural_key, data").eq("source_id", source.id).eq("sheet_key", "caixa.ausencia_ponto").eq("status", "ativo"),
       supabaseAdmin.from("op_exceptions").select("row_number, type, sheet_name").eq("source_id", source.id).eq("status", "aberta"),
     ]);
-    candidatos = avaliarAlertasCaixa({
-      registrosDespesa: despesas.data ?? [],
-      registrosHoraExtra: horasExtras.data ?? [],
-      registrosAusencia: ausencias.data ?? [],
-      excecoesAbertas: excecoes.data ?? [],
-    });
+    candidatos = avaliarAlertasCaixa(
+      {
+        registrosDespesa: despesas.data ?? [],
+        registrosHoraExtra: horasExtras.data ?? [],
+        registrosAusencia: ausencias.data ?? [],
+        excecoesAbertas: excecoes.data ?? [],
+      },
+      rules
+    );
   } else if (source.profile === "operacional_sabesp") {
     const [chamados, ordensServico, ocorrencias, pessoas, medicoes, programacoes] = await Promise.all([
       supabaseAdmin.from("op_records").select("natural_key, data").eq("source_id", source.id).eq("sheet_key", "operacional_sabesp.chamado").eq("status", "ativo"),
@@ -54,15 +68,18 @@ export async function avaliarEReconciliarAlertasDeFonte(
     const datas = (programacoes.data ?? []).map((p: any) => p.data?.data).filter(Boolean).sort();
     const ultimaDataNaPlanilha = datas.length > 0 ? datas[datas.length - 1] : null;
 
-    candidatos = avaliarAlertasOperacionalSabesp({
-      chamados: chamados.data ?? [],
-      ordensServico: ordensServico.data ?? [],
-      ocorrencias: ocorrencias.data ?? [],
-      pessoas: pessoas.data ?? [],
-      medicoes: medicoes.data ?? [],
-      programacoes: programacoes.data ?? [],
-      ultimaDataNaPlanilha,
-    });
+    candidatos = avaliarAlertasOperacionalSabesp(
+      {
+        chamados: chamados.data ?? [],
+        ordensServico: ordensServico.data ?? [],
+        ocorrencias: ocorrencias.data ?? [],
+        pessoas: pessoas.data ?? [],
+        medicoes: medicoes.data ?? [],
+        programacoes: programacoes.data ?? [],
+        ultimaDataNaPlanilha,
+      },
+      rules
+    );
   } else if (source.profile === "gestao_empresa") {
     const [masterCheckRow, excFunil] = await Promise.all([
       supabaseAdmin
@@ -76,13 +93,20 @@ export async function avaliarEReconciliarAlertasDeFonte(
       supabaseAdmin.from("op_exceptions").select("row_number").eq("source_id", source.id).eq("type", "funil_ponderado_diverge").eq("status", "aberta"),
     ]);
 
-    candidatos = avaliarAlertasGestaoEmpresa({
-      masterCheck: masterCheckRow.data?.data?.master_check ?? null,
-      excecoesFunilAbertas: excFunil.data ?? [],
-    });
+    candidatos = avaliarAlertasGestaoEmpresa(
+      {
+        masterCheck: masterCheckRow.data?.data?.master_check ?? null,
+        excecoesFunilAbertas: excFunil.data ?? [],
+      },
+      rules
+    );
   }
 
-  candidatos = [...candidatos, ...avaliarFonteSemLeitura(lastCheckedAtIso)];
+  candidatos = [...candidatos, ...avaliarFonteSemLeitura(lastCheckedAtIso, rules)];
+
+  // Uma regra desabilitada não gera candidato nenhum - qualquer alerta aberto
+  // dela antes fecha sozinho (não está mais na lista reproduzida nesta rodada).
+  candidatos = candidatos.filter((c) => rules[c.rule_code]?.enabled !== false);
 
   const { data: abertos } = await supabaseAdmin.rpc("op_reconcile_alerts", {
     p_organization_id: source.organization_id,

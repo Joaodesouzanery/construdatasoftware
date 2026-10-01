@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertTriangle, CheckCircle2, Clock, ChevronDown, History } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -21,6 +24,8 @@ interface RunResumo {
   status: string;
   received_at: string;
   counts: Record<string, number>;
+  file_name: string | null;
+  file_modified_at: string | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -46,31 +51,50 @@ export const PainelExecucoes = () => {
     },
   });
 
-  const { data: runsPorFonte = {} } = useQuery({
+  // Uma única busca em op_runs (até 500 linhas, mais recentes primeiro)
+  // alimenta tanto o status por aba (dedupe por sheet_name, já existia)
+  // quanto o histórico de atualização por fonte (sem dedupe, até 10 por
+  // fonte) - sem tabela nova, só duas formas de agrupar o mesmo dado.
+  const { data: dadosRuns } = useQuery({
     queryKey: ["op-runs-painel", fontes.map((f) => f.id)],
     queryFn: async () => {
-      if (fontes.length === 0) return {};
+      if (fontes.length === 0) return { statusPorFonte: {}, historicoPorFonte: {} };
       const { data, error } = await supabase
         .from("op_runs")
-        .select("source_id, sheet_name, status, received_at, counts")
-        .in("source_id", fontes.map((f) => f.id))
+        .select("source_id, sheet_name, status, received_at, counts, file_name, file_modified_at")
+        .in(
+          "source_id",
+          fontes.map((f) => f.id)
+        )
         .order("received_at", { ascending: false })
         .limit(500);
       if (error) throw error;
 
-      const porFonte: Record<string, RunResumo[]> = {};
-      const vistos = new Set<string>();
+      const statusPorFonte: Record<string, RunResumo[]> = {};
+      const historicoPorFonte: Record<string, RunResumo[]> = {};
+      const vistosPorSheet = new Set<string>();
+
       for (const run of data ?? []) {
-        const chave = `${run.source_id}|${run.sheet_name}`;
-        if (vistos.has(chave)) continue;
-        vistos.add(chave);
-        porFonte[run.source_id] = porFonte[run.source_id] ?? [];
-        porFonte[run.source_id].push(run as RunResumo);
+        const chaveSheet = `${run.source_id}|${run.sheet_name}`;
+        if (!vistosPorSheet.has(chaveSheet)) {
+          vistosPorSheet.add(chaveSheet);
+          statusPorFonte[run.source_id] = statusPorFonte[run.source_id] ?? [];
+          statusPorFonte[run.source_id].push(run as RunResumo);
+        }
+
+        historicoPorFonte[run.source_id] = historicoPorFonte[run.source_id] ?? [];
+        if (historicoPorFonte[run.source_id].length < 10) {
+          historicoPorFonte[run.source_id].push(run as RunResumo);
+        }
       }
-      return porFonte;
+
+      return { statusPorFonte, historicoPorFonte };
     },
     enabled: fontes.length > 0,
   });
+
+  const statusPorFonte = dadosRuns?.statusPorFonte ?? {};
+  const historicoPorFonte = dadosRuns?.historicoPorFonte ?? {};
 
   if (isLoading) {
     return <Card className="p-8 text-center text-muted-foreground text-sm">Carregando...</Card>;
@@ -90,7 +114,9 @@ export const PainelExecucoes = () => {
     <div className="space-y-4">
       {fontes.map((fonte) => {
         const atrasada = fonte.last_checked_at ? Date.now() - new Date(fonte.last_checked_at).getTime() > DOZE_HORAS_MS : true;
-        const runs = runsPorFonte[fonte.id] ?? [];
+        const runs = statusPorFonte[fonte.id] ?? [];
+        const historico = historicoPorFonte[fonte.id] ?? [];
+        const ultimaAtualizacaoArquivo = historico.find((r) => r.file_modified_at)?.file_modified_at ?? null;
 
         return (
           <Card key={fonte.id} className={atrasada && fonte.active ? "border-destructive" : ""}>
@@ -117,13 +143,16 @@ export const PainelExecucoes = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                Última verificação:{" "}
-                {fonte.last_checked_at ? format(new Date(fonte.last_checked_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "nunca"}
-                {fonte.last_file_modified_at && (
-                  <span>· arquivo modificado em {format(new Date(fonte.last_file_modified_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
-                )}
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Última verificação: {fonte.last_checked_at ? format(new Date(fonte.last_checked_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "nunca"}
+                </div>
+                <div>
+                  Última atualização do arquivo:{" "}
+                  {ultimaAtualizacaoArquivo ? format(new Date(ultimaAtualizacaoArquivo), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "sem dado ainda"}
+                </div>
+                <div>Próximas verificações: 07h, 16h e 20h</div>
               </div>
 
               {runs.length > 0 && (
@@ -135,10 +164,36 @@ export const PainelExecucoes = () => {
                   ))}
                 </div>
               )}
+
+              {historico.length > 0 && <HistoricoAtualizacoes historico={historico} />}
             </CardContent>
           </Card>
         );
       })}
     </div>
+  );
+};
+
+const HistoricoAtualizacoes = ({ historico }: { historico: RunResumo[] }) => {
+  const [aberto, setAberto] = useState(false);
+
+  return (
+    <Collapsible open={aberto} onOpenChange={setAberto} className="pt-2 border-t">
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
+          <History className="h-3 w-3 mr-1" />
+          Ver últimas atualizações
+          <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${aberto ? "rotate-180" : ""}`} />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2 space-y-1">
+        {historico.map((r, i) => (
+          <div key={i} className="flex justify-between text-xs text-muted-foreground">
+            <span>{r.file_name ?? "-"}</span>
+            <span>{r.file_modified_at ? format(new Date(r.file_modified_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "-"}</span>
+          </div>
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
   );
 };

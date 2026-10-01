@@ -68,7 +68,14 @@ export const SimuladorIngestao = () => {
       const resultado = await response.json();
       setResposta(JSON.stringify(resultado, null, 2));
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Erro ao chamar a função");
+      // TypeError "Failed to fetch" aqui significa que a chamada nem saiu da
+      // rede (CORS, function não publicada) - distinto de um erro de negócio
+      // vindo de dentro da função (esse chega via resultado.error, não aqui).
+      if (error instanceof TypeError) {
+        setErro("Não foi possível conectar à function op-ingest-sheet. Verifique se ela está publicada no projeto Supabase.");
+      } else {
+        setErro(error instanceof Error ? error.message : "Erro ao chamar a função");
+      }
     } finally {
       setEnviando(false);
     }

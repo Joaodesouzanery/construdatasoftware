@@ -138,6 +138,33 @@ export function AppSidebar() {
       <SidebarContent>
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
+            <SidebarGroupLabel className="text-sm font-medium">Operacional</SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {operacionalItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-4 w-4" />
+                          <span className="flex-1">{item.title}</span>
+                          {alertasAbertos > 0 && (
+                            <Badge variant="destructive" className="h-5 min-w-5 px-1 text-[10px] justify-center">
+                              {alertasAbertos}
+                            </Badge>
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
             <SidebarGroupLabel className="text-sm font-medium">Menu Principal</SidebarGroupLabel>
             <CollapsibleContent>
               <SidebarGroupContent>
@@ -236,33 +263,6 @@ export function AppSidebar() {
                         <NavLink to={item.url} end className={getNavCls}>
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        <Collapsible defaultOpen className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-sm font-medium">Operacional</SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {operacionalItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={item.url} end className={getNavCls}>
-                          <item.icon className="h-4 w-4" />
-                          <span className="flex-1">{item.title}</span>
-                          {alertasAbertos > 0 && (
-                            <Badge variant="destructive" className="h-5 min-w-5 px-1 text-[10px] justify-center">
-                              {alertasAbertos}
-                            </Badge>
-                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
