@@ -8,6 +8,16 @@ import {
   interpretarPlanilha1,
   type InterpreterContext,
 } from '../_shared/op/caixa.ts'
+import {
+  interpretarCadastroServicos,
+  interpretarProgramacaoDiaria,
+  interpretarOrdensServico,
+  interpretarApontamentoDiario,
+  interpretarEquipe,
+  interpretarMedicao,
+  interpretarOcorrencias,
+  interpretarFaturamento,
+} from '../_shared/op/operacionalSabesp.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: ingestão de planilhas (n8n -> este endpoint)
@@ -64,14 +74,14 @@ interface InterpreterResult {
   rejectedCount: number
 }
 
-type Interpreter = (rows: unknown[][], firstRowNumber: number, context: InterpreterContext) => InterpreterResult
+type Interpreter = (rows: unknown[][], firstRowNumber: number, context: any) => InterpreterResult
 type ListInterpreter = (rows: unknown[][]) => { listKey: string; items: unknown[] }
 
 // Interpretadores de registros versionados (vão para op_records/op_changes
 // via op_apply_interpreted_rows). Abas sem interpretador aqui ficam
 // "nao_interpretada" (nunca descartadas - o snapshot bruto é sempre guardado).
 // "HORAS EXTRAS <MÊS>" é tratada por prefixo porque o nome da aba muda todo
-// mês - Fases 3 e 4 populam os outros dois perfis.
+// mês. Fase 4 popula o perfil gestao_empresa.
 function getInterpreter(profile: string, sheetName: string): Interpreter | null {
   const nome = normalizarRotulo(sheetName)
   if (profile === 'caixa') {
@@ -79,7 +89,53 @@ function getInterpreter(profile: string, sheetName: string): Interpreter | null 
     if (nome === 'AUSENCIA PONTO SAIDA') return interpretarAusenciaPontoSaida
     if (nome.startsWith('HORAS EXTRAS')) return interpretarHorasExtras
   }
+  if (profile === 'operacional_sabesp') {
+    if (nome === '03. CADASTRO DE SERVICOS') return interpretarCadastroServicos
+    if (nome === '04. PROGRAMACAO DIARIA') return interpretarProgramacaoDiaria
+    if (nome === '05. ORDENS DE SERVICO') return interpretarOrdensServico
+    if (nome === '06. APONTAMENTO DIARIO') return interpretarApontamentoDiario
+    if (nome === '08. EQUIPE') return interpretarEquipe
+    if (nome === '09. MEDICAO') return interpretarMedicao
+    if (nome === '11. OCORRENCIAS') return interpretarOcorrencias
+    if (nome === '12. FATURAMENTO') return interpretarFaturamento
+  }
   return null
+}
+
+// Algumas abas do perfil operacional_sabesp precisam conferir dados já
+// guardados de OUTRA aba (ex. 04 contra o cadastro da 03) - a função pura em
+// si não acessa banco (Regra de Ouro 7), então quem busca esses dados é esta
+// função, chamada pelo orquestrador antes de invocar o interpretador.
+async function buildExtraContext(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  profile: string,
+  sheetName: string,
+  sourceId: string
+): Promise<Record<string, unknown>> {
+  const nome = normalizarRotulo(sheetName)
+
+  if (profile === 'operacional_sabesp' && nome === '04. PROGRAMACAO DIARIA') {
+    const { data } = await supabaseAdmin
+      .from('op_records')
+      .select('natural_key')
+      .eq('source_id', sourceId)
+      .eq('sheet_key', 'operacional_sabesp.chamado')
+      .eq('status', 'ativo')
+    return { chamadosConhecidos: new Set((data ?? []).map((r: any) => r.natural_key)) }
+  }
+
+  if (profile === 'operacional_sabesp' && nome === '09. MEDICAO') {
+    const { data } = await supabaseAdmin
+      .from('op_records')
+      .select('natural_key, data')
+      .eq('source_id', sourceId)
+      .eq('sheet_key', 'operacional_sabesp.os')
+      .eq('status', 'ativo')
+    const naoElegiveis = (data ?? []).filter((r: any) => r.data?.sem_evidencia === true).map((r: any) => r.natural_key)
+    return { osNaoElegiveis: new Set(naoElegiveis) }
+  }
+
+  return {}
 }
 
 // Interpretadores de LISTA (vão para op_lists, sem diff/histórico - só o
@@ -278,7 +334,8 @@ Deno.serve(async (req) => {
     } else if (!interpreter) {
       status = 'nao_interpretada'
     } else {
-      const context: InterpreterContext = { sheetName, fileModifiedAt: body.file.modified_at }
+      const extraContext = await buildExtraContext(supabaseAdmin, source.profile, sheetName, source.id)
+      const context: InterpreterContext & Record<string, unknown> = { sheetName, fileModifiedAt: body.file.modified_at, ...extraContext }
       const result = interpreter(body.sheet.rows, body.sheet.first_row_number, context)
 
       const { data: applyCounts, error: applyError } = await supabaseAdmin.rpc('op_apply_interpreted_rows', {
