@@ -414,6 +414,9 @@ export function interpretarAusenciaPontoSaida(rows: unknown[][], firstRowNumber:
   const colHorasExtras = colIndex("HORAS EXTRAS");
   const colSalario = colIndex("SALARIO");
   const colTotal = colIndex("TOTAL");
+  // "Coluna seguinte pode ter 'Pago em dd/mm'" - não é um rótulo fixo do
+  // cabeçalho obrigatório, então olhamos a coluna logo após TOTAL.
+  const colPagoEm = colTotal >= 0 ? colTotal + 1 : -1;
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const row = rows[i] ?? [];
@@ -446,6 +449,9 @@ export function interpretarAusenciaPontoSaida(rows: unknown[][], firstRowNumber:
       });
     }
 
+    const pagoEmCelula = colPagoEm >= 0 ? row[colPagoEm] : undefined;
+    const pago = !celulaVazia(pagoEmCelula);
+
     interpretedRows.push({
       natural_key: `aus|${normalizarRotulo(colaborador)}|${dia}`,
       data: {
@@ -459,6 +465,8 @@ export function interpretarAusenciaPontoSaida(rows: unknown[][], firstRowNumber:
         valor_he: valorHe,
         valor_desc: valorDesc,
         total: totalPlanilha ?? totalCalculado,
+        pago,
+        pago_em: pago ? String(pagoEmCelula) : null,
       },
       source_row: rowNumber,
     });

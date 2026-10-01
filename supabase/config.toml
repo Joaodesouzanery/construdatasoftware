@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.op-ingest-status]
 verify_jwt = false
+
+[functions.op-evaluate-alerts]
+verify_jwt = false

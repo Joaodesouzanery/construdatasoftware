@@ -10,7 +10,8 @@ import { DashboardCaixa } from "@/components/operacional/DashboardCaixa";
 import { DashboardOperacionalSabesp } from "@/components/operacional/DashboardOperacionalSabesp";
 import { DashboardGestaoExecutiva } from "@/components/operacional/DashboardGestaoExecutiva";
 import { MasterCheckBadge } from "@/components/operacional/MasterCheckBadge";
-import { Activity, Inbox, Database, FlaskConical, Wallet, ClipboardList, Briefcase } from "lucide-react";
+import { AlertasOperacional } from "@/components/operacional/AlertasOperacional";
+import { Activity, Inbox, Database, FlaskConical, Wallet, ClipboardList, Briefcase, BellRing } from "lucide-react";
 
 // Hub do módulo Operacional - mesmo padrão de RHConstruData.tsx (um grupo de
 // abas, cada uma um componente autossuficiente). Fase 1: Fontes, Painel de
@@ -54,6 +55,10 @@ const Operacional = () => {
                     <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Gestão Executiva</span>
                   </TabsTrigger>
+                  <TabsTrigger value="alertas" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <BellRing className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Alertas</span>
+                  </TabsTrigger>
                   <TabsTrigger value="mudancas" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
                     <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Caixa de Mudanças</span>
@@ -83,6 +88,10 @@ const Operacional = () => {
 
               <TabsContent value="gestao" className="mt-0">
                 <DashboardGestaoExecutiva />
+              </TabsContent>
+
+              <TabsContent value="alertas" className="mt-0">
+                <AlertasOperacional />
               </TabsContent>
 
               <TabsContent value="mudancas" className="mt-0">

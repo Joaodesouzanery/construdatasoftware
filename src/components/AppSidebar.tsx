@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Building2, ClipboardList, FileText, Plus, Settings, Bell, Package, TrendingDown, History, Users, Home, Image, Warehouse, Wrench, Archive, ClipboardCheck, Gauge, FileBarChart, QrCode, ClipboardX, Shield, DollarSign, Box, LayoutDashboard, AlertCircle, Clock, ShoppingCart, Calculator, HeadphonesIcon, FileSpreadsheet, CheckCircle2, BarChart3, Map, Palette, BookOpen, Target, UserCheck, CalendarDays, PieChart, Construction, Layers, TrendingUp, Workflow } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { Badge } from "@/components/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -111,6 +113,17 @@ export function AppSidebar() {
       console.error("Error checking admin status:", error);
     }
   };
+
+  // Contador de alertas abertos do módulo Operacional (Fase 6) - visível no
+  // menu em qualquer página, não só dentro do módulo.
+  const { data: alertasAbertos = 0 } = useQuery({
+    queryKey: ["op-alertas-contador"],
+    queryFn: async () => {
+      const { count } = await supabase.from("op_alerts").select("id", { count: "exact", head: true }).is("closed_at", null);
+      return count ?? 0;
+    },
+    staleTime: 60000,
+  });
 
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive 
@@ -244,7 +257,12 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} end className={getNavCls}>
                           <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
+                          <span className="flex-1">{item.title}</span>
+                          {alertasAbertos > 0 && (
+                            <Badge variant="destructive" className="h-5 min-w-5 px-1 text-[10px] justify-center">
+                              {alertasAbertos}
+                            </Badge>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

@@ -25,6 +25,7 @@ import {
   interpretarPonteLucroCaixa,
   interpretarChecksIntegridade,
 } from '../_shared/op/gestaoEmpresa.ts'
+import { avaliarEReconciliarAlertasDeFonte } from '../_shared/op/evaluateSource.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: ingestão de planilhas (n8n -> este endpoint)
@@ -239,17 +240,19 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'drive_file_id não corresponde ao cadastrado para esta fonte' }, 403)
     }
 
+    const agoraIso = new Date().toISOString()
     await supabaseAdmin
       .from('op_sources')
       .update({
-        last_checked_at: new Date().toISOString(),
+        last_checked_at: agoraIso,
         last_file_name: body.file.name,
         last_file_modified_at: body.file.modified_at,
       })
       .eq('id', source.id)
 
     // Batimento: nenhuma aba enviada nesta chamada, só confirma que a
-    // automação está rodando.
+    // automação está rodando. Ainda assim reavalia alertas (ex. fecha um
+    // fonte_sem_leitura que estava aberto) - é a prova de vida mais barata.
     if (!body.sheet) {
       await supabaseAdmin.from('op_runs').insert({
         source_id: source.id,
@@ -260,7 +263,8 @@ Deno.serve(async (req) => {
         status: 'batimento',
         counts: {},
       })
-      return jsonResponse({ ok: true, run_id: body.run_id, status: 'batimento' })
+      const alertsOpenedBatimento = await avaliarEReconciliarAlertasDeFonte(supabaseAdmin, source, agoraIso)
+      return jsonResponse({ ok: true, run_id: body.run_id, status: 'batimento', alerts_opened: alertsOpenedBatimento })
     }
 
     const sheetName = body.sheet.name
@@ -302,6 +306,7 @@ Deno.serve(async (req) => {
         status: 'inalterada',
         counts: emptyCounts,
       })
+      const alertsOpenedInalterada = await avaliarEReconciliarAlertasDeFonte(supabaseAdmin, source, agoraIso)
       const response = {
         ok: true,
         run_id: body.run_id,
@@ -309,7 +314,7 @@ Deno.serve(async (req) => {
         status: 'inalterada',
         counts: emptyCounts,
         exceptions: emptyExceptions,
-        alerts_opened: 0,
+        alerts_opened: alertsOpenedInalterada,
         inbox_url: `/operacional/mudancas?run=${body.run_id}`,
       }
       await supabaseAdmin
@@ -380,8 +385,6 @@ Deno.serve(async (req) => {
       counts = { ...(applyCounts as typeof emptyCounts), rejeitadas: result.rejectedCount }
       exceptionCounts = excCounts as typeof emptyExceptions
       status = 'processada'
-      // alertsOpened é preenchido na Fase 6, quando as regras de op_alert_rules
-      // passarem a ser avaliadas aqui.
     }
 
     await supabaseAdmin.from('op_runs').insert({
@@ -393,6 +396,11 @@ Deno.serve(async (req) => {
       status,
       counts,
     })
+
+    // Reavalia todas as regras de alerta aplicáveis ao perfil desta fonte -
+    // sempre o conjunto COMPLETO (nunca parcial, para não fechar por engano
+    // um alerta de uma regra que não foi reavaliada agora).
+    alertsOpened = await avaliarEReconciliarAlertasDeFonte(supabaseAdmin, source, agoraIso)
 
     const response = {
       ok: true,
