@@ -6,7 +6,8 @@ import { FontesOperacional } from "@/components/operacional/FontesOperacional";
 import { PainelExecucoes } from "@/components/operacional/PainelExecucoes";
 import { CaixaDeMudancas } from "@/components/operacional/CaixaDeMudancas";
 import { SimuladorIngestao } from "@/components/operacional/SimuladorIngestao";
-import { Activity, Inbox, Database, FlaskConical } from "lucide-react";
+import { DashboardCaixa } from "@/components/operacional/DashboardCaixa";
+import { Activity, Inbox, Database, FlaskConical, Wallet } from "lucide-react";
 
 // Hub do módulo Operacional - mesmo padrão de RHConstruData.tsx (um grupo de
 // abas, cada uma um componente autossuficiente). Fase 1: Fontes, Painel de
@@ -35,6 +36,10 @@ const Operacional = () => {
                     <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Painel de Execuções</span>
                   </TabsTrigger>
+                  <TabsTrigger value="caixa" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Caixa</span>
+                  </TabsTrigger>
                   <TabsTrigger value="mudancas" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
                     <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Caixa de Mudanças</span>
@@ -52,6 +57,10 @@ const Operacional = () => {
 
               <TabsContent value="painel" className="mt-0">
                 <PainelExecucoes />
+              </TabsContent>
+
+              <TabsContent value="caixa" className="mt-0">
+                <DashboardCaixa />
               </TabsContent>
 
               <TabsContent value="mudancas" className="mt-0">

@@ -1,5 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { normalizarRotulo } from '../_shared/op/parsing.ts'
+import {
+  interpretarDespesas,
+  interpretarHorasExtras,
+  interpretarAusenciaPontoSaida,
+  interpretarPlanilha1,
+  type InterpreterContext,
+} from '../_shared/op/caixa.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: ingestão de planilhas (n8n -> este endpoint)
@@ -13,8 +21,9 @@ import { corsHeaders } from '../_shared/cors.ts'
 //    edição manual de dado de planilha.
 // 2/3. Nunca inventa valor, nunca apaga - ver op_apply_interpreted_rows.
 // 6. Sem IA/LLM - toda a lógica abaixo é determinística.
-// 7. A interpretação por aba (Fases 2-4) vive em módulos puros registrados em
-//    INTERPRETERS abaixo - este arquivo só orquestra.
+// 7. A interpretação por aba (Fases 2-4) vive em módulos puros em
+//    ../_shared/op/*.ts, registrados em getInterpreter/getListInterpreter
+//    abaixo - este arquivo só orquestra.
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 const MAX_ROWS = 20000
@@ -55,20 +64,30 @@ interface InterpreterResult {
   rejectedCount: number
 }
 
-type Interpreter = (rows: unknown[][], firstRowNumber: number) => InterpreterResult
+type Interpreter = (rows: unknown[][], firstRowNumber: number, context: InterpreterContext) => InterpreterResult
+type ListInterpreter = (rows: unknown[][]) => { listKey: string; items: unknown[] }
 
-// Registro de interpretadores por perfil + nome da aba. Vazio na Fase 1 de
-// propósito - Fases 2, 3 e 4 populam isto importando de ../_shared/op/*.ts.
-// Enquanto uma aba não tem interpretador aqui, ela fica "nao_interpretada"
-// (nunca descartada - o snapshot bruto é sempre guardado).
-const INTERPRETERS: Record<string, Record<string, Interpreter>> = {
-  caixa: {},
-  operacional_sabesp: {},
-  gestao_empresa: {},
+// Interpretadores de registros versionados (vão para op_records/op_changes
+// via op_apply_interpreted_rows). Abas sem interpretador aqui ficam
+// "nao_interpretada" (nunca descartadas - o snapshot bruto é sempre guardado).
+// "HORAS EXTRAS <MÊS>" é tratada por prefixo porque o nome da aba muda todo
+// mês - Fases 3 e 4 populam os outros dois perfis.
+function getInterpreter(profile: string, sheetName: string): Interpreter | null {
+  const nome = normalizarRotulo(sheetName)
+  if (profile === 'caixa') {
+    if (nome === 'DESPESAS') return interpretarDespesas
+    if (nome === 'AUSENCIA PONTO SAIDA') return interpretarAusenciaPontoSaida
+    if (nome.startsWith('HORAS EXTRAS')) return interpretarHorasExtras
+  }
+  return null
 }
 
-function getInterpreter(profile: string, sheetName: string): Interpreter | null {
-  return INTERPRETERS[profile]?.[sheetName] ?? null
+// Interpretadores de LISTA (vão para op_lists, sem diff/histórico - só o
+// conteúdo mais recente).
+function getListInterpreter(profile: string, sheetName: string): ListInterpreter | null {
+  const nome = normalizarRotulo(sheetName)
+  if (profile === 'caixa' && nome === 'PLANILHA1') return interpretarPlanilha1
+  return null
 }
 
 async function sha256Hex(text: string): Promise<string> {
@@ -241,16 +260,26 @@ Deno.serve(async (req) => {
     })
 
     const interpreter = getInterpreter(source.profile, sheetName)
+    const listInterpreter = getListInterpreter(source.profile, sheetName)
 
     let status: string
     let counts = emptyCounts
     let exceptionCounts = emptyExceptions
     let alertsOpened = 0
 
-    if (!interpreter) {
+    if (listInterpreter) {
+      // Lista de referência (ex. categorias) - vai para op_lists, não entra
+      // no diff de op_records/op_changes.
+      const { listKey, items } = listInterpreter(body.sheet.rows)
+      await supabaseAdmin
+        .from('op_lists')
+        .upsert({ source_id: source.id, list_key: listKey, items, updated_at: new Date().toISOString() }, { onConflict: 'source_id,list_key' })
+      status = 'processada'
+    } else if (!interpreter) {
       status = 'nao_interpretada'
     } else {
-      const result = interpreter(body.sheet.rows, body.sheet.first_row_number)
+      const context: InterpreterContext = { sheetName, fileModifiedAt: body.file.modified_at }
+      const result = interpreter(body.sheet.rows, body.sheet.first_row_number, context)
 
       const { data: applyCounts, error: applyError } = await supabaseAdmin.rpc('op_apply_interpreted_rows', {
         p_source_id: source.id,
