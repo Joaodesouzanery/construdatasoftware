@@ -103,7 +103,7 @@ export const ConfiguracaoAlertas = ({ open, onClose }: ConfiguracaoAlertasProps)
           <SheetDescription>Ajuste severidade e limiares - a mudança vale a partir da próxima avaliação, sem precisar publicar nada de novo.</SheetDescription>
         </SheetHeader>
 
-        <Accordion type="multiple" defaultValue={perfis} className="mt-4">
+        <Accordion type="multiple" defaultValue={[...perfis]} className="mt-4">
           {perfis.map((perfil) => {
             const regrasDoPerfil = ALERT_RULES.filter((r) => r.perfil === perfil);
             if (regrasDoPerfil.length === 0) return null;
