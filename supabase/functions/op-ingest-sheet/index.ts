@@ -124,7 +124,8 @@ function getInterpreter(profile: string, sheetName: string): Interpreter | null 
 // si não acessa banco (Regra de Ouro 7), então quem busca esses dados é esta
 // função, chamada pelo orquestrador antes de invocar o interpretador.
 async function buildExtraContext(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: SupabaseClient<any, any, any>,
   profile: string,
   sheetName: string,
   sourceId: string
