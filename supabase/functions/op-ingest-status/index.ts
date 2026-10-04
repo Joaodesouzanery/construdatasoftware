@@ -1,19 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { autenticarFonte, normalizarToken } from '../_shared/op/ingestAuth.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: status de ingestão (GET, mesma autenticação por token)
 // =============================================
 // Permite ao n8n (ou a um monitor externo) perguntar "o que você já processou
 // desta fonte" sem precisar reenviar nada.
-
-async function sha256Hex(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -34,36 +27,22 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // .trim() de propósito: token colado manualmente (n8n, campo de
-    // credencial) costuma vir com espaço/quebra de linha no fim, o que faz o
-    // hash não bater com o salvo mesmo sendo "o mesmo" token.
-    const token = req.headers.get('x-ingest-token')?.trim()
-    if (!token) {
+    const rawToken = req.headers.get('x-ingest-token')
+    if (!normalizarToken(rawToken)) {
       return jsonResponse({ error: 'Header x-ingest-token é obrigatório' }, 401)
     }
 
-    const tokenHash = await sha256Hex(token)
-    // Prefixo curto do hash só para correlacionar linhas de log entre si -
-    // não é reversível para o token e nunca é o token em si.
-    const hashPrefix = tokenHash.slice(0, 8)
-    const { data: source, error: sourceError } = await supabaseAdmin
-      .from('op_sources')
-      .select('id, active, last_checked_at, last_file_modified_at')
-      .eq('token_hash', tokenHash)
-      .maybeSingle()
+    const auth = await autenticarFonte<{ id: string; active: boolean; last_checked_at: string | null; last_file_modified_at: string | null }>(
+      supabaseAdmin,
+      rawToken,
+      'id, active, last_checked_at, last_file_modified_at',
+      'op-ingest-status'
+    )
+    if (!auth.ok) {
+      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
+    }
+    const source = auth.source
 
-    if (sourceError) {
-      console.error(`op-ingest-status: erro ao consultar op_sources (hash_prefix=${hashPrefix})`, sourceError)
-      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
-    }
-    if (!source) {
-      console.warn(`op-ingest-status: nenhuma fonte encontrada para o hash do token (hash_prefix=${hashPrefix}) - verifique se token_hash em op_sources foi gerado com o mesmo algoritmo e projeto`)
-      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
-    }
-    if (!source.active) {
-      console.warn(`op-ingest-status: fonte ${source.id} encontrada mas está com active=false (hash_prefix=${hashPrefix})`)
-      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
-    }
 
     const { data: sheets } = await supabaseAdmin
       .from('op_snapshots')
