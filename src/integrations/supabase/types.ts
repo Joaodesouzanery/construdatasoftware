@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -309,6 +309,77 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      banco_horas_mensal: {
+        Row: {
+          calculado_em: string
+          calculado_por: string | null
+          competencia: string
+          created_at: string
+          detalhes: Json | null
+          funcionario_id: string
+          horas_extras_100_total: number
+          horas_extras_50_total: number
+          horas_faltas_total: number
+          horas_normais_total: number
+          horas_noturnas_total: number
+          id: string
+          saldo_banco_horas_acumulado: number
+          saldo_banco_horas_anterior: number
+          saldo_banco_horas_atual: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calculado_em?: string
+          calculado_por?: string | null
+          competencia: string
+          created_at?: string
+          detalhes?: Json | null
+          funcionario_id: string
+          horas_extras_100_total?: number
+          horas_extras_50_total?: number
+          horas_faltas_total?: number
+          horas_normais_total?: number
+          horas_noturnas_total?: number
+          id?: string
+          saldo_banco_horas_acumulado?: number
+          saldo_banco_horas_anterior?: number
+          saldo_banco_horas_atual?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calculado_em?: string
+          calculado_por?: string | null
+          competencia?: string
+          created_at?: string
+          detalhes?: Json | null
+          funcionario_id?: string
+          horas_extras_100_total?: number
+          horas_extras_50_total?: number
+          horas_faltas_total?: number
+          horas_normais_total?: number
+          horas_noturnas_total?: number
+          id?: string
+          saldo_banco_horas_acumulado?: number
+          saldo_banco_horas_anterior?: number
+          saldo_banco_horas_atual?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banco_horas_mensal_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
             referencedColumns: ["id"]
           },
         ]
@@ -1721,6 +1792,7 @@ export type Database = {
           id: string
           impacto_custo: number | null
           observacoes: string | null
+          origem: string
           tipo: string
           user_id: string
         }
@@ -1734,6 +1806,7 @@ export type Database = {
           id?: string
           impacto_custo?: number | null
           observacoes?: string | null
+          origem?: string
           tipo: string
           user_id: string
         }
@@ -1747,6 +1820,7 @@ export type Database = {
           id?: string
           impacto_custo?: number | null
           observacoes?: string | null
+          origem?: string
           tipo?: string
           user_id?: string
         }
@@ -1896,9 +1970,55 @@ export type Database = {
           },
         ]
       }
+      funcionario_locais_ponto: {
+        Row: {
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          funcionario_id: string
+          id: string
+          local_ponto_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          funcionario_id: string
+          id?: string
+          local_ponto_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          funcionario_id?: string
+          id?: string
+          local_ponto_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_locais_ponto_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_locais_ponto_local_ponto_id_fkey"
+            columns: ["local_ponto_id"]
+            isOneToOne: false
+            referencedRelation: "locais_ponto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionarios: {
         Row: {
           ativo: boolean
+          auth_user_id: string | null
           cargo: string | null
           cpf: string | null
           created_at: string
@@ -1917,6 +2037,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          auth_user_id?: string | null
           cargo?: string | null
           cpf?: string | null
           created_at?: string
@@ -1935,6 +2056,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          auth_user_id?: string | null
           cargo?: string | null
           cpf?: string | null
           created_at?: string
@@ -2177,6 +2299,56 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locais_ponto: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          endereco: string | null
+          id: string
+          latitude: number
+          longitude: number
+          nome: string
+          raio_metros: number
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          nome: string
+          raio_metros?: number
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          nome?: string
+          raio_metros?: number
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locais_ponto_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -2888,6 +3060,410 @@ export type Database = {
           },
         ]
       }
+      op_alert_rules: {
+        Row: {
+          code: string
+          created_at: string
+          enabled: boolean
+          id: string
+          label: string
+          organization_id: string
+          params: Json
+          severity: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label: string
+          organization_id: string
+          params?: Json
+          severity?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label?: string
+          organization_id?: string
+          params?: Json
+          severity?: string
+        }
+        Relationships: []
+      }
+      op_alerts: {
+        Row: {
+          closed_at: string | null
+          id: string
+          message: string
+          opened_at: string
+          organization_id: string
+          rule_code: string
+          severity: string
+          source_id: string | null
+          subject_key: string
+        }
+        Insert: {
+          closed_at?: string | null
+          id?: string
+          message: string
+          opened_at?: string
+          organization_id: string
+          rule_code: string
+          severity: string
+          source_id?: string | null
+          subject_key: string
+        }
+        Update: {
+          closed_at?: string | null
+          id?: string
+          message?: string
+          opened_at?: string
+          organization_id?: string
+          rule_code?: string
+          severity?: string
+          source_id?: string | null
+          subject_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_alerts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_changes: {
+        Row: {
+          after: Json | null
+          before: Json | null
+          change_type: string
+          created_at: string
+          fields_changed: string[] | null
+          id: string
+          natural_key: string
+          run_id: string
+          sheet_key: string
+          source_id: string
+        }
+        Insert: {
+          after?: Json | null
+          before?: Json | null
+          change_type: string
+          created_at?: string
+          fields_changed?: string[] | null
+          id?: string
+          natural_key: string
+          run_id: string
+          sheet_key: string
+          source_id: string
+        }
+        Update: {
+          after?: Json | null
+          before?: Json | null
+          change_type?: string
+          created_at?: string
+          fields_changed?: string[] | null
+          id?: string
+          natural_key?: string
+          run_id?: string
+          sheet_key?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_changes_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_exceptions: {
+        Row: {
+          assigned_to: string | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          message: string
+          note: string | null
+          row_number: number
+          run_id: string
+          severity: string
+          sheet_name: string
+          source_id: string
+          status: string
+          type: string
+          value_current: Json | null
+          value_suggested: Json | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          note?: string | null
+          row_number: number
+          run_id: string
+          severity: string
+          sheet_name: string
+          source_id: string
+          status?: string
+          type: string
+          value_current?: Json | null
+          value_suggested?: Json | null
+        }
+        Update: {
+          assigned_to?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          note?: string | null
+          row_number?: number
+          run_id?: string
+          severity?: string
+          sheet_name?: string
+          source_id?: string
+          status?: string
+          type?: string
+          value_current?: Json | null
+          value_suggested?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_exceptions_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_lists: {
+        Row: {
+          id: string
+          items: Json
+          list_key: string
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          items: Json
+          list_key: string
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          items?: Json
+          list_key?: string
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_lists_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_records: {
+        Row: {
+          data: Json
+          data_hash: string
+          first_seen_at: string
+          id: string
+          last_changed_at: string
+          last_seen_at: string
+          natural_key: string
+          sheet_key: string
+          source_id: string
+          source_row: number | null
+          status: string
+        }
+        Insert: {
+          data: Json
+          data_hash: string
+          first_seen_at?: string
+          id?: string
+          last_changed_at?: string
+          last_seen_at?: string
+          natural_key: string
+          sheet_key: string
+          source_id: string
+          source_row?: number | null
+          status?: string
+        }
+        Update: {
+          data?: Json
+          data_hash?: string
+          first_seen_at?: string
+          id?: string
+          last_changed_at?: string
+          last_seen_at?: string
+          natural_key?: string
+          sheet_key?: string
+          source_id?: string
+          source_row?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_records_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_runs: {
+        Row: {
+          counts: Json
+          created_at: string
+          file_modified_at: string | null
+          file_name: string | null
+          id: string
+          received_at: string
+          response: Json | null
+          run_id: string
+          sheet_name: string | null
+          source_id: string
+          status: string
+        }
+        Insert: {
+          counts?: Json
+          created_at?: string
+          file_modified_at?: string | null
+          file_name?: string | null
+          id?: string
+          received_at?: string
+          response?: Json | null
+          run_id: string
+          sheet_name?: string | null
+          source_id: string
+          status: string
+        }
+        Update: {
+          counts?: Json
+          created_at?: string
+          file_modified_at?: string | null
+          file_name?: string | null
+          id?: string
+          received_at?: string
+          response?: Json | null
+          run_id?: string
+          sheet_name?: string | null
+          source_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          received_at: string
+          rows: Json
+          run_id: string
+          sheet_hash: string
+          sheet_name: string
+          source_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          received_at?: string
+          rows: Json
+          run_id: string
+          sheet_hash: string
+          sheet_name: string
+          source_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          received_at?: string
+          rows?: Json
+          run_id?: string
+          sheet_hash?: string
+          sheet_name?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_snapshots_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_sources: {
+        Row: {
+          active: boolean
+          created_at: string
+          drive_file_id: string
+          id: string
+          label: string
+          last_checked_at: string | null
+          last_file_modified_at: string | null
+          last_file_name: string | null
+          organization_id: string
+          profile: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          drive_file_id: string
+          id?: string
+          label: string
+          last_checked_at?: string | null
+          last_file_modified_at?: string | null
+          last_file_name?: string | null
+          organization_id: string
+          profile: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          drive_file_id?: string
+          id?: string
+          label?: string
+          last_checked_at?: string | null
+          last_file_modified_at?: string | null
+          last_file_name?: string | null
+          organization_id?: string
+          profile?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pending_actions: {
         Row: {
           action_type: string
@@ -3286,14 +3862,12 @@ export type Database = {
           encarregado: string | null
           epi_utilizado: boolean | null
           equipamentos: Json | null
-          finalized_at: string | null
           horarios: Json | null
           id: string
           mao_de_obra: Json | null
           observacoes: string | null
           paralisacao_outro: string | null
           paralisacoes: Json | null
-          photo_paths: Json | null
           planilha_foto_url: string | null
           project_id: string | null
           qualidade: Json | null
@@ -3303,7 +3877,6 @@ export type Database = {
           rua_beco: string | null
           servicos_agua: Json | null
           servicos_esgoto: Json | null
-          status: string
           updated_at: string
           whatsapp_text: string | null
         }
@@ -3318,14 +3891,12 @@ export type Database = {
           encarregado?: string | null
           epi_utilizado?: boolean | null
           equipamentos?: Json | null
-          finalized_at?: string | null
           horarios?: Json | null
           id?: string
           mao_de_obra?: Json | null
           observacoes?: string | null
           paralisacao_outro?: string | null
           paralisacoes?: Json | null
-          photo_paths?: Json | null
           planilha_foto_url?: string | null
           project_id?: string | null
           qualidade?: Json | null
@@ -3335,7 +3906,6 @@ export type Database = {
           rua_beco?: string | null
           servicos_agua?: Json | null
           servicos_esgoto?: Json | null
-          status?: string
           updated_at?: string
           whatsapp_text?: string | null
         }
@@ -3350,14 +3920,12 @@ export type Database = {
           encarregado?: string | null
           epi_utilizado?: boolean | null
           equipamentos?: Json | null
-          finalized_at?: string | null
           horarios?: Json | null
           id?: string
           mao_de_obra?: Json | null
           observacoes?: string | null
           paralisacao_outro?: string | null
           paralisacoes?: Json | null
-          photo_paths?: Json | null
           planilha_foto_url?: string | null
           project_id?: string | null
           qualidade?: Json | null
@@ -3367,7 +3935,6 @@ export type Database = {
           rua_beco?: string | null
           servicos_agua?: Json | null
           servicos_esgoto?: Json | null
-          status?: string
           updated_at?: string
           whatsapp_text?: string | null
         }
@@ -3468,6 +4035,78 @@ export type Database = {
             columns: ["obra_id"]
             isOneToOne: false
             referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registros_ponto: {
+        Row: {
+          created_at: string
+          dentro_raio: boolean
+          device_timestamp: string | null
+          distancia_metros: number | null
+          funcionario_id: string
+          id: string
+          ip_address: unknown
+          latitude: number
+          local_ponto_id: string | null
+          longitude: number
+          momento: string
+          origem: string
+          precisao_metros: number | null
+          tipo: Database["public"]["Enums"]["tipo_ponto"]
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dentro_raio?: boolean
+          device_timestamp?: string | null
+          distancia_metros?: number | null
+          funcionario_id: string
+          id?: string
+          ip_address?: unknown
+          latitude: number
+          local_ponto_id?: string | null
+          longitude: number
+          momento?: string
+          origem?: string
+          precisao_metros?: number | null
+          tipo: Database["public"]["Enums"]["tipo_ponto"]
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dentro_raio?: boolean
+          device_timestamp?: string | null
+          distancia_metros?: number | null
+          funcionario_id?: string
+          id?: string
+          ip_address?: unknown
+          latitude?: number
+          local_ponto_id?: string | null
+          longitude?: number
+          momento?: string
+          origem?: string
+          precisao_metros?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_ponto"]
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_ponto_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registros_ponto_local_ponto_id_fkey"
+            columns: ["local_ponto_id"]
+            isOneToOne: false
+            referencedRelation: "locais_ponto"
             referencedColumns: ["id"]
           },
         ]
@@ -4155,9 +4794,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calcular_distancia_metros: {
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
+      }
       can_create_employee: { Args: { user_uuid: string }; Returns: boolean }
       can_create_project: { Args: { user_uuid: string }; Returns: boolean }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      funcionario_local_valido: {
+        Args: { _data?: string; _funcionario_id: string; _local_id: string }
+        Returns: boolean
+      }
       get_supplier_quote_project_id: {
         Args: { _quote_id: string }
         Returns: string
@@ -4179,6 +4826,14 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_assigned_local_ponto: {
+        Args: { _auth_user_id: string; _local_id: string }
+        Returns: boolean
+      }
+      is_own_funcionario: {
+        Args: { _auth_user_id: string; _funcionario_id: string }
+        Returns: boolean
+      }
       is_project_manager: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
@@ -4187,15 +4842,47 @@ export type Database = {
         Args: { input_text: string }
         Returns: string
       }
+      op_apply_interpreted_rows: {
+        Args: {
+          p_rows: Json
+          p_run_id: string
+          p_sheet_key: string
+          p_skip_ausente_check?: boolean
+          p_source_id: string
+        }
+        Returns: Json
+      }
+      op_reconcile_alerts: {
+        Args: { p_alerts: Json; p_organization_id: string; p_source_id: string }
+        Returns: number
+      }
+      op_reconcile_exceptions: {
+        Args: {
+          p_exceptions: Json
+          p_run_id: string
+          p_sheet_name: string
+          p_source_id: string
+        }
+        Returns: Json
+      }
+      owns_funcionario: {
+        Args: { _funcionario_id: string; _user_id: string }
+        Returns: boolean
+      }
+      owns_op_source: {
+        Args: { _source_id: string; _user_id: string }
+        Returns: boolean
+      }
       tokenize_keywords: { Args: { input_text: string }; Returns: string[] }
       validate_cnpj_format: { Args: { cnpj: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user" | "manager"
+      app_role: "admin" | "user" | "manager" | "funcionario"
       crm_activity_status: "pending" | "completed" | "cancelled"
       crm_activity_type: "task" | "call" | "meeting" | "followup" | "note"
       crm_contact_status: "active" | "inactive" | "archived"
       crm_deal_status: "open" | "won" | "lost"
+      tipo_ponto: "entrada" | "inicio_intervalo" | "fim_intervalo" | "saida"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4211,12 +4898,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4240,11 +4927,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4265,11 +4952,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4290,11 +4977,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4307,11 +4994,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4323,11 +5010,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "manager"],
+      app_role: ["admin", "user", "manager", "funcionario"],
       crm_activity_status: ["pending", "completed", "cancelled"],
       crm_activity_type: ["task", "call", "meeting", "followup", "note"],
       crm_contact_status: ["active", "inactive", "archived"],
       crm_deal_status: ["open", "won", "lost"],
+      tipo_ponto: ["entrada", "inicio_intervalo", "fim_intervalo", "saida"],
     },
   },
 } as const
