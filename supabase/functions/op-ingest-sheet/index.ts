@@ -58,6 +58,12 @@ interface IngestBody {
     first_row_number: number
     rows: unknown[][]
   }
+  // Opcional - ausente (payload do n8n de sempre) é idêntico a
+  // { origin: 'drive_auto' }, então o contrato de quem já integra não quebra.
+  meta?: {
+    origin?: 'drive_auto' | 'upload'
+    uploaded_by?: string
+  }
 }
 
 interface InterpretedRow {
@@ -257,6 +263,8 @@ Deno.serve(async (req) => {
     }
 
     const agoraIso = new Date().toISOString()
+    const runOrigin = body.meta?.origin ?? 'drive_auto'
+    const runUploadedByEmail = body.meta?.uploaded_by ?? null
     await supabaseAdmin
       .from('op_sources')
       .update({
@@ -278,6 +286,8 @@ Deno.serve(async (req) => {
         file_modified_at: body.file.modified_at,
         status: 'batimento',
         counts: {},
+        origin: runOrigin,
+        uploaded_by_email: runUploadedByEmail,
       })
       const alertsOpenedBatimento = await avaliarEReconciliarAlertasDeFonte(supabaseAdmin, source, agoraIso)
       return jsonResponse({ ok: true, run_id: body.run_id, status: 'batimento', alerts_opened: alertsOpenedBatimento })
@@ -321,6 +331,8 @@ Deno.serve(async (req) => {
         file_modified_at: body.file.modified_at,
         status: 'inalterada',
         counts: emptyCounts,
+        origin: runOrigin,
+        uploaded_by_email: runUploadedByEmail,
       })
       const alertsOpenedInalterada = await avaliarEReconciliarAlertasDeFonte(supabaseAdmin, source, agoraIso)
       const response = {
@@ -411,6 +423,8 @@ Deno.serve(async (req) => {
       file_modified_at: body.file.modified_at,
       status,
       counts,
+      origin: runOrigin,
+      uploaded_by_email: runUploadedByEmail,
     })
 
     // Reavalia todas as regras de alerta aplicáveis ao perfil desta fonte -

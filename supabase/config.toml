@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.op-evaluate-alerts]
 verify_jwt = false
+
+[functions.op-upload-planilha]
+verify_jwt = true

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Database, KeyRound, Copy, AlertTriangle, Pause, Play } from "lucide-react";
+import { Plus, Pencil, Trash2, Database, KeyRound, Copy, AlertTriangle, Pause, Play, Upload, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface FonteOperacional {
   id: string;
@@ -45,6 +47,8 @@ export const FontesOperacional = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFonte, setEditingFonte] = useState<FonteOperacional | null>(null);
   const [tokenGerado, setTokenGerado] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [formData, setFormData] = useState({
     profile: "caixa" as FonteOperacional["profile"],
@@ -63,6 +67,65 @@ export const FontesOperacional = () => {
       return (data || []) as FonteOperacional[];
     },
   });
+
+  // Última execução (origem) de cada fonte - uma única busca em op_runs
+  // (como em PainelExecucoes), sem tabela nova, só pra mostrar "Drive
+  // automático" ou "Upload de <usuário>" por fonte.
+  const { data: ultimaOrigemPorFonte = {} } = useQuery({
+    queryKey: ["op-fontes-ultima-origem", fontes.map((f) => f.id)],
+    queryFn: async () => {
+      if (fontes.length === 0) return {};
+      const { data, error } = await supabase
+        .from("op_runs")
+        .select("source_id, origin, uploaded_by_email, received_at")
+        .in("source_id", fontes.map((f) => f.id))
+        .order("received_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+
+      const porFonte: Record<string, { origin: string; uploaded_by_email: string | null; received_at: string }> = {};
+      for (const run of data ?? []) {
+        if (!porFonte[run.source_id]) porFonte[run.source_id] = run;
+      }
+      return porFonte;
+    },
+    enabled: fontes.length > 0,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async ({ sourceId, file }: { sourceId: string; file: File }) => {
+      const formData = new FormData();
+      formData.set("source_id", sourceId);
+      formData.set("arquivo", file);
+      const { data, error } = await supabase.functions.invoke("op-upload-planilha", { body: formData });
+      if (error) throw new Error(data?.error ?? error.message ?? "Erro ao enviar arquivo");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Enviado", description: "Veja o resultado em Caixa de Mudanças." });
+      queryClient.invalidateQueries({ queryKey: ["op-fontes-ultima-origem"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao enviar arquivo", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      setUploadingId(null);
+    },
+  });
+
+  const handleArquivoSelecionado = (sourceId: string, file: File | undefined) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      toast({ title: "Apenas arquivos .xlsx são aceitos", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Arquivo excede o limite de 10 MB", variant: "destructive" });
+      return;
+    }
+    setUploadingId(sourceId);
+    uploadMutation.mutate({ sourceId, file });
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -200,24 +263,27 @@ export const FontesOperacional = () => {
                 <TableHead>Perfil</TableHead>
                 <TableHead>ID do arquivo (Drive)</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Última origem</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : fontes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Nenhuma fonte cadastrada
                   </TableCell>
                 </TableRow>
               ) : (
-                fontes.map((fonte) => (
+                fontes.map((fonte) => {
+                  const ultimaOrigem = ultimaOrigemPorFonte[fonte.id];
+                  return (
                   <TableRow key={fonte.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -236,8 +302,39 @@ export const FontesOperacional = () => {
                         {fonte.active ? "Ativa" : "Inativa"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {!ultimaOrigem ? (
+                        "sem leitura ainda"
+                      ) : ultimaOrigem.origin === "upload" ? (
+                        <>
+                          Upload de {ultimaOrigem.uploaded_by_email ?? "usuário"} em{" "}
+                          {format(new Date(ultimaOrigem.received_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </>
+                      ) : (
+                        "Drive automático"
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <input
+                          ref={(el) => (fileInputRefs.current[fonte.id] = el)}
+                          type="file"
+                          accept=".xlsx"
+                          className="hidden"
+                          onChange={(e) => {
+                            handleArquivoSelecionado(fonte.id, e.target.files?.[0]);
+                            e.target.value = "";
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Atualizar agora (upload manual)"
+                          disabled={uploadingId === fonte.id}
+                          onClick={() => fileInputRefs.current[fonte.id]?.click()}
+                        >
+                          {uploadingId === fonte.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -263,7 +360,8 @@ export const FontesOperacional = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
