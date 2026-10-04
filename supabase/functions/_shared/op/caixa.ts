@@ -84,7 +84,8 @@ function parsePeriodoOuData(valor: unknown): { data_inicio: string; data_fim: st
 
 const HEADER_DESPESAS = ["ENTRADA", "DATA", "DESCRICAO", "VALOR", "DATA DA DESPESA", "CLASSIFICACAO", "SOLICITANTE"];
 
-export function interpretarDespesas(rows: unknown[][], firstRowNumber: number): InterpreterResult {
+export function interpretarDespesas(rows: unknown[][], firstRowNumber: number, context?: InterpreterContext & { classificacoesValidas?: string[] }): InterpreterResult {
+  const classificacoesValidas = context?.classificacoesValidas ?? CLASSIFICACOES_VALIDAS;
   const exceptions: InterpretedException[] = [];
   const interpretedRows: InterpretedRow[] = [];
   let rejectedCount = 0;
@@ -167,8 +168,13 @@ export function interpretarDespesas(rows: unknown[][], firstRowNumber: number): 
     const classificacaoCelula = row[colClassificacao];
     const solicitanteCelula = row[colSolicitante];
 
+    // Linha "placeholder" (sobra em branco no fim da aba): DESCRIÇÃO vazia,
+    // VALOR vazio OU zero (não só vazio - célula com 0 também conta),
+    // DATA DA DESPESA vazia, CLASSIFICAÇÃO e SOLICITANTE vazios. Essas linhas
+    // não geram registro nem exceção - não são despesa nenhuma.
+    const valorDespesaVazioOuZero = celulaVazia(valorDespesaCelula) || parseNumeroBR(valorDespesaCelula) === 0;
     const blocoDespesaVazio =
-      celulaVazia(descricao) && celulaVazia(valorDespesaCelula) && celulaVazia(dataDespesaCelula) && celulaVazia(classificacaoCelula) && celulaVazia(solicitanteCelula);
+      celulaVazia(descricao) && valorDespesaVazioOuZero && celulaVazia(dataDespesaCelula) && celulaVazia(classificacaoCelula) && celulaVazia(solicitanteCelula);
 
     if (!blocoDespesaVazio) {
       const periodo = parsePeriodoOuData(dataDespesaCelula);
@@ -189,7 +195,7 @@ export function interpretarDespesas(rows: unknown[][], firstRowNumber: number): 
         const classificacaoNormalizada = normalizarRotulo(classificacaoCelula);
         if (celulaVazia(classificacaoCelula)) {
           exceptions.push({ row_number: rowNumber, severity: "aviso", type: "sem_classificacao", message: "Despesa sem classificação" });
-        } else if (!CLASSIFICACOES_VALIDAS.includes(classificacaoNormalizada)) {
+        } else if (!classificacoesValidas.includes(classificacaoNormalizada)) {
           exceptions.push({
             row_number: rowNumber,
             severity: "aviso",
@@ -316,6 +322,8 @@ export function interpretarHorasExtras(rows: unknown[][], firstRowNumber: number
     }
   }
 
+  let totalPlanilha: number | null = null;
+
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const row = rows[i] ?? [];
     const rowNumber = firstRowNumber + i;
@@ -324,7 +332,22 @@ export function interpretarHorasExtras(rows: unknown[][], firstRowNumber: number
 
     if (celulaVazia(nomeCelula)) continue;
     const nomeNormalizado = normalizarRotulo(nomeCelula);
-    if (nomeNormalizado.includes("TOTAL")) continue;
+    if (nomeNormalizado.includes("TOTAL")) {
+      // Linha de totais da própria aba, não é funcionário - usa os valores
+      // dela só para confirmar a soma (Regra de Ouro 4: divergência fica
+      // visível, nunca é corrigida aqui).
+      let somaLinha = 0;
+      let encontrouValor = false;
+      for (const { col } of colunasDia) {
+        const v = parseNumeroBR(row[col]);
+        if (v !== null) {
+          somaLinha += v;
+          encontrouValor = true;
+        }
+      }
+      if (encontrouValor) totalPlanilha = (totalPlanilha ?? 0) + somaLinha;
+      continue;
+    }
     if (normalizarRotulo(cargoCelula).startsWith("MORADOR")) continue;
 
     const cargoAusente = celulaVazia(cargoCelula) || String(cargoCelula).trim() === "-";
@@ -373,6 +396,20 @@ export function interpretarHorasExtras(rows: unknown[][], firstRowNumber: number
     }
   }
 
+  if (totalPlanilha !== null) {
+    const somaAplicada = interpretedRows.reduce((soma, r) => soma + Number(r.data.valor || 0), 0);
+    if (Math.abs(totalPlanilha - somaAplicada) > 0.01) {
+      exceptions.push({
+        row_number: firstRowNumber,
+        severity: "confirmacao",
+        type: "total_nao_confere",
+        message: `Soma das horas extras aplicadas (${somaAplicada.toFixed(2)}) difere da linha TOTAIS da planilha (${totalPlanilha.toFixed(2)})`,
+        value_current: somaAplicada,
+        value_suggested: totalPlanilha,
+      });
+    }
+  }
+
   return { sheetKey: "caixa.hora_extra", rows: interpretedRows, exceptions, rejectedCount: 0 };
 }
 
@@ -392,11 +429,31 @@ const HEADER_AUSENCIA = [
   "TOTAL",
 ];
 
+// "DIA" às vezes vem como texto com mais de uma data no mesmo mês/ano
+// ("13 e 20/08", "13, 20 e 27/08") - em vez de rejeitar a linha, guarda o
+// texto original (`dia_texto`) e as datas extraídas (`dias`, ano do
+// arquivo), usando o texto normalizado na chave. Devolve [] se não
+// reconhecer o formato (linha continua sendo ignorada, como antes).
+function parseDiasMultiplos(valor: unknown, ano: number): string[] {
+  if (celulaVazia(valor)) return [];
+  const texto = String(valor).trim();
+  const match = texto.match(/^([\d\s,e]+)\/(\d{1,2})$/i);
+  if (!match) return [];
+  const mes = match[2].padStart(2, "0");
+  const dias = match[1]
+    .split(/,|\be\b/i)
+    .map((d) => d.trim())
+    .filter((d) => d !== "" && /^\d{1,2}$/.test(d))
+    .map((d) => d.padStart(2, "0"));
+  return dias.length > 0 ? dias.map((d) => `${ano}-${mes}-${d}`) : [];
+}
+
 // Aba "AUSÊNCIA PONTO SAÍDA": a planilha já devolve os valores calculados,
 // este interpretador RECALCULA e só sinaliza divergência (nunca corrige -
 // Regra de Ouro 4). SALÁRIO é sensível: guardado no registro, mas o
 // dashboard/exportação desta aba não deve exibi-lo por padrão.
-export function interpretarAusenciaPontoSaida(rows: unknown[][], firstRowNumber: number): InterpreterResult {
+export function interpretarAusenciaPontoSaida(rows: unknown[][], firstRowNumber: number, context?: InterpreterContext): InterpreterResult {
+  const ano = context?.fileModifiedAt ? new Date(context.fileModifiedAt).getUTCFullYear() : new Date().getUTCFullYear();
   const exceptions: InterpretedException[] = [];
   const interpretedRows: InterpretedRow[] = [];
 
@@ -425,7 +482,13 @@ export function interpretarAusenciaPontoSaida(rows: unknown[][], firstRowNumber:
     if (celulaVazia(colaborador)) continue;
 
     const dia = parseDataISO(row[colDia]);
-    if (!dia) continue;
+    let diaTexto: string | null = null;
+    let diasExtraidos: string[] = [];
+    if (!dia) {
+      diasExtraidos = parseDiasMultiplos(row[colDia], ano);
+      if (diasExtraidos.length === 0) continue;
+      diaTexto = String(row[colDia]).trim();
+    }
 
     const salario = parseNumeroBR(row[colSalario]) ?? 0;
     const horasDescontadas = parseNumeroBR(row[colHorasDescontadas]) ?? 0;
@@ -452,11 +515,14 @@ export function interpretarAusenciaPontoSaida(rows: unknown[][], firstRowNumber:
     const pagoEmCelula = colPagoEm >= 0 ? row[colPagoEm] : undefined;
     const pago = !celulaVazia(pagoEmCelula);
 
+    const chaveDia = dia ?? normalizarRotulo(diaTexto ?? "");
     interpretedRows.push({
-      natural_key: `aus|${normalizarRotulo(colaborador)}|${dia}`,
+      natural_key: `aus|${normalizarRotulo(colaborador)}|${chaveDia}`,
       data: {
         colaborador: String(colaborador),
         dia,
+        dia_texto: diaTexto,
+        dias: dia ? [dia] : diasExtraidos,
         horas_descontadas: horasDescontadas,
         horas_extras: horasExtras,
         salario,

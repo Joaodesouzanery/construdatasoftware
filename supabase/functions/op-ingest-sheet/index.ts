@@ -157,6 +157,23 @@ async function buildExtraContext(
 ): Promise<Record<string, unknown>> {
   const nome = normalizarRotulo(sheetName)
 
+  if (profile === 'caixa' && nome === 'DESPESAS') {
+    // Lista de classificações válidas - lida da própria planilha (aba
+    // Planilha1, já gravada em op_lists por interpretarPlanilha1), nunca
+    // fixa no código (Regra de Ouro 1: a planilha é a fonte da verdade).
+    const { data } = await supabaseAdmin
+      .from('op_lists')
+      .select('items')
+      .eq('source_id', sourceId)
+      .eq('list_key', 'caixa.categorias')
+      .maybeSingle()
+    const items = (data?.items ?? []) as unknown[]
+    if (items.length > 0) {
+      return { classificacoesValidas: items.map((item) => normalizarRotulo(item)) }
+    }
+    return {}
+  }
+
   if (profile === 'operacional_sabesp' && nome === '04. PROGRAMACAO DIARIA') {
     const { data } = await supabaseAdmin
       .from('op_records')
@@ -400,6 +417,24 @@ Deno.serve(async (req) => {
       const context: InterpreterContext & Record<string, unknown> = { sheetName, fileModifiedAt: body.file.modified_at, ...extraContext }
       const result = interpreter(body.sheet.rows, body.sheet.first_row_number, context)
 
+      // Aba reconhecida (tem interpretador) mas que não extraiu nenhum
+      // registro desta leitura quase sempre indica que o layout esperado
+      // não bateu com o real (marcador não encontrado, cabeçalho diferente,
+      // etc.) - isso precisa ficar visível, nunca passar em silêncio como
+      // "processada" com 0 registros.
+      const resultExceptions =
+        result.rows.length === 0
+          ? [
+              ...result.exceptions,
+              {
+                row_number: body.sheet.first_row_number,
+                severity: 'aviso' as const,
+                type: 'aba_sem_registros',
+                message: 'Aba reconhecida (tem interpretador) mas nenhum registro foi extraído desta leitura - verifique se o layout da aba mudou',
+              },
+            ]
+          : result.exceptions
+
       const { data: applyCounts, error: applyError } = await supabaseAdmin.rpc('op_apply_interpreted_rows', {
         p_source_id: source.id,
         p_run_id: body.run_id,
@@ -416,7 +451,7 @@ Deno.serve(async (req) => {
         p_source_id: source.id,
         p_run_id: body.run_id,
         p_sheet_name: sheetName,
-        p_exceptions: result.exceptions,
+        p_exceptions: resultExceptions,
       })
 
       if (excError) {

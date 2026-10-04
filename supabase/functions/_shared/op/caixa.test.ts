@@ -98,6 +98,24 @@ describe("interpretarDespesas", () => {
     const resultado = interpretarDespesas(rows, 1);
     expect(resultado.exceptions.some((e) => e.type === "total_nao_confere")).toBe(true);
   });
+
+  it("linha placeholder (descrição vazia, valor zero, sem data) é ignorada sem gerar registro nem exceção", () => {
+    const rows = [HEADER_DESPESAS, ["", "", "", 0, "", "", ""]];
+    const resultado = interpretarDespesas(rows, 1);
+    expect(resultado.rows).toHaveLength(0);
+    expect(resultado.rejectedCount).toBe(0);
+    expect(resultado.exceptions).toHaveLength(0);
+  });
+
+  it("usa a lista de classificações do contexto (Planilha1) em vez da fixa, quando fornecida", () => {
+    const rows = [HEADER_DESPESAS, ["", "", "ALGO", 100, "2026-07-10", "BENEFICIOS", ""]];
+    const resultado = interpretarDespesas(rows, 1, {
+      sheetName: "DESPESAS",
+      fileModifiedAt: "2026-07-15T00:00:00Z",
+      classificacoesValidas: ["BENEFICIOS"],
+    });
+    expect(resultado.exceptions.some((e) => e.type === "classificacao_desconhecida")).toBe(false);
+  });
 });
 
 describe("interpretarHorasExtras", () => {
@@ -138,6 +156,18 @@ describe("interpretarHorasExtras", () => {
     const resultado = interpretarHorasExtras(rows, 1, { sheetName: "HORAS EXTRAS JULHO", fileModifiedAt: "2026-07-15T00:00:00Z" });
     expect(resultado.rows[0].data.fim_de_semana).toBe(true);
   });
+
+  it("sinaliza total_nao_confere quando a soma aplicada diverge da linha TOTAL da própria aba", () => {
+    const rows = [header, ["João Silva", "Pedreiro", 100, "X", 150], ["TOTAL", "", 999, "", 999]];
+    const resultado = interpretarHorasExtras(rows, 1, { sheetName: "HORAS EXTRAS JULHO", fileModifiedAt: "2026-07-15T00:00:00Z" });
+    expect(resultado.exceptions.some((e) => e.type === "total_nao_confere")).toBe(true);
+  });
+
+  it("não sinaliza total_nao_confere quando a soma aplicada bate com a linha TOTAL", () => {
+    const rows = [header, ["João Silva", "Pedreiro", 100, "X", 150], ["TOTAL", "", 100, "", 150]];
+    const resultado = interpretarHorasExtras(rows, 1, { sheetName: "HORAS EXTRAS JULHO", fileModifiedAt: "2026-07-15T00:00:00Z" });
+    expect(resultado.exceptions.some((e) => e.type === "total_nao_confere")).toBe(false);
+  });
 });
 
 describe("interpretarAusenciaPontoSaida", () => {
@@ -159,6 +189,22 @@ describe("interpretarAusenciaPontoSaida", () => {
     expect(divergencia?.severity).toBe("confirmacao");
     // Regra de Ouro 4: nunca corrige - guarda o valor da PLANILHA, não o recalculado
     expect(resultado.rows[0].data.total).toBe(999);
+  });
+
+  it("aceita DIA com múltiplas datas em texto (ano do arquivo) e usa o texto normalizado na chave", () => {
+    const rows = [header, ["Kauê", "13 e 20/08", 1, 2, 2200, "", "", "", "", 42]];
+    const resultado = interpretarAusenciaPontoSaida(rows, 1, { sheetName: "AUSÊNCIA PONTO SAÍDA", fileModifiedAt: "2026-08-15T00:00:00Z" });
+    expect(resultado.rows).toHaveLength(1);
+    expect(resultado.rows[0].data.dia).toBeNull();
+    expect(resultado.rows[0].data.dia_texto).toBe("13 e 20/08");
+    expect(resultado.rows[0].data.dias).toEqual(["2026-08-13", "2026-08-20"]);
+    expect(resultado.rows[0].natural_key).toContain("13 E 20/08");
+  });
+
+  it("DIA com texto não reconhecível continua sendo ignorado (comportamento anterior preservado)", () => {
+    const rows = [header, ["Fulano", "texto qualquer", 1, 2, 2200, "", "", "", "", 42]];
+    const resultado = interpretarAusenciaPontoSaida(rows, 1, { sheetName: "AUSÊNCIA PONTO SAÍDA", fileModifiedAt: "2026-08-15T00:00:00Z" });
+    expect(resultado.rows).toHaveLength(0);
   });
 });
 

@@ -167,7 +167,10 @@ export function interpretarResultadoPorObra(rows: unknown[][], firstRowNumber: n
   }
   interpretedRows.push({ natural_key: obraNormalizada, data: headerBlock, source_row: firstRowNumber });
 
-  const headerIdx = localizarCabecalho(rows, HEADER_MENSAL_OBRA, 40, 0.8);
+  // Janela de busca ampla (não por posição fixa) - a tabela mensal pode
+  // aparecer bem mais abaixo do topo da aba, depois do bloco de cabeçalho
+  // da obra (OBRA:, CARGA TRIBUTOS etc.).
+  const headerIdx = localizarCabecalho(rows, HEADER_MENSAL_OBRA, 200, 0.7);
   if (headerIdx !== null) {
     const headerRow = (rows[headerIdx] ?? []).map(normalizarRotulo);
     const colunas = HEADER_MENSAL_OBRA.map((rotulo) => ({
@@ -278,14 +281,15 @@ export function interpretarPonteLucroCaixa(rows: unknown[][], firstRowNumber: nu
   }
   if (idxMarcador === -1) return { sheetKey: "gestao_empresa.ponte_lucro_caixa", rows: [], exceptions: [], rejectedCount: 0 };
 
-  const idxMeses = idxMarcador + 1;
-  const linhaMeses = rows[idxMeses] ?? [];
+  // Os meses ficam na MESMA linha do marcador ("A · PONTE LUCRO → CAIXA"),
+  // nas colunas ao lado - não na linha de baixo.
+  const linhaMeses = rows[idxMarcador] ?? [];
   const colunasMes = linhaMeses
     .map((valor, idx) => ({ idx, mes: valor }))
     .filter(({ idx, mes }) => idx > 0 && !celulaVazia(mes));
 
   let ordem = 0;
-  for (let i = idxMeses + 1; i < rows.length; i++) {
+  for (let i = idxMarcador + 1; i < rows.length; i++) {
     const row = rows[i] ?? [];
     const rotulo = row[0];
     if (celulaVazia(rotulo)) break;

@@ -69,6 +69,21 @@ export const DashboardCaixa = () => {
     enabled: Boolean(fonteId),
   });
 
+  const { data: registrosAusencia = [] } = useQuery({
+    queryKey: ["op-caixa-ausencia", fonteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("op_records")
+        .select("id, natural_key, data")
+        .eq("source_id", fonteId)
+        .eq("sheet_key", "caixa.ausencia_ponto")
+        .eq("status", "ativo");
+      if (error) throw error;
+      return (data ?? []) as { id: string; natural_key: string; data: { total: number } }[];
+    },
+    enabled: Boolean(fonteId),
+  });
+
   const { data: totalNaoConfere } = useQuery({
     queryKey: ["op-caixa-total-exception", fonteId],
     queryFn: async () => {
@@ -87,12 +102,52 @@ export const DashboardCaixa = () => {
     enabled: Boolean(fonteId),
   });
 
+  // "HORAS EXTRAS <MÊS>" muda de nome todo mês - filtra pelo prefixo fixo em
+  // vez do nome exato, já que o sheet_name salvo é o nome literal da aba.
+  const { data: heNaoConfere } = useQuery({
+    queryKey: ["op-caixa-he-exception", fonteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("op_exceptions")
+        .select("id")
+        .eq("source_id", fonteId)
+        .ilike("sheet_name", "HORAS EXTRAS%")
+        .eq("type", "total_nao_confere")
+        .eq("status", "aberta")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    },
+    enabled: Boolean(fonteId),
+  });
+
+  const { data: ausenciaNaoConfere } = useQuery({
+    queryKey: ["op-caixa-ausencia-exception", fonteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("op_exceptions")
+        .select("id")
+        .eq("source_id", fonteId)
+        .ilike("sheet_name", "AUS%")
+        .eq("type", "formula_divergente")
+        .eq("status", "aberta")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    },
+    enabled: Boolean(fonteId),
+  });
+
   const receitas = useMemo(() => registros.filter((r) => r.data.tipo === "receita"), [registros]);
   const despesas = useMemo(() => registros.filter((r) => r.data.tipo === "despesa"), [registros]);
 
   const totalEntradas = receitas.reduce((soma, r) => soma + Number(r.data.valor || 0), 0);
   const totalDespesas = despesas.reduce((soma, r) => soma + Number(r.data.valor || 0), 0);
   const saldo = totalEntradas - totalDespesas;
+  const totalHE = registrosHE.reduce((soma, r) => soma + Number(r.data.valor || 0), 0);
+  const totalAusencia = registrosAusencia.reduce((soma, r) => soma + Number(r.data.total || 0), 0);
 
   const porClassificacao = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -162,7 +217,7 @@ export const DashboardCaixa = () => {
         <Card className="p-8 text-center text-muted-foreground text-sm">Carregando...</Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <Card className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-muted-foreground">Entradas</span>
@@ -186,6 +241,28 @@ export const DashboardCaixa = () => {
               <Badge variant={totalNaoConfere ? "destructive" : "outline"} className="mt-1 gap-1 text-[10px]">
                 {totalNaoConfere ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
                 {totalNaoConfere ? "não confere com a planilha" : "confere com a planilha"}
+              </Badge>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Total HE</span>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="text-2xl font-bold">{formatarMoeda(totalHE)}</div>
+              <Badge variant={heNaoConfere ? "destructive" : "outline"} className="mt-1 gap-1 text-[10px]">
+                {heNaoConfere ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                {heNaoConfere ? "não confere com a planilha" : "confere com a planilha"}
+              </Badge>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Total Ausência</span>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="text-2xl font-bold">{formatarMoeda(totalAusencia)}</div>
+              <Badge variant={ausenciaNaoConfere ? "destructive" : "outline"} className="mt-1 gap-1 text-[10px]">
+                {ausenciaNaoConfere ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                {ausenciaNaoConfere ? "não confere com a planilha" : "confere com a planilha"}
               </Badge>
             </Card>
           </div>

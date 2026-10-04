@@ -98,9 +98,10 @@ describe("interpretarFunilComercial", () => {
 });
 
 describe("interpretarPonteLucroCaixa", () => {
+  // Os meses ficam na MESMA linha do marcador "A · PONTE LUCRO → CAIXA",
+  // nas colunas ao lado - não numa linha separada abaixo.
   const rows = [
-    ["A · PONTE LUCRO → CAIXA"],
-    ["", "set/26"],
+    ["A · PONTE LUCRO → CAIXA", "set/26"],
     ["(+) Recebimentos", 2000000],
     ["(−) Pagamentos", -800000],
     ["Lucro líquido do mês", 1200898.99],
@@ -121,7 +122,7 @@ describe("interpretarPonteLucroCaixa", () => {
   });
 
   it("para na primeira linha cujo rótulo não é um componente válido", () => {
-    const rowsComLixo = [...rows.slice(0, 4), ["Nota qualquer, não é componente", 999], ["(+) Não deveria ser lido", 1]];
+    const rowsComLixo = [...rows.slice(0, 3), ["Nota qualquer, não é componente", 999], ["(+) Não deveria ser lido", 1]];
     const resultado = interpretarPonteLucroCaixa(rowsComLixo, 1);
     expect(resultado.rows.every((r) => r.data.componente !== "(+) Não deveria ser lido")).toBe(true);
   });
