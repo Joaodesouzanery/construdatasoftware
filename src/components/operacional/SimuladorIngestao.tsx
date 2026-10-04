@@ -61,7 +61,7 @@ export const SimuladorIngestao = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-ingest-token": token.trim(),
+          "x-ingest-token": token.replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g, ""),
         },
         body: JSON.stringify(corpo),
       });
