@@ -26,6 +26,7 @@ import {
   interpretarChecksIntegridade,
 } from '../_shared/op/gestaoEmpresa.ts'
 import { avaliarEReconciliarAlertasDeFonte } from '../_shared/op/evaluateSource.ts'
+import { autenticarFonte, normalizarToken } from '../_shared/op/ingestAuth.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: ingestão de planilhas (n8n -> este endpoint)
@@ -194,7 +195,7 @@ Deno.serve(async (req) => {
     // .trim() de propósito: token colado manualmente (n8n, campo de
     // credencial) costuma vir com espaço/quebra de linha no fim, o que faz o
     // hash não bater com o salvo mesmo sendo "o mesmo" token.
-    const token = req.headers.get('x-ingest-token')?.trim()
+    const token = normalizarToken(req.headers.get('x-ingest-token'))
     if (!token) {
       return jsonResponse({ error: 'Header x-ingest-token é obrigatório' }, 401)
     }
@@ -229,28 +230,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    const tokenHash = await sha256Hex(token)
-    // Prefixo curto do hash só para correlacionar linhas de log entre si -
-    // não é reversível para o token e nunca é o token em si.
-    const hashPrefix = tokenHash.slice(0, 8)
-    const { data: source, error: sourceError } = await supabaseAdmin
-      .from('op_sources')
-      .select('id, organization_id, profile, drive_file_id, active')
-      .eq('token_hash', tokenHash)
-      .maybeSingle()
+    const auth = await autenticarFonte<{ id: string; organization_id: string; profile: string; drive_file_id: string; active: boolean }>(
+      supabaseAdmin,
+      req.headers.get('x-ingest-token'),
+      'id, organization_id, profile, drive_file_id, active',
+      'op-ingest-sheet',
+      body.file.drive_file_id
+    )
+    if (!auth.ok) {
+      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
+    }
+    const source = auth.source
 
-    if (sourceError) {
-      console.error(`op-ingest-sheet: erro ao consultar op_sources (hash_prefix=${hashPrefix})`, sourceError)
-      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
-    }
-    if (!source) {
-      console.warn(`op-ingest-sheet: nenhuma fonte encontrada para o hash do token (hash_prefix=${hashPrefix}) - verifique se token_hash em op_sources foi gerado com o mesmo algoritmo e projeto`)
-      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
-    }
-    if (!source.active) {
-      console.warn(`op-ingest-sheet: fonte ${source.id} encontrada mas está com active=false (hash_prefix=${hashPrefix})`)
-      return jsonResponse({ error: 'Token inválido ou fonte inativa' }, 403)
-    }
 
     if (source.drive_file_id !== body.file.drive_file_id) {
       return jsonResponse({ error: 'drive_file_id não corresponde ao cadastrado para esta fonte' }, 403)
