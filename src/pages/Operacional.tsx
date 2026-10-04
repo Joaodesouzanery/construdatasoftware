@@ -11,7 +11,8 @@ import { DashboardOperacionalSabesp } from "@/components/operacional/DashboardOp
 import { DashboardGestaoExecutiva } from "@/components/operacional/DashboardGestaoExecutiva";
 import { MasterCheckBadge } from "@/components/operacional/MasterCheckBadge";
 import { AlertasOperacional } from "@/components/operacional/AlertasOperacional";
-import { Activity, Inbox, Database, FlaskConical, Wallet, ClipboardList, Briefcase, BellRing } from "lucide-react";
+import { EspelhoPlanilha } from "@/components/operacional/EspelhoPlanilha";
+import { Activity, Inbox, Database, FlaskConical, Wallet, ClipboardList, Briefcase, BellRing, Table2 } from "lucide-react";
 
 // Hub do módulo Operacional - mesmo padrão de RHConstruData.tsx (um grupo de
 // abas, cada uma um componente autossuficiente). Fase 1: Fontes, Painel de
@@ -42,6 +43,10 @@ const Operacional = () => {
                   <TabsTrigger value="painel" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
                     <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Painel de Execuções</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="planilha" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+                    <Table2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Planilha</span>
                   </TabsTrigger>
                   <TabsTrigger value="caixa" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
                     <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -76,6 +81,10 @@ const Operacional = () => {
 
               <TabsContent value="painel" className="mt-0">
                 <PainelExecucoes />
+              </TabsContent>
+
+              <TabsContent value="planilha" className="mt-0">
+                <EspelhoPlanilha />
               </TabsContent>
 
               <TabsContent value="caixa" className="mt-0">

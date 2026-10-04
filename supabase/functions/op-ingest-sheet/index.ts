@@ -58,6 +58,11 @@ interface IngestBody {
     hash: string
     first_row_number: number
     rows: unknown[][]
+    // Opcional - texto exatamente como aparece no Excel ("R$ 3.329.907,97",
+    // "41,29%", "set/26"), mesma forma de `rows`. O hash de mudança continua
+    // calculado só sobre `rows`; sem este campo, o Espelho (tela "Planilha")
+    // usa uma heurística de formatação no lugar.
+    formatted_rows?: unknown[][]
   }
   // Opcional - ausente (payload do n8n de sempre) é idêntico a
   // { origin: 'drive_auto' }, então o contrato de quem já integra não quebra.
@@ -356,6 +361,7 @@ Deno.serve(async (req) => {
       sheet_hash: body.sheet.hash,
       run_id: body.run_id,
       rows: body.sheet.rows,
+      formatted_rows: body.sheet.formatted_rows ?? null,
     })
 
     const interpreter = getInterpreter(source.profile, sheetName)
