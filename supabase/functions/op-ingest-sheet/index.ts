@@ -27,6 +27,8 @@ import {
 } from '../_shared/op/gestaoEmpresa.ts'
 import { avaliarEReconciliarAlertasDeFonte } from '../_shared/op/evaluateSource.ts'
 import { autenticarFonte, normalizarToken, normalizarDriveFileId } from '../_shared/op/ingestAuth.ts'
+import { interpretarComoLista, interpretarComoSerieMensal } from '../_shared/op/interpretadoresGenericos.ts'
+import { buscarConfigAbaGenerica } from '../_shared/op/gestaoEmpresaGenericas.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: ingestão de planilhas (n8n -> este endpoint)
@@ -127,6 +129,17 @@ function getInterpreter(profile: string, sheetName: string): Interpreter | null 
     if (nome === '01B. FUNIL COMERCIAL') return interpretarFunilComercial
     if (nome === '11. CONCILIACAO E WIP') return interpretarPonteLucroCaixa
     if (nome === '13. CHECKS') return interpretarChecksIntegridade
+
+    // Fase G2: as demais 27 abas deste perfil usam os interpretadores
+    // genéricos (LISTA / SÉRIE MENSAL) por configuração, não por código
+    // novo por aba - ver gestaoEmpresaGenericas.ts.
+    const configGenerica = buscarConfigAbaGenerica(sheetName)
+    if (configGenerica?.tipo === 'lista') {
+      return (rows, firstRowNumber) => interpretarComoLista(rows, firstRowNumber, configGenerica)
+    }
+    if (configGenerica?.tipo === 'serie_mensal') {
+      return (rows, firstRowNumber) => interpretarComoSerieMensal(rows, firstRowNumber, configGenerica)
+    }
   }
   return null
 }
