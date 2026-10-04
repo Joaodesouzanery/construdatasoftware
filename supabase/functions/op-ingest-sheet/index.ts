@@ -26,7 +26,7 @@ import {
   interpretarChecksIntegridade,
 } from '../_shared/op/gestaoEmpresa.ts'
 import { avaliarEReconciliarAlertasDeFonte } from '../_shared/op/evaluateSource.ts'
-import { autenticarFonte, normalizarToken } from '../_shared/op/ingestAuth.ts'
+import { autenticarFonte, normalizarToken, normalizarDriveFileId } from '../_shared/op/ingestAuth.ts'
 
 // =============================================
 // MÓDULO OPERACIONAL: ingestão de planilhas (n8n -> este endpoint)
@@ -249,7 +249,10 @@ Deno.serve(async (req) => {
     const source = auth.source
 
 
-    if (source.drive_file_id !== body.file.drive_file_id) {
+    // Normaliza os dois lados antes de comparar - tolera ID colado com
+    // espaço/tab/caractere invisível, mesmo que o valor salvo em op_sources
+    // ainda não tenha sido limpo.
+    if (normalizarDriveFileId(source.drive_file_id) !== normalizarDriveFileId(body.file.drive_file_id)) {
       return jsonResponse({ error: 'drive_file_id não corresponde ao cadastrado para esta fonte' }, 403)
     }
 

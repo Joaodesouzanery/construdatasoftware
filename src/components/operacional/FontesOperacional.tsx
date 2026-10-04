@@ -22,6 +22,8 @@ interface FonteOperacional {
   drive_file_id: string;
   active: boolean;
   last_checked_at: string | null;
+  upload_webhook_url: string | null;
+  upload_webhook_secret: string | null;
 }
 
 const PERFIL_LABEL: Record<string, string> = {
@@ -41,6 +43,19 @@ async function gerarTokenEHash(): Promise<{ token: string; hash: string }> {
   return { token, hash };
 }
 
+// Mesma sujeira de colagem manual que afeta o token também afeta o ID do
+// Drive (espaço, tab ou caractere invisível na ponta faz o 403 de
+// op-ingest-sheet nunca ir embora mesmo com o ID "certo") - limpa antes de
+// gravar, igual ao normalizarDriveFileId do lado do backend (ingestAuth.ts).
+function normalizarDriveFileId(raw: string): string {
+  let t = raw.replace(/[\s ​-‍﻿]/g, "");
+  const matchCaminho = t.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchCaminho) return matchCaminho[1];
+  const matchQuery = t.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchQuery) return matchQuery[1];
+  return t;
+}
+
 export const FontesOperacional = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,6 +69,8 @@ export const FontesOperacional = () => {
     profile: "caixa" as FonteOperacional["profile"],
     label: "",
     drive_file_id: "",
+    upload_webhook_url: "",
+    upload_webhook_secret: "",
   });
 
   const { data: fontes = [], isLoading } = useQuery({
@@ -61,7 +78,7 @@ export const FontesOperacional = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("op_sources")
-        .select("id, profile, label, drive_file_id, active, last_checked_at")
+        .select("id, profile, label, drive_file_id, active, last_checked_at, upload_webhook_url, upload_webhook_secret")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as FonteOperacional[];
@@ -138,8 +155,10 @@ export const FontesOperacional = () => {
         organization_id: userData.user.id,
         profile: data.profile,
         label: data.label,
-        drive_file_id: data.drive_file_id,
+        drive_file_id: normalizarDriveFileId(data.drive_file_id),
         token_hash: hash,
+        upload_webhook_url: data.upload_webhook_url.trim() || null,
+        upload_webhook_secret: data.upload_webhook_secret.trim() || null,
       });
       if (error) throw error;
 
@@ -159,7 +178,13 @@ export const FontesOperacional = () => {
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       const { error } = await supabase
         .from("op_sources")
-        .update({ profile: data.profile, label: data.label, drive_file_id: data.drive_file_id })
+        .update({
+          profile: data.profile,
+          label: data.label,
+          drive_file_id: normalizarDriveFileId(data.drive_file_id),
+          upload_webhook_url: data.upload_webhook_url.trim() || null,
+          upload_webhook_secret: data.upload_webhook_secret.trim() || null,
+        })
         .eq("id", id);
       if (error) throw error;
     },
@@ -210,7 +235,7 @@ export const FontesOperacional = () => {
   });
 
   const resetForm = () => {
-    setFormData({ profile: "caixa", label: "", drive_file_id: "" });
+    setFormData({ profile: "caixa", label: "", drive_file_id: "", upload_webhook_url: "", upload_webhook_secret: "" });
     setEditingFonte(null);
     setIsDialogOpen(false);
   };
@@ -229,7 +254,13 @@ export const FontesOperacional = () => {
 
   const openEdit = (fonte: FonteOperacional) => {
     setEditingFonte(fonte);
-    setFormData({ profile: fonte.profile, label: fonte.label, drive_file_id: fonte.drive_file_id });
+    setFormData({
+      profile: fonte.profile,
+      label: fonte.label,
+      drive_file_id: fonte.drive_file_id,
+      upload_webhook_url: fonte.upload_webhook_url ?? "",
+      upload_webhook_secret: fonte.upload_webhook_secret ?? "",
+    });
     setIsDialogOpen(true);
   };
 
@@ -329,8 +360,12 @@ export const FontesOperacional = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          title="Atualizar agora (upload manual)"
-                          disabled={uploadingId === fonte.id}
+                          title={
+                            !fonte.upload_webhook_url
+                              ? "Upload ainda não configurado para esta fonte"
+                              : "Atualizar agora (upload manual)"
+                          }
+                          disabled={uploadingId === fonte.id || !fonte.upload_webhook_url}
                           onClick={() => fileInputRefs.current[fonte.id]?.click()}
                         >
                           {uploadingId === fonte.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -404,6 +439,27 @@ export const FontesOperacional = () => {
                 Ao cadastrar, um token de acesso é gerado e mostrado uma única vez - guarde-o para configurar no n8n.
               </p>
             )}
+            <div className="pt-2 border-t space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Opcional - só necessário para usar o botão "Atualizar agora" (upload manual) nesta fonte.
+              </p>
+              <div>
+                <Label>URL do webhook de upload (n8n)</Label>
+                <Input
+                  value={formData.upload_webhook_url}
+                  onChange={(e) => setFormData({ ...formData, upload_webhook_url: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <Label>Secret do webhook</Label>
+                <Input
+                  value={formData.upload_webhook_secret}
+                  onChange={(e) => setFormData({ ...formData, upload_webhook_secret: e.target.value })}
+                  placeholder="Enviado no header x-upload-secret"
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>

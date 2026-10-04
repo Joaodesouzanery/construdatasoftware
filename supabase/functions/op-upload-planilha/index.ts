@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     // owns_op_source usada nas policies de RLS das telas administrativas.
     const { data: source, error: sourceError } = await supabaseAdmin
       .from('op_sources')
-      .select('id, organization_id, active')
+      .select('id, organization_id, active, upload_webhook_url, upload_webhook_secret')
       .eq('id', sourceId)
       .maybeSingle()
 
@@ -85,6 +85,9 @@ Deno.serve(async (req) => {
     }
     if (!source.active) {
       return jsonResponse({ error: 'Fonte inativa' }, 409)
+    }
+    if (!source.upload_webhook_url || !source.upload_webhook_secret) {
+      return jsonResponse({ error: 'Upload ainda não configurado para esta fonte' }, 409)
     }
 
     const uploadedAt = new Date().toISOString()
@@ -105,31 +108,32 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Erro ao registrar upload' }, 500)
     }
 
-    const webhookUrl = Deno.env.get('N8N_UPLOAD_WEBHOOK_URL')
-    const webhookSecret = Deno.env.get('N8N_UPLOAD_SECRET')
-    if (!webhookUrl || !webhookSecret) {
-      await supabaseAdmin
-        .from('op_uploads')
-        .update({ status: 'erro', error_message: 'Webhook do n8n não configurado' })
-        .eq('id', uploadRow.id)
-      return jsonResponse({ error: 'Upload manual não está configurado' }, 500)
-    }
-
-    // Repassa os bytes do arquivo ao n8n - NUNCA loga o conteúdo do arquivo,
-    // só metadados (nome, tamanho) para diagnóstico.
+    // Repassa os bytes do arquivo ao n8n como Blob com o Content-Type correto
+    // de planilha .xlsx (em vez de deixar o tipo em branco) - NUNCA loga o
+    // conteúdo do arquivo, só metadados (nome, tamanho) para diagnóstico.
+    const arquivoXlsx = new Blob([await file.arrayBuffer()], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
     const forwardForm = new FormData()
     forwardForm.set('source_id', source.id)
     forwardForm.set('filename', file.name)
     forwardForm.set('uploaded_by', user.email ?? user.id)
     forwardForm.set('uploaded_at', uploadedAt)
-    forwardForm.set('arquivo', file, file.name)
+    forwardForm.set('arquivo', arquivoXlsx, file.name)
 
+    let n8nResponseBody: unknown = null
     try {
-      const webhookResponse = await fetch(webhookUrl, {
+      const webhookResponse = await fetch(source.upload_webhook_url, {
         method: 'POST',
-        headers: { 'x-upload-secret': webhookSecret },
+        headers: { 'x-upload-secret': source.upload_webhook_secret },
         body: forwardForm,
       })
+
+      try {
+        n8nResponseBody = await webhookResponse.json()
+      } catch {
+        // Resposta do n8n sem corpo JSON - segue sem ela, não é erro.
+      }
 
       if (!webhookResponse.ok) {
         console.error(`op-upload-planilha: webhook do n8n respondeu ${webhookResponse.status} para upload ${uploadRow.id}`)
@@ -137,7 +141,7 @@ Deno.serve(async (req) => {
           .from('op_uploads')
           .update({ status: 'erro', error_message: `Webhook respondeu ${webhookResponse.status}` })
           .eq('id', uploadRow.id)
-        return jsonResponse({ error: 'n8n não aceitou o arquivo' }, 502)
+        return jsonResponse({ error: 'n8n não aceitou o arquivo', n8n_response: n8nResponseBody }, 502)
       }
     } catch (webhookException) {
       console.error(`op-upload-planilha: falha ao chamar o webhook do n8n para upload ${uploadRow.id}`, webhookException)
@@ -150,7 +154,7 @@ Deno.serve(async (req) => {
 
     await supabaseAdmin.from('op_uploads').update({ status: 'enviado' }).eq('id', uploadRow.id)
 
-    return jsonResponse({ ok: true, upload_id: uploadRow.id }, 202)
+    return jsonResponse({ ok: true, upload_id: uploadRow.id, n8n_response: n8nResponseBody }, 202)
   } catch (error) {
     console.error('op-upload-planilha: erro inesperado', error)
     return jsonResponse({ error: 'Erro interno' }, 500)

@@ -25,6 +25,20 @@ export function normalizarToken(raw: string | null): string | null {
   return t || null
 }
 
+// Mesma sujeira de colagem manual que afeta token também afeta o ID do
+// Google Drive colado em "Nova/Editar Fonte" - um TAB ou espaço invisível no
+// fim faz `source.drive_file_id !== body.file.drive_file_id` nunca bater,
+// mesmo com o ID "certo" nos dois lados.
+export function normalizarDriveFileId(raw: string): string {
+  let t = raw.replace(/[\s ​-‍﻿]/g, '')
+  // Aceita o ID colado como URL completa do Drive, não só o ID puro.
+  const matchCaminho = t.match(/\/d\/([a-zA-Z0-9_-]+)/)
+  if (matchCaminho) return matchCaminho[1]
+  const matchQuery = t.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+  if (matchQuery) return matchQuery[1]
+  return t
+}
+
 type Motivo = 'fonte_nao_encontrada' | 'fonte_inativa' | 'hash_divergente' | 'erro_consulta'
 
 export interface AuthOk<T> {
