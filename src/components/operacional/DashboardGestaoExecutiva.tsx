@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const formatarMoeda = (valor: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
 
@@ -45,6 +46,141 @@ function useRegistrosGestao(sheetKey: string, fonteId: string) {
     },
     enabled: Boolean(fonteId),
   });
+}
+
+// Tabela genérica para os sheet_keys das abas G2 (LISTA) - as colunas vêm do
+// próprio `data` de cada registro (campos variam por aba), sempre mostrando
+// de onde o número veio (coluna "Linha"). Célula sem dado nunca é "0" ou
+// vazio sem explicação (Regra de Ouro 2).
+function TabelaGenerica({ registros, mensagemVazio = "sem dado importado ainda" }: { registros: Registro[]; mensagemVazio?: string }) {
+  const colunas = useMemo(() => {
+    const vistas = new Set<string>();
+    const ordem: string[] = [];
+    for (const r of registros) {
+      for (const chave of Object.keys(r.data)) {
+        if (!vistas.has(chave)) {
+          vistas.add(chave);
+          ordem.push(chave);
+        }
+      }
+    }
+    return ordem;
+  }, [registros]);
+
+  if (registros.length === 0) {
+    return <Card className="p-6 text-center text-sm text-muted-foreground">{mensagemVazio}</Card>;
+  }
+
+  return (
+    <Card className="p-0 overflow-auto max-h-96">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {colunas.map((c) => (
+              <TableHead key={c} className="whitespace-nowrap">
+                {c.replace(/_/g, " ")}
+              </TableHead>
+            ))}
+            <TableHead>Linha</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {registros.map((r) => (
+            <TableRow key={r.id}>
+              {colunas.map((c) => (
+                <TableCell key={c} className="whitespace-nowrap">
+                  {r.data[c] === undefined || r.data[c] === null || r.data[c] === "" ? "sem dado" : String(r.data[c])}
+                </TableCell>
+              ))}
+              <TableCell className="text-muted-foreground text-xs">{r.source_row ?? "-"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
+  );
+}
+
+// Gráfico de linha para os sheet_keys das abas G2 (SÉRIE MENSAL) -
+// parametrizado pela linha (seção + rótulo) escolhida pelo usuário, já que
+// uma aba de série mensal tem muitas linhas (contas/obras) para plotar.
+function GraficoSerieMensal({ registros }: { registros: Registro[] }) {
+  const opcoes = useMemo(() => {
+    const vistas = new Map<string, string>();
+    for (const r of registros) {
+      const chave = `${r.data.secao ?? ""}|${r.data.rotulo ?? ""}`;
+      if (!vistas.has(chave)) {
+        vistas.set(chave, r.data.secao ? `${r.data.secao} · ${r.data.rotulo}` : String(r.data.rotulo ?? ""));
+      }
+    }
+    return Array.from(vistas.entries());
+  }, [registros]);
+
+  const [escolhida, setEscolhida] = useState("");
+  const chaveAtiva = escolhida || opcoes[0]?.[0] || "";
+
+  const dados = useMemo(() => {
+    return registros
+      .filter((r) => `${r.data.secao ?? ""}|${r.data.rotulo ?? ""}` === chaveAtiva)
+      .sort((a, b) => String(a.data.mes).localeCompare(String(b.data.mes)))
+      .map((r) => ({ mes: r.data.mes, valor: Number(r.data.valor) }));
+  }, [registros, chaveAtiva]);
+
+  if (registros.length === 0) {
+    return <Card className="p-6 text-center text-sm text-muted-foreground">sem dado importado ainda</Card>;
+  }
+
+  return (
+    <div className="space-y-2">
+      <Select value={chaveAtiva} onValueChange={setEscolhida}>
+        <SelectTrigger className="w-72">
+          <SelectValue placeholder="Escolha a linha" />
+        </SelectTrigger>
+        <SelectContent>
+          {opcoes.map(([chave, rotulo]) => (
+            <SelectItem key={chave} value={chave}>
+              {rotulo}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Card className="p-4 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={dados}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="mes" fontSize={11} />
+            <YAxis fontSize={11} />
+            <Tooltip formatter={(valor: number) => formatarMoeda(valor)} />
+            <Line type="monotone" dataKey="valor" stroke="#2563eb" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </Card>
+    </div>
+  );
+}
+
+// Bloco com várias abas do mapa de configuração (gestaoEmpresaGenericas.ts)
+// agrupadas sob um mesmo título de seção do dashboard - cada aba mostrada
+// em sua própria sub-tabela/gráfico, nunca misturadas (campos diferentes
+// por aba).
+function BlocoAbas({ fonteId, abas }: { fonteId: string; abas: { titulo: string; sheetKey: string; tipo: "lista" | "serie_mensal" }[] }) {
+  return (
+    <div className="space-y-4">
+      {abas.map((aba) => (
+        <BlocoAba key={aba.sheetKey} fonteId={fonteId} {...aba} />
+      ))}
+    </div>
+  );
+}
+
+function BlocoAba({ fonteId, titulo, sheetKey, tipo }: { fonteId: string; titulo: string; sheetKey: string; tipo: "lista" | "serie_mensal" }) {
+  const { data: registros = [] } = useRegistrosGestao(sheetKey, fonteId);
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-muted-foreground">{titulo}</p>
+      {tipo === "lista" ? <TabelaGenerica registros={registros} /> : <GraficoSerieMensal registros={registros} />}
+    </div>
+  );
 }
 
 // Painel "Gestão Executiva" - os 5 blocos fixos do perfil gestao_empresa, na
@@ -384,6 +520,76 @@ export const DashboardGestaoExecutiva = () => {
                 </TableBody>
               </Table>
             </Card>
+          </section>
+
+          {/* Blocos G3 - as abas sem bloco fixo dedicado, agrupadas por tema
+              (dado via op_records, pelos sheet_key do mapa G2) */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Contratos e Obras</h2>
+            <BlocoAbas
+              fonteId={fonteId}
+              abas={[
+                { titulo: "03. Contratos", sheetKey: "gestao_empresa.contratos", tipo: "lista" },
+                { titulo: "03A. Obras e Contas", sheetKey: "gestao_empresa.obras_e_contas", tipo: "lista" },
+                { titulo: "04. Itens de Contrato", sheetKey: "gestao_empresa.itens_de_contrato", tipo: "lista" },
+                { titulo: "04A. Aditivo", sheetKey: "gestao_empresa.aditivo", tipo: "lista" },
+              ]}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Medição e Faturamento</h2>
+            <BlocoAbas
+              fonteId={fonteId}
+              abas={[
+                { titulo: "05. Quantitativos de Campo", sheetKey: "gestao_empresa.quantitativos_de_campo", tipo: "lista" },
+                { titulo: "06. Medição (BM)", sheetKey: "gestao_empresa.medicao_bm", tipo: "lista" },
+                { titulo: "07. Faturamento e Recebimento", sheetKey: "gestao_empresa.faturamento_e_recebimento", tipo: "lista" },
+              ]}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Custos</h2>
+            <BlocoAbas
+              fonteId={fonteId}
+              abas={[
+                { titulo: "08. Custos (previsto x pago, por conta)", sheetKey: "gestao_empresa.custos", tipo: "serie_mensal" },
+                { titulo: "08B. Todas as Obras", sheetKey: "gestao_empresa.todas_as_obras", tipo: "lista" },
+                { titulo: "X2. Plano de Contas", sheetKey: "gestao_empresa.plano_de_contas", tipo: "lista" },
+              ]}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Resultado (DRE)</h2>
+            <BlocoAbas fonteId={fonteId} abas={[{ titulo: "09. DRE mensal", sheetKey: "gestao_empresa.dre", tipo: "serie_mensal" }]} />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Caixa</h2>
+            <BlocoAbas fonteId={fonteId} abas={[{ titulo: "10. Caixa", sheetKey: "gestao_empresa.caixa", tipo: "serie_mensal" }]} />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">EVM</h2>
+            <BlocoAbas fonteId={fonteId} abas={[{ titulo: "12. EVM e Curva S", sheetKey: "gestao_empresa.evm_e_curva_s", tipo: "lista" }]} />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Cenários</h2>
+            <BlocoAbas
+              fonteId={fonteId}
+              abas={[
+                { titulo: "01A. Cenários", sheetKey: "gestao_empresa.cenarios", tipo: "lista" },
+                { titulo: "X3. Motor Cenários", sheetKey: "gestao_empresa.motor_cenarios", tipo: "lista" },
+              ]}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Changelog</h2>
+            <BlocoAbas fonteId={fonteId} abas={[{ titulo: "15. Changelog", sheetKey: "gestao_empresa.changelog", tipo: "lista" }]} />
           </section>
         </>
       )}
