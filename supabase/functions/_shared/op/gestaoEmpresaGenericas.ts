@@ -25,7 +25,10 @@ export const GESTAO_EMPRESA_GENERICAS: ConfigAbaGenerica[] = [
   { sheetName: "07. FATURAMENTO E RECEBIMENTO", tipo: "lista", sheetKey: "gestao_empresa.faturamento_e_recebimento", colunasChave: ["Nº"] },
   { sheetName: "12. EVM E CURVA S", tipo: "lista", sheetKey: "gestao_empresa.evm_e_curva_s", colunasChave: ["CONTRATO"] },
   { sheetName: "14. FONTES", tipo: "lista", sheetKey: "gestao_empresa.fontes", colunasChave: ["FONTE"] },
-  { sheetName: "15. CHANGELOG", tipo: "lista", sheetKey: "gestao_empresa.changelog", colunasChave: ["DATA", "ABA/ITEM", "O QUE MUDOU"] },
+  // "ABA / ITEM" tem espaço dos dois lados da barra no cabeçalho real -
+  // confirmado pelo snapshot real (sem o espaço, a chave nunca batia e a
+  // aba inteira ficava com 0 registros).
+  { sheetName: "15. CHANGELOG", tipo: "lista", sheetKey: "gestao_empresa.changelog", colunasChave: ["DATA", "ABA / ITEM", "O QUE MUDOU"] },
   { sheetName: "X2. PLANO DE CONTAS", tipo: "lista", sheetKey: "gestao_empresa.plano_de_contas", colunasChave: ["CONTA"] },
   { sheetName: "X3. MOTOR CENARIOS", tipo: "lista", sheetKey: "gestao_empresa.motor_cenarios", colunasChave: ["Nº"] },
   { sheetName: "01A. CENÁRIOS", tipo: "lista", sheetKey: "gestao_empresa.cenarios", colunasChave: ["CENÁRIO"] },

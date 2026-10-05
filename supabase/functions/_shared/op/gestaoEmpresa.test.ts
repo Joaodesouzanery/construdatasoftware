@@ -41,31 +41,62 @@ describe("interpretarPlacarSemanal", () => {
 });
 
 describe("interpretarResultadoPorObra", () => {
+  // Rótulos com o mesmo tipo de sufixo variável do arquivo real (confirmado
+  // via snapshot real em op_snapshots) - a aba real tem 19 colunas na
+  // tabela mensal, não as 10-11 usadas antes de conferir o dado real.
   const rows = [
-    ["OBRA:", "ZN"],
-    ["CARGA TRIBUTOS", "12%"],
-    ["RESULTADO REAL ACUMULADO", "R$ 3.329.907,97"],
-    ["MARGEM REAL", "41,29%"],
+    ["OBRA:", "ZN", "ZN — nome completo"],
+    ["CARGA DE TRIBUTOS:", "12%", null, null, "RESULTADO REAL ACUMULADO", null, null, "R$ 3.329.907,97", null, "CAIXA ACUMULADO DA OBRA (até hoje)", null, null, 2241857.59],
+    [null, null, null, null, "MARGEM REAL (resultado ÷ NF)", null, null, "41,29%", null, "PIOR CAIXA ACUMULADO (dinheiro empatado)", null, null, -221405.56],
+    [null, null, null, null, "RESULTADO PREVISTO NOS 14 MESES", null, null, 308931.46, null, "NF EM ATRASO (07)", null, null, 0],
     [],
-    ["MÊS", "MEDIÇÃO PREVISTA", "MEDIÇÃO REAL", "NF PREVISTA", "NF EMITIDA", "TRIBUTOS PREVISTOS", "TRIBUTOS SOBRE NF EMITIDA", "CUSTO PREVISTO", "CUSTO LANÇADO", "RESULTADO PREVISTO", "RESULTADO REAL"],
-    ["2026-07", 100, 90, 100, 90, 10, 9, 50, 45, 40, 38],
+    [
+      "MÊS",
+      "MEDIÇÃO PREVISTA (líquida)",
+      "MEDIÇÃO REAL (06, líquida)",
+      "NF PREVISTA",
+      "NF EMITIDA (07)",
+      "TRIBUTOS PREVISTOS",
+      "TRIBUTOS SOBRE A NF EMITIDA",
+      "CUSTO PREVISTO (fluxo)",
+      "CUSTO LANÇADO (08)",
+      "RESULTADO PREVISTO",
+      "RESULTADO REAL",
+      "MARGEM REAL",
+      "RESULTADO REAL ACUMULADO",
+      "RECEBIDO (07)",
+      "PAGO (08)",
+      "CAIXA DA OBRA NO MÊS",
+      "CAIXA ACUMULADO DA OBRA",
+      "A RECEBER (07)",
+      "A PAGAR + COMPROMETIDO (08)",
+    ],
+    ["2026-07", 100, 90, 100, 90, 10, 9, 50, 45, 40, 38, 0.422, 1200, 80, 45, 35, 1235, 0, 0],
     [],
   ];
 
-  it("identifica a obra pelo rótulo 'OBRA:' e extrai o bloco de cabeçalho", () => {
+  it("identifica a obra e extrai o bloco de cabeçalho mesmo com rótulos tendo texto extra (CARGA DE TRIBUTOS, RESULTADO PREVISTO NOS 14 MESES, CAIXA ACUMULADO DA OBRA)", () => {
     const resultado = interpretarResultadoPorObra(rows, 1);
     const header = resultado.rows.find((r) => r.data.tipo === "header");
     expect(header?.natural_key).toBe("ZN");
+    expect(header?.data.carga_tributos).toBe("12%");
     expect(header?.data.resultado_real_acumulado).toBe("R$ 3.329.907,97");
     expect(header?.data.margem_real).toBe("41,29%");
+    expect(header?.data.resultado_previsto_14_meses).toBe(308931.46);
+    expect(header?.data.caixa_acumulado_obra).toBe(2241857.59);
+    expect(header?.data.pior_caixa_acumulado).toBe(-221405.56);
+    expect(header?.data.nf_em_atraso).toBe(0);
   });
 
-  it("extrai a linha mensal com a chave obra|mês, incluindo a coluna RESULTADO REAL (11ª)", () => {
+  it("acha a tabela mensal por PREFIXO (cabeçalho real tem sufixo entre parênteses) e distingue RESULTADO REAL de RESULTADO REAL ACUMULADO", () => {
     const resultado = interpretarResultadoPorObra(rows, 1);
     const mensal = resultado.rows.find((r) => r.data.tipo === "mensal");
     expect(mensal?.natural_key).toBe("ZN|2026-07");
     expect(mensal?.data.medicao_real).toBe(90);
     expect(mensal?.data.resultado_real).toBe(38);
+    expect(mensal?.data.resultado_real_acumulado_mensal).toBe(1200);
+    expect(mensal?.data.margem_real_mensal).toBe(0.422);
+    expect(mensal?.data.caixa_acumulado_da_obra).toBe(1235);
   });
 
   it("sem 'OBRA:' no conteúdo, não interpreta nada", () => {

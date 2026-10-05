@@ -9,7 +9,8 @@
 // fixa. As ~26 abas restantes do perfil ficam "nao_interpretada" por
 // enquanto, conforme o escopo combinado para esta fase.
 
-import { normalizarRotulo, celulaVazia, parseNumeroBR, localizarCabecalho } from "./parsing.ts";
+import { normalizarRotulo, celulaVazia, parseNumeroBR, localizarCabecalho, localizarCabecalhoPorPrefixo } from "./parsing.ts";
+import { parseMesDeCelula } from "./interpretadoresGenericos.ts";
 
 export interface InterpretedRow {
   natural_key: string;
@@ -33,19 +34,10 @@ export interface InterpreterResultGestao {
   rejectedCount: number;
 }
 
-// Exportadas - reaproveitadas pelos interpretadores dedicados de obra
-// (gestaoEmpresaObras.ts): mesmo padrão de busca por rótulo, não por posição.
-export function chaveDeCampo(rotulo: string): string {
-  return rotulo
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
 // Procura uma célula cujo texto comece com `rotulo` e devolve o valor que vem
 // depois de ":" na mesma célula, ou a próxima célula não vazia na mesma linha.
+// Exportada - reaproveitada pelos interpretadores dedicados de obra
+// (gestaoEmpresaObras.ts): mesmo padrão de busca por rótulo, não por posição.
 export function buscarValorPorRotulo(rows: unknown[][], rotulo: string): unknown {
   const rotuloNormalizado = normalizarRotulo(rotulo);
   for (const linha of rows) {
@@ -127,28 +119,51 @@ export function interpretarPlacarSemanal(rows: unknown[][], firstRowNumber: numb
 // --------------------------------------------------------------------------
 // "08C. RESULTADO POR OBRA" -> resultado_por_obra
 // --------------------------------------------------------------------------
-const CAMPOS_HEADER_OBRA = [
-  "CARGA TRIBUTOS",
-  "RESULTADO REAL ACUMULADO",
-  "MARGEM REAL",
-  "RESULTADO PREVISTO 14 MESES",
-  "CAIXA ACUMULADO OBRA",
-  "PIOR CAIXA ACUMULADO",
-  "NF EM ATRASO",
+// { buscar, campo } em vez de derivar o campo do rótulo de busca: o rótulo
+// de busca precisa bater com o texto real da planilha (corrigido contra o snapshot
+// real - "CARGA TRIBUTOS", "RESULTADO PREVISTO 14 MESES" e "CAIXA
+// ACUMULADO OBRA" nunca bateram, faltava "DE"/"NOS"/"DA" no meio do rótulo
+// real), mas o CAMPO salvo precisa continuar o mesmo de sempre -
+// DashboardGestaoExecutiva.tsx já lê estes nomes de campo fixos.
+const CAMPOS_HEADER_OBRA: { buscar: string; campo: string }[] = [
+  { buscar: "CARGA DE TRIBUTOS", campo: "carga_tributos" },
+  { buscar: "RESULTADO REAL ACUMULADO", campo: "resultado_real_acumulado" },
+  { buscar: "MARGEM REAL", campo: "margem_real" },
+  { buscar: "RESULTADO PREVISTO NOS 14 MESES", campo: "resultado_previsto_14_meses" },
+  { buscar: "CAIXA ACUMULADO DA OBRA", campo: "caixa_acumulado_obra" },
+  { buscar: "PIOR CAIXA ACUMULADO", campo: "pior_caixa_acumulado" },
+  { buscar: "NF EM ATRASO", campo: "nf_em_atraso" },
 ];
 
-const HEADER_MENSAL_OBRA = [
-  "MÊS",
-  "MEDIÇÃO PREVISTA",
-  "MEDIÇÃO REAL",
-  "NF PREVISTA",
-  "NF EMITIDA",
-  "TRIBUTOS PREVISTOS",
-  "TRIBUTOS SOBRE NF EMITIDA",
-  "CUSTO PREVISTO",
-  "CUSTO LANÇADO",
-  "RESULTADO PREVISTO",
-  "RESULTADO REAL",
+// Prefixos (não igualdade exata) - o cabeçalho real tem um trecho entre
+// parênteses explicando a coluna (ex. "MEDIÇÃO PREVISTA (líquida)", "NF
+// EMITIDA (07)") que varia e nunca bateria por igualdade. Confirmado no
+// snapshot real - a aba tem 19 colunas, não as 10-11 descritas antes.
+// "RESULTADO REAL" e "RESULTADO REAL ACUMULADO" convivem na mesma linha:
+// como são buscados por prefixo INDEPENDENTE um do outro (não é uma busca
+// textual única), "RESULTADO REAL" acha a primeira (coluna K) e o prefixo
+// mais longo "RESULTADO REAL ACUMULADO" acha a outra (coluna M) sem
+// confundir as duas.
+const HEADER_MENSAL_OBRA: { prefixo: string; campo: string }[] = [
+  { prefixo: "MÊS", campo: "mes" },
+  { prefixo: "MEDIÇÃO PREVISTA", campo: "medicao_prevista" },
+  { prefixo: "MEDIÇÃO REAL", campo: "medicao_real" },
+  { prefixo: "NF PREVISTA", campo: "nf_prevista" },
+  { prefixo: "NF EMITIDA", campo: "nf_emitida" },
+  { prefixo: "TRIBUTOS PREVISTOS", campo: "tributos_previstos" },
+  { prefixo: "TRIBUTOS SOBRE", campo: "tributos_sobre_nf_emitida" },
+  { prefixo: "CUSTO PREVISTO", campo: "custo_previsto" },
+  { prefixo: "CUSTO LANÇADO", campo: "custo_lancado" },
+  { prefixo: "RESULTADO PREVISTO", campo: "resultado_previsto" },
+  { prefixo: "RESULTADO REAL ACUMULADO", campo: "resultado_real_acumulado_mensal" },
+  { prefixo: "RESULTADO REAL", campo: "resultado_real" },
+  { prefixo: "MARGEM REAL", campo: "margem_real_mensal" },
+  { prefixo: "RECEBIDO", campo: "recebido" },
+  { prefixo: "PAGO", campo: "pago" },
+  { prefixo: "CAIXA DA OBRA", campo: "caixa_da_obra_no_mes" },
+  { prefixo: "CAIXA ACUMULADO", campo: "caixa_acumulado_da_obra" },
+  { prefixo: "A RECEBER", campo: "a_receber" },
+  { prefixo: "A PAGAR", campo: "a_pagar_comprometido" },
 ];
 
 // A aba pode chegar como uma cópia por obra, ou como aba única com um
@@ -165,31 +180,32 @@ export function interpretarResultadoPorObra(rows: unknown[][], firstRowNumber: n
   const obraNormalizada = normalizarRotulo(obraTexto);
 
   const headerBlock: Record<string, unknown> = { tipo: "header", obra: obraTexto };
-  for (const campo of CAMPOS_HEADER_OBRA) {
-    headerBlock[chaveDeCampo(campo)] = buscarValorPorRotulo(rows, campo);
+  for (const { buscar, campo } of CAMPOS_HEADER_OBRA) {
+    headerBlock[campo] = buscarValorPorRotulo(rows, buscar);
   }
   interpretedRows.push({ natural_key: obraNormalizada, data: headerBlock, source_row: firstRowNumber });
 
   // Janela de busca ampla (não por posição fixa) - a tabela mensal pode
   // aparecer bem mais abaixo do topo da aba, depois do bloco de cabeçalho
-  // da obra (OBRA:, CARGA TRIBUTOS etc.).
-  const headerIdx = localizarCabecalho(rows, HEADER_MENSAL_OBRA, 200, 0.7);
-  if (headerIdx !== null) {
-    const headerRow = (rows[headerIdx] ?? []).map(normalizarRotulo);
-    const colunas = HEADER_MENSAL_OBRA.map((rotulo) => ({
-      campo: chaveDeCampo(rotulo),
-      idx: headerRow.indexOf(normalizarRotulo(rotulo)),
-    }));
-    const colMes = headerRow.indexOf(normalizarRotulo("MÊS"));
+  // da obra (OBRA:, CARGA TRIBUTOS etc.). Por PREFIXO - ver comentário de
+  // HEADER_MENSAL_OBRA.
+  const prefixos = HEADER_MENSAL_OBRA.map((c) => c.prefixo);
+  const encontrado = localizarCabecalhoPorPrefixo(rows, prefixos, 200, 0.7);
+  if (encontrado !== null) {
+    const { linha: headerIdx, colunas: colPorPrefixo } = encontrado;
+    const colMes = colPorPrefixo.get(normalizarRotulo("MÊS"));
 
     for (let i = headerIdx + 1; i < rows.length; i++) {
       const row = rows[i] ?? [];
-      const mes = row[colMes];
+      const mes = colMes !== undefined ? row[colMes] : undefined;
       if (celulaVazia(mes)) break;
 
       const rowNumber = firstRowNumber + i;
       const data: Record<string, unknown> = { tipo: "mensal", obra: obraTexto };
-      for (const { campo, idx } of colunas) data[campo] = idx >= 0 ? row[idx] ?? null : null;
+      for (const { prefixo, campo } of HEADER_MENSAL_OBRA) {
+        const idx = colPorPrefixo.get(normalizarRotulo(prefixo));
+        data[campo] = idx !== undefined ? row[idx] ?? null : null;
+      }
 
       interpretedRows.push({ natural_key: `${obraNormalizada}|${String(mes).trim()}`, data, source_row: rowNumber });
     }
@@ -291,9 +307,12 @@ export function interpretarPonteLucroCaixa(rows: unknown[][], firstRowNumber: nu
   // nas colunas DEPOIS da coluna onde o marcador foi achado - não
   // necessariamente a partir da coluna A (o marcador pode estar em B, C...).
   const linhaMeses = rows[idxMarcador] ?? [];
+  // parseMesDeCelula (não só "não vazio") exclui colunas de fechamento como
+  // "TOTAL / FIM" no fim da linha - confirmado no snapshot real, essa
+  // coluna vinha sendo tratada como se fosse mais um mês.
   const colunasMes = linhaMeses
     .map((valor, idx) => ({ idx, mes: valor }))
-    .filter(({ idx, mes }) => idx > colMarcador && !celulaVazia(mes));
+    .filter(({ idx, mes }) => idx > colMarcador && parseMesDeCelula(mes) !== null);
 
   let ordem = 0;
   for (let i = idxMarcador + 1; i < rows.length; i++) {

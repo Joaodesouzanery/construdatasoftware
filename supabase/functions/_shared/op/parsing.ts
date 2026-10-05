@@ -96,3 +96,35 @@ export function localizarCabecalho(
 
   return null;
 }
+
+// Mesma ideia de localizarCabecalho, mas por PREFIXO (startsWith) em vez de
+// igualdade exata - cabeçalhos reais costumam ter um trecho entre
+// parênteses que varia ou só existe para explicar a coluna (ex. "MEDIÇÃO
+// PREVISTA (líquida)", "NF EMITIDA (07)") e nunca bateria por igualdade.
+// Também devolve o MAPEAMENTO rótulo->coluna encontrado (pelo prefixo),
+// já que com prefixo o índice de cada rótulo precisa ser achado do mesmo
+// jeito usado para achar a linha - repetir a busca por igualdade depois
+// do fato reintroduziria o mesmo bug.
+export function localizarCabecalhoPorPrefixo(
+  linhas: unknown[][],
+  prefixosObrigatorios: string[],
+  maxLinhas = 12,
+  minProporcao = 0.7
+): { linha: number; colunas: Map<string, number> } | null {
+  const prefixosNormalizados = prefixosObrigatorios.map(normalizarRotulo);
+  const limite = Math.min(maxLinhas, linhas.length);
+
+  for (let i = 0; i < limite; i++) {
+    const linha = linhas[i] ?? [];
+    const colunas = new Map<string, number>();
+    for (const prefixo of prefixosNormalizados) {
+      const idx = linha.findIndex((c) => normalizarRotulo(c).startsWith(prefixo));
+      if (idx >= 0) colunas.set(prefixo, idx);
+    }
+    if (colunas.size / prefixosNormalizados.length >= minProporcao) {
+      return { linha: i, colunas };
+    }
+  }
+
+  return null;
+}
