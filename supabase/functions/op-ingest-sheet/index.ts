@@ -25,6 +25,11 @@ import {
   interpretarPonteLucroCaixa,
   interpretarChecksIntegridade,
 } from '../_shared/op/gestaoEmpresa.ts'
+import {
+  interpretarCustoPorObra,
+  interpretarPassivoEEstoque,
+  interpretarReplanejamento,
+} from '../_shared/op/gestaoEmpresaObras.ts'
 import { avaliarEReconciliarAlertasDeFonte } from '../_shared/op/evaluateSource.ts'
 import { autenticarFonte, normalizarToken, normalizarDriveFileId } from '../_shared/op/ingestAuth.ts'
 import { interpretarComoLista, interpretarComoSerieMensal } from '../_shared/op/interpretadoresGenericos.ts'
@@ -129,6 +134,11 @@ function getInterpreter(profile: string, sheetName: string): Interpreter | null 
     if (nome === '01B. FUNIL COMERCIAL') return interpretarFunilComercial
     if (nome === '11. CONCILIACAO E WIP') return interpretarPonteLucroCaixa
     if (nome === '13. CHECKS') return interpretarChecksIntegridade
+    // Abas com seletor de obra - múltiplos blocos por aba, dedicadas (não
+    // cabem no motor genérico G2 de um bloco só).
+    if (nome.startsWith('08A')) return interpretarCustoPorObra
+    if (nome.startsWith('08D')) return interpretarPassivoEEstoque
+    if (nome.startsWith('12A')) return interpretarReplanejamento
 
     // Fase G2: as demais 27 abas deste perfil usam os interpretadores
     // genéricos (LISTA / SÉRIE MENSAL) por configuração, não por código
@@ -435,16 +445,40 @@ Deno.serve(async (req) => {
             ]
           : result.exceptions
 
-      const { data: applyCounts, error: applyError } = await supabaseAdmin.rpc('op_apply_interpreted_rows', {
-        p_source_id: source.id,
-        p_run_id: body.run_id,
-        p_sheet_key: result.sheetKey,
-        p_rows: result.rows,
-        p_skip_ausente_check: result.rejectedCount > 0,
-      })
+      // Em lotes de 2000 - cada chamada é um statement novo (reseta o
+      // orçamento de timeout do Postgres), e cada lote já resolve o diff
+      // inteiro dele num JOIN só (não linha a linha). Abas de até ~50 mil
+      // linhas (ex. "08. CUSTOS") processam sem estourar o tempo.
+      const TAMANHO_LOTE = 2000
+      const totalLotes = Math.max(1, Math.ceil(result.rows.length / TAMANHO_LOTE))
+      const applyCounts = { novo: 0, alterado: 0, inalterado: 0, ausente: 0, reapareceu: 0 }
 
-      if (applyError) {
-        return jsonResponse({ error: applyError.message }, 500)
+      for (let lote = 0; lote < totalLotes; lote++) {
+        const inicio = lote * TAMANHO_LOTE
+        const linhasDoLote = result.rows.slice(inicio, inicio + TAMANHO_LOTE)
+        const primeiroLote = lote === 0
+        const ultimoLote = lote === totalLotes - 1
+
+        const { data: loteCounts, error: loteError } = await supabaseAdmin.rpc('op_apply_interpreted_rows_batch', {
+          p_source_id: source.id,
+          p_run_id: body.run_id,
+          p_sheet_key: result.sheetKey,
+          p_rows: linhasDoLote,
+          p_is_first_batch: primeiroLote,
+          p_is_last_batch: ultimoLote,
+          p_skip_ausente_check: result.rejectedCount > 0,
+        })
+
+        if (loteError) {
+          return jsonResponse({ error: loteError.message }, 500)
+        }
+
+        const c = loteCounts as typeof applyCounts
+        applyCounts.novo += c.novo
+        applyCounts.alterado += c.alterado
+        applyCounts.inalterado += c.inalterado
+        applyCounts.ausente += c.ausente
+        applyCounts.reapareceu += c.reapareceu
       }
 
       const { data: excCounts, error: excError } = await supabaseAdmin.rpc('op_reconcile_exceptions', {
