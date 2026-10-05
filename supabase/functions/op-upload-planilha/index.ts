@@ -45,6 +45,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Unauthorized' }, 401)
     }
 
+    // Controle de acesso do módulo: só admin/gestor podem disparar upload
+    // manual. op_papel() é SECURITY DEFINER, então funciona mesmo chamada
+    // por este client escopado ao usuário (sem precisar do client admin).
+    const { data: papel } = await supabaseClient.rpc('op_papel')
+    if (papel !== 'admin' && papel !== 'gestor') {
+      return jsonResponse({ error: 'Sem permissão para esta ação' }, 403)
+    }
+
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })

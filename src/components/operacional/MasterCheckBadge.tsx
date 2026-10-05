@@ -11,7 +11,7 @@ export const MasterCheckBadge = () => {
   const { data: pior } = useQuery({
     queryKey: ["op-master-check-global"],
     queryFn: async () => {
-      const { data: fontes } = await supabase.from("op_sources").select("id").eq("profile", "gestao_empresa");
+      const { data: fontes } = await supabase.rpc("op_sources_lista").select("id").eq("profile", "gestao_empresa");
       if (!fontes || fontes.length === 0) return null;
 
       const { data, error } = await supabase

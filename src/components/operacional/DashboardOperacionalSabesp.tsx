@@ -32,7 +32,7 @@ export const DashboardOperacionalSabesp = () => {
   const { data: fontes = [] } = useQuery({
     queryKey: ["op-fontes-sabesp"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("op_sources").select("id, label").eq("profile", "operacional_sabesp").order("label");
+      const { data, error } = await supabase.rpc("op_sources_lista").select("id, label").eq("profile", "operacional_sabesp").order("label");
       if (error) throw error;
       return data ?? [];
     },

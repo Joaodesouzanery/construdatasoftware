@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
@@ -29,9 +30,11 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Client escopado ao usuário chamador - RLS já garante que só vemos
-    // nossas próprias fontes; op_reconcile_alerts é SECURITY DEFINER então
-    // não precisa de service role mesmo para a escrita.
+    // Client escopado ao usuário só para resolver quem está chamando e
+    // checar o papel - a leitura/escrita de dado em si usa o client admin
+    // abaixo, já que op_sources agora é admin-only por RLS e esta function
+    // precisa ver TODAS as fontes (de qualquer admin/gestor), não só as do
+    // chamador.
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     })
@@ -44,7 +47,20 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: fontes, error: fontesError } = await supabaseClient
+    // Controle de acesso do módulo: só admin/gestor podem avaliar alertas.
+    const { data: papel } = await supabaseClient.rpc('op_papel')
+    if (papel !== 'admin' && papel !== 'gestor') {
+      return new Response(JSON.stringify({ error: 'Sem permissão para esta ação' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    const { data: fontes, error: fontesError } = await supabaseAdmin
       .from('op_sources')
       .select('id, organization_id, profile, last_checked_at')
       .eq('active', true)
@@ -60,7 +76,7 @@ Deno.serve(async (req) => {
     const resultados: { source_id: string; alerts_opened: number }[] = []
 
     for (const fonte of fontes ?? []) {
-      const abertos = await avaliarEReconciliarAlertasDeFonte(supabaseClient, fonte, fonte.last_checked_at)
+      const abertos = await avaliarEReconciliarAlertasDeFonte(supabaseAdmin, fonte, fonte.last_checked_at)
       totalAbertos += abertos
       resultados.push({ source_id: fonte.id, alerts_opened: abertos })
     }

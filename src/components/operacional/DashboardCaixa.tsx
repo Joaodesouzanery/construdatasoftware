@@ -33,7 +33,7 @@ export const DashboardCaixa = () => {
   const { data: fontes = [] } = useQuery({
     queryKey: ["op-fontes-caixa"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("op_sources").select("id, label").eq("profile", "caixa").order("label");
+      const { data, error } = await supabase.rpc("op_sources_lista").select("id, label").eq("profile", "caixa").order("label");
       if (error) throw error;
       return data ?? [];
     },

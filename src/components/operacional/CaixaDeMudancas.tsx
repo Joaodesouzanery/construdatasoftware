@@ -63,12 +63,27 @@ export const CaixaDeMudancas = () => {
   const [filtroSeveridade, setFiltroSeveridade] = useState<Severidade | "todos">("todos");
   const [selecionado, setSelecionado] = useState<ItemFeed | null>(null);
 
+  // op_sources é admin-only por RLS - o nome da fonte vem de op_sources_lista
+  // (function admin+gestor) e é mesclado aqui no cliente, em vez do join
+  // embutido ...source:op_sources(label) que o PostgREST faria (esse join
+  // respeitaria a RLS de op_sources e voltaria nulo para quem não é admin).
+  const { data: fontesPorId = {} } = useQuery({
+    queryKey: ["op-fontes-por-id"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("op_sources_lista").select("id, label");
+      if (error) throw error;
+      const mapa: Record<string, string> = {};
+      for (const f of data ?? []) mapa[f.id] = f.label;
+      return mapa;
+    },
+  });
+
   const { data: changes = [] } = useQuery({
     queryKey: ["op-changes-feed"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("op_changes")
-        .select("id, source_id, run_id, sheet_key, natural_key, change_type, before, after, fields_changed, created_at, source:op_sources(label)")
+        .select("id, source_id, run_id, sheet_key, natural_key, change_type, before, after, fields_changed, created_at")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -76,7 +91,7 @@ export const CaixaDeMudancas = () => {
         kind: "change" as const,
         id: c.id,
         source_id: c.source_id,
-        source_label: c.source?.label ?? "-",
+        source_label: "-",
         run_id: c.run_id,
         created_at: c.created_at,
         change_type: c.change_type,
@@ -94,7 +109,7 @@ export const CaixaDeMudancas = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("op_exceptions")
-        .select("id, source_id, run_id, sheet_name, row_number, severity, type, message, status, created_at, source:op_sources(label)")
+        .select("id, source_id, run_id, sheet_name, row_number, severity, type, message, status, created_at")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -102,7 +117,7 @@ export const CaixaDeMudancas = () => {
         kind: "exception" as const,
         id: e.id,
         source_id: e.source_id,
-        source_label: e.source?.label ?? "-",
+        source_label: "-",
         run_id: e.run_id,
         created_at: e.created_at,
         severity: e.severity,
@@ -148,7 +163,9 @@ export const CaixaDeMudancas = () => {
   });
 
   const feed = useMemo(() => {
-    const combinado = [...changes, ...exceptions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const combinado = [...changes, ...exceptions]
+      .map((item) => ({ ...item, source_label: fontesPorId[item.source_id] ?? "-" }))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return combinado.filter((item) => {
       if (filtroTipo !== "todos" && item.kind === "change" && item.change_type !== filtroTipo) return false;
       if (filtroTipo !== "todos" && item.kind === "exception") return false;
@@ -156,7 +173,7 @@ export const CaixaDeMudancas = () => {
       if (filtroSeveridade !== "todos" && item.kind === "change") return false;
       return true;
     });
-  }, [changes, exceptions, filtroTipo, filtroSeveridade]);
+  }, [changes, exceptions, fontesPorId, filtroTipo, filtroSeveridade]);
 
   const contagemTipo = useMemo(() => {
     const c: Record<string, number> = { novo: 0, alterado: 0, ausente: 0, reapareceu: 0 };

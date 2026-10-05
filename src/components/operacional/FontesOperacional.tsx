@@ -23,7 +23,9 @@ interface FonteOperacional {
   active: boolean;
   last_checked_at: string | null;
   upload_webhook_url: string | null;
-  upload_webhook_secret: string | null;
+  // Nunca o valor em si (op_sources_lista não traz a coluna de segredo) -
+  // só se já tem um configurado ou não.
+  tem_upload_webhook_secret: boolean;
 }
 
 const PERFIL_LABEL: Record<string, string> = {
@@ -76,10 +78,11 @@ export const FontesOperacional = () => {
   const { data: fontes = [], isLoading } = useQuery({
     queryKey: ["op-fontes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("op_sources")
-        .select("id, profile, label, drive_file_id, active, last_checked_at, upload_webhook_url, upload_webhook_secret")
-        .order("created_at", { ascending: false });
+      // RPC (não a tabela direto) - sem as colunas de segredo (token_hash,
+      // upload_webhook_secret), o navegador nunca lê o valor real, nem o
+      // admin (só escreve). Function que devolve SETOF aceita .order() como
+      // se fosse uma tabela.
+      const { data, error } = await supabase.rpc("op_sources_lista").order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as FonteOperacional[];
     },
@@ -176,16 +179,19 @@ export const FontesOperacional = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      const { error } = await supabase
-        .from("op_sources")
-        .update({
-          profile: data.profile,
-          label: data.label,
-          drive_file_id: normalizarDriveFileId(data.drive_file_id),
-          upload_webhook_url: data.upload_webhook_url.trim() || null,
-          upload_webhook_secret: data.upload_webhook_secret.trim() || null,
-        })
-        .eq("id", id);
+      // O campo do secret nunca vem pré-preenchido com o valor atual (só
+      // escreve) - em branco significa "manter o que já está salvo", por
+      // isso a coluna só entra no update quando o campo foi preenchido.
+      const payload: Record<string, unknown> = {
+        profile: data.profile,
+        label: data.label,
+        drive_file_id: normalizarDriveFileId(data.drive_file_id),
+        upload_webhook_url: data.upload_webhook_url.trim() || null,
+      };
+      if (data.upload_webhook_secret.trim()) {
+        payload.upload_webhook_secret = data.upload_webhook_secret.trim();
+      }
+      const { error } = await supabase.from("op_sources").update(payload).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -259,7 +265,8 @@ export const FontesOperacional = () => {
       label: fonte.label,
       drive_file_id: fonte.drive_file_id,
       upload_webhook_url: fonte.upload_webhook_url ?? "",
-      upload_webhook_secret: fonte.upload_webhook_secret ?? "",
+      // Nunca pré-preenchido - o valor real não é lido pelo navegador.
+      upload_webhook_secret: "",
     });
     setIsDialogOpen(true);
   };
@@ -452,12 +459,23 @@ export const FontesOperacional = () => {
                 />
               </div>
               <div>
-                <Label>Secret do webhook</Label>
+                <Label>
+                  {editingFonte ? "Definir/trocar secret do webhook" : "Secret do webhook"}
+                  {editingFonte && (
+                    <Badge variant="outline" className="ml-2 text-[10px]">
+                      {editingFonte.tem_upload_webhook_secret ? "configurado: sim" : "configurado: não"}
+                    </Badge>
+                  )}
+                </Label>
                 <Input
+                  type="password"
                   value={formData.upload_webhook_secret}
                   onChange={(e) => setFormData({ ...formData, upload_webhook_secret: e.target.value })}
-                  placeholder="Enviado no header x-upload-secret"
+                  placeholder={editingFonte ? "Deixe em branco para manter o atual" : "Enviado no header x-upload-secret"}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Por segurança, o valor já salvo nunca é mostrado aqui - só é possível trocar.
+                </p>
               </div>
             </div>
           </div>

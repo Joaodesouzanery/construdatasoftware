@@ -197,7 +197,7 @@ export const DashboardGestaoExecutiva = () => {
   const { data: fontes = [] } = useQuery({
     queryKey: ["op-fontes-gestao"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("op_sources").select("id, label").eq("profile", "gestao_empresa").order("label");
+      const { data, error } = await supabase.rpc("op_sources_lista").select("id, label").eq("profile", "gestao_empresa").order("label");
       if (error) throw error;
       return data ?? [];
     },

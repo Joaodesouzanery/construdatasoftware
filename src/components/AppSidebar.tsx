@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Logo } from "@/components/shared/Logo";
+import { useOpPapel } from "@/hooks/useOpPapel";
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -114,6 +115,11 @@ export function AppSidebar() {
     }
   };
 
+  // Controle de acesso do módulo Operacional: sem papel (admin/gestor) em
+  // op_acessos, a entrada nem aparece no menu - a segurança de verdade é a
+  // RLS, isto é só para não oferecer um link que vai dar RLS vazia.
+  const { papel: opPapel } = useOpPapel();
+
   // Contador de alertas abertos do módulo Operacional (Fase 6) - visível no
   // menu em qualquer página, não só dentro do módulo.
   const { data: alertasAbertos = 0 } = useQuery({
@@ -123,6 +129,7 @@ export function AppSidebar() {
       return count ?? 0;
     },
     staleTime: 60000,
+    enabled: Boolean(opPapel),
   });
 
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
@@ -136,32 +143,34 @@ export function AppSidebar() {
         <Logo size="md" />
       </SidebarHeader>
       <SidebarContent>
-        <Collapsible defaultOpen className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-sm font-medium">Operacional</SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {operacionalItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={item.url} end className={getNavCls}>
-                          <item.icon className="h-4 w-4" />
-                          <span className="flex-1">{item.title}</span>
-                          {alertasAbertos > 0 && (
-                            <Badge variant="destructive" className="h-5 min-w-5 px-1 text-[10px] justify-center">
-                              {alertasAbertos}
-                            </Badge>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
+        {opPapel && (
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-sm font-medium">Operacional</SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {operacionalItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <NavLink to={item.url} end className={getNavCls}>
+                            <item.icon className="h-4 w-4" />
+                            <span className="flex-1">{item.title}</span>
+                            {alertasAbertos > 0 && (
+                              <Badge variant="destructive" className="h-5 min-w-5 px-1 text-[10px] justify-center">
+                                {alertasAbertos}
+                              </Badge>
+                            )}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
+        )}
 
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>

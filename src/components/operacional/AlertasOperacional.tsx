@@ -11,6 +11,7 @@ import { AlertCircle, AlertTriangle, Info, RefreshCw, Settings } from "lucide-re
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfiguracaoAlertas } from "./ConfiguracaoAlertas";
+import { useOpPapel } from "@/hooks/useOpPapel";
 
 interface Alerta {
   id: string;
@@ -36,11 +37,15 @@ export const AlertasOperacional = () => {
   const [filtroSeveridade, setFiltroSeveridade] = useState<string>("todos");
   const [filtroFonte, setFiltroFonte] = useState<string>("todos");
   const [configuracaoAberta, setConfiguracaoAberta] = useState(false);
+  // Regras de alerta são admin-only (op_alert_rules) - gestor nem vê o
+  // botão, já que abrir e salvar daria RLS vazia/rejeitada de qualquer jeito.
+  const { papel } = useOpPapel();
+  const isAdmin = papel === "admin";
 
   const { data: fontes = [] } = useQuery({
     queryKey: ["op-fontes-alertas"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("op_sources").select("id, label").order("label");
+      const { data, error } = await supabase.rpc("op_sources_lista").select("id, label").order("label");
       if (error) throw error;
       return data ?? [];
     },
@@ -136,10 +141,12 @@ export const AlertasOperacional = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setConfiguracaoAberta(true)}>
-            <Settings className="h-4 w-4 mr-2" />
-            Configurar regras
-          </Button>
+          {isAdmin && (
+            <Button variant="outline" onClick={() => setConfiguracaoAberta(true)}>
+              <Settings className="h-4 w-4 mr-2" />
+              Configurar regras
+            </Button>
+          )}
           <Button onClick={() => verificarAgoraMutation.mutate()} disabled={verificarAgoraMutation.isPending}>
             <RefreshCw className={`h-4 w-4 mr-2 ${verificarAgoraMutation.isPending ? "animate-spin" : ""}`} />
             Verificar agora

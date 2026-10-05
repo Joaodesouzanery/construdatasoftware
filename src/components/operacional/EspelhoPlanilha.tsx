@@ -66,7 +66,7 @@ export const EspelhoPlanilha = () => {
   const { data: fontes = [] } = useQuery({
     queryKey: ["op-espelho-fontes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("op_sources").select("id, label, profile").order("label");
+      const { data, error } = await supabase.rpc("op_sources_lista").select("id, label, profile").order("label");
       if (error) throw error;
       return (data || []) as FonteResumo[];
     },
