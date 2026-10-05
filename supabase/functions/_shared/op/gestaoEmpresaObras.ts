@@ -542,6 +542,16 @@ export function interpretarReplanejamento(rows: unknown[][], firstRowNumber: num
   let colunasMesCurva: { col: number; mes: string }[] | null = null;
   if (idxMeses1 === -1) {
     exceptions.push(excecaoLayoutInesperado(firstRowNumber, "12A bloco 1 (curva mensal)"));
+  } else if (idxMeses1 >= limiteBloco1) {
+    // A linha de meses encontrada já cai DENTRO do território do
+    // HISTOGRAMA/RESUMO (ex. se a aba real não tiver uma linha de meses
+    // reconhecível antes desses blocos, a busca "acha" a de um deles em vez
+    // da do bloco 1) - sem esta guarda, o loop abaixo iteraria 0 vezes em
+    // silêncio (i já começa depois do limite), parecendo só "poucos
+    // registros" sem explicação nenhuma.
+    exceptions.push(
+      excecaoLayoutInesperado(firstRowNumber + idxMeses1, "12A bloco 1 (linha de meses caiu dentro do histograma/resumo)")
+    );
   } else {
     colunasMesCurva = encontrarColunasDeMesEmLinha((rows[idxMeses1] ?? []).slice(9), 6)!.map((c) => ({ col: c.col + 9, mes: c.mes }));
     for (let i = idxMeses1 + 1; i < limiteBloco1; i++) {
