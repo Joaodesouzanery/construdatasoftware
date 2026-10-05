@@ -112,6 +112,21 @@ describe("interpretarComoSerieMensal", () => {
     });
   });
 
+  it("mesma (seção, rótulo, mês) repetida ganha sufixo #2 - nunca gera natural_key duplicado (regressão: ON CONFLICT em lote)", () => {
+    const rows = [
+      ["CONTA", "jan/26", "fev/26", "mar/26", "abr/26", "mai/26", "jun/26"],
+      ["Combustível", 100, 200, 300, 400, 500, 600],
+      ["Combustível", 10, 20, 30, 40, 50, 60],
+    ];
+    const resultado = interpretarComoSerieMensal(rows, 1, config);
+    const chaves = resultado.rows.map((r) => r.natural_key);
+    expect(new Set(chaves).size).toBe(chaves.length); // todas únicas
+    expect(chaves).toContain("|COMBUSTIVEL|2026-01");
+    expect(chaves).toContain("|COMBUSTIVEL|2026-01#2");
+    const segunda = resultado.rows.find((r) => r.natural_key === "|COMBUSTIVEL|2026-01#2");
+    expect(segunda?.data.valor).toBe(10);
+  });
+
   it("usa o título de bloco mais recente como seção", () => {
     const rows = [
       ["CONTA", "jan/26", "fev/26", "mar/26", "abr/26", "mai/26", "jun/26"],

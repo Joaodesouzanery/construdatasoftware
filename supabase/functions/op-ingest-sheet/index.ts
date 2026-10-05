@@ -445,19 +445,20 @@ Deno.serve(async (req) => {
             ]
           : result.exceptions
 
-      // Em lotes de 2000 - cada chamada é um statement novo (reseta o
+      // Em lotes de 500 - cada chamada é um statement novo (reseta o
       // orçamento de timeout do Postgres), e cada lote já resolve o diff
       // inteiro dele num JOIN só (não linha a linha). Abas de até ~50 mil
-      // linhas (ex. "08. CUSTOS") processam sem estourar o tempo.
-      const TAMANHO_LOTE = 2000
-      const totalLotes = Math.max(1, Math.ceil(result.rows.length / TAMANHO_LOTE))
+      // linhas (ex. "08. CUSTOS") processam sem estourar o tempo. (Era 2000;
+      // reduzido porque "08. CUSTOS" ainda estourava o tempo mesmo em lotes.)
+      const TAMANHO_LOTE = 500
+      const totalLotesRows = Math.max(1, Math.ceil(result.rows.length / TAMANHO_LOTE))
       const applyCounts = { novo: 0, alterado: 0, inalterado: 0, ausente: 0, reapareceu: 0 }
 
-      for (let lote = 0; lote < totalLotes; lote++) {
+      for (let lote = 0; lote < totalLotesRows; lote++) {
         const inicio = lote * TAMANHO_LOTE
         const linhasDoLote = result.rows.slice(inicio, inicio + TAMANHO_LOTE)
         const primeiroLote = lote === 0
-        const ultimoLote = lote === totalLotes - 1
+        const ultimoLote = lote === totalLotesRows - 1
 
         const { data: loteCounts, error: loteError } = await supabaseAdmin.rpc('op_apply_interpreted_rows_batch', {
           p_source_id: source.id,
@@ -481,19 +482,38 @@ Deno.serve(async (req) => {
         applyCounts.reapareceu += c.reapareceu
       }
 
-      const { data: excCounts, error: excError } = await supabaseAdmin.rpc('op_reconcile_exceptions', {
-        p_source_id: source.id,
-        p_run_id: body.run_id,
-        p_sheet_name: sheetName,
-        p_exceptions: resultExceptions,
-      })
+      // Exceções em lotes também - mesma razão (uma aba grande pode gerar
+      // muitas exceções, e a chamada única também podia estourar o tempo).
+      const totalLotesExc = Math.max(1, Math.ceil(resultExceptions.length / TAMANHO_LOTE))
+      const exceptionCountsAcumulado = { bloqueante: 0, confirmacao: 0, aviso: 0 }
 
-      if (excError) {
-        return jsonResponse({ error: excError.message }, 500)
+      for (let lote = 0; lote < totalLotesExc; lote++) {
+        const inicio = lote * TAMANHO_LOTE
+        const excecoesDoLote = resultExceptions.slice(inicio, inicio + TAMANHO_LOTE)
+        const primeiroLote = lote === 0
+        const ultimoLote = lote === totalLotesExc - 1
+
+        const { data: loteExcCounts, error: loteExcError } = await supabaseAdmin.rpc('op_reconcile_exceptions_batch', {
+          p_source_id: source.id,
+          p_run_id: body.run_id,
+          p_sheet_name: sheetName,
+          p_exceptions: excecoesDoLote,
+          p_is_first_batch: primeiroLote,
+          p_is_last_batch: ultimoLote,
+        })
+
+        if (loteExcError) {
+          return jsonResponse({ error: loteExcError.message }, 500)
+        }
+
+        const c = loteExcCounts as typeof exceptionCountsAcumulado
+        exceptionCountsAcumulado.bloqueante += c.bloqueante
+        exceptionCountsAcumulado.confirmacao += c.confirmacao
+        exceptionCountsAcumulado.aviso += c.aviso
       }
 
       counts = { ...(applyCounts as typeof emptyCounts), rejeitadas: result.rejectedCount }
-      exceptionCounts = excCounts as typeof emptyExceptions
+      exceptionCounts = exceptionCountsAcumulado
       status = 'processada'
     }
 

@@ -257,6 +257,12 @@ export function interpretarComoSerieMensal(rows: unknown[][], firstRowNumber: nu
   const headerRow = rows[headerIdx] ?? [];
 
   let secaoAtual = "";
+  // Mesma chave (seção, rótulo, mês) pode se repetir na planilha real (ex.
+  // a mesma CONTA aparecendo em duas sub-seções sem título que as distinga)
+  // - sem sufixo, duas linhas com o mesmo natural_key no mesmo lote fazem o
+  // INSERT ... ON CONFLICT da aplicação em lote falhar ("cannot affect row
+  // a second time"). Mesmo mecanismo que interpretarComoLista já usa.
+  const contagemChaves = new Map<string, number>();
 
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const linha = rows[i] ?? [];
@@ -299,8 +305,14 @@ export function interpretarComoSerieMensal(rows: unknown[][], firstRowNumber: nu
     for (const { col, mes } of colunasMes) {
       const valor = linha[col];
       if (celulaVazia(valor)) continue;
+
+      const chaveBase = `${secaoAtual}|${rotuloNormalizado}|${mes}`;
+      const vistas = contagemChaves.get(chaveBase) ?? 0;
+      contagemChaves.set(chaveBase, vistas + 1);
+      const chave = vistas > 0 ? `${chaveBase}#${vistas + 1}` : chaveBase;
+
       resultado.push({
-        natural_key: `${secaoAtual}|${rotuloNormalizado}|${mes}`,
+        natural_key: chave,
         data: { secao: secaoAtual, rotulo: rotuloTexto, mes, valor },
         source_row: rowNumber,
       });
