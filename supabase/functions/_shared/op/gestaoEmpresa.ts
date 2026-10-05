@@ -33,7 +33,9 @@ export interface InterpreterResultGestao {
   rejectedCount: number;
 }
 
-function chaveDeCampo(rotulo: string): string {
+// Exportadas - reaproveitadas pelos interpretadores dedicados de obra
+// (gestaoEmpresaObras.ts): mesmo padrão de busca por rótulo, não por posição.
+export function chaveDeCampo(rotulo: string): string {
   return rotulo
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -44,7 +46,7 @@ function chaveDeCampo(rotulo: string): string {
 
 // Procura uma célula cujo texto comece com `rotulo` e devolve o valor que vem
 // depois de ":" na mesma célula, ou a próxima célula não vazia na mesma linha.
-function buscarValorPorRotulo(rows: unknown[][], rotulo: string): unknown {
+export function buscarValorPorRotulo(rows: unknown[][], rotulo: string): unknown {
   const rotuloNormalizado = normalizarRotulo(rotulo);
   for (const linha of rows) {
     for (let c = 0; c < (linha ?? []).length; c++) {
@@ -146,6 +148,7 @@ const HEADER_MENSAL_OBRA = [
   "CUSTO PREVISTO",
   "CUSTO LANÇADO",
   "RESULTADO PREVISTO",
+  "RESULTADO REAL",
 ];
 
 // A aba pode chegar como uma cópia por obra, ou como aba única com um
@@ -273,25 +276,31 @@ export function interpretarPonteLucroCaixa(rows: unknown[][], firstRowNumber: nu
   const interpretedRows: InterpretedRow[] = [];
 
   let idxMarcador = -1;
+  let colMarcador = -1;
   for (let i = 0; i < rows.length; i++) {
-    if ((rows[i] ?? []).some((c) => normalizarRotulo(c).includes("PONTE LUCRO"))) {
+    const col = (rows[i] ?? []).findIndex((c) => normalizarRotulo(c).includes("PONTE LUCRO"));
+    if (col >= 0) {
       idxMarcador = i;
+      colMarcador = col;
       break;
     }
   }
   if (idxMarcador === -1) return { sheetKey: "gestao_empresa.ponte_lucro_caixa", rows: [], exceptions: [], rejectedCount: 0 };
 
   // Os meses ficam na MESMA linha do marcador ("A · PONTE LUCRO → CAIXA"),
-  // nas colunas ao lado - não na linha de baixo.
+  // nas colunas DEPOIS da coluna onde o marcador foi achado - não
+  // necessariamente a partir da coluna A (o marcador pode estar em B, C...).
   const linhaMeses = rows[idxMarcador] ?? [];
   const colunasMes = linhaMeses
     .map((valor, idx) => ({ idx, mes: valor }))
-    .filter(({ idx, mes }) => idx > 0 && !celulaVazia(mes));
+    .filter(({ idx, mes }) => idx > colMarcador && !celulaVazia(mes));
 
   let ordem = 0;
   for (let i = idxMarcador + 1; i < rows.length; i++) {
     const row = rows[i] ?? [];
-    const rotulo = row[0];
+    // O rótulo do componente fica na MESMA coluna do marcador, não
+    // necessariamente na coluna A.
+    const rotulo = row[colMarcador];
     if (celulaVazia(rotulo)) break;
 
     const rotuloTexto = String(rotulo).trim();

@@ -28,15 +28,39 @@ describe("interpretarComoLista", () => {
     expect(resultado.rows).toHaveLength(1);
   });
 
-  it("para no próximo título de bloco", () => {
+  it("título de bloco seguido de um cabeçalho novo de verdade encerra o bloco atual", () => {
     const rows = [
       ["CONTRATO", "CLIENTE"],
       ["C001", "Sabesp"],
       ["RESUMO POR CONTRATO"],
+      ["CONTRATO", "CLIENTE"],
       ["C002", "Prefeitura"],
     ];
     const resultado = interpretarComoLista(rows, 1, config);
+    expect(resultado.rows.map((r) => r.natural_key)).toEqual(["C001", "C002"]);
+  });
+
+  it("título de bloco SEM cabeçalho novo depois é só decorativo - dados continuam sob o mesmo cabeçalho (caso real: 14. FONTES, 15. CHANGELOG)", () => {
+    const rows = [
+      ["CONTRATO", "CLIENTE"],
+      ["C001", "Sabesp"],
+      ["SEÇÃO DECORATIVA"],
+      ["C002", "Prefeitura"],
+    ];
+    const resultado = interpretarComoLista(rows, 1, config);
+    expect(resultado.rows.map((r) => r.natural_key)).toEqual(["C001", "C002"]);
+  });
+
+  it("linha TOTAL/TOTAL DA OBRA não gera exceção nem é contada como rejeitada (é conferência, não erro)", () => {
+    const rows = [
+      ["CONTRATO", "CLIENTE", "VALOR"],
+      ["C001", "Sabesp", 1000],
+      ["", "TOTAL DA OBRA", 1000],
+    ];
+    const resultado = interpretarComoLista(rows, 1, config);
     expect(resultado.rows).toHaveLength(1);
+    expect(resultado.rejectedCount).toBe(0);
+    expect(resultado.exceptions).toHaveLength(0);
   });
 
   it("chave repetida ganha sufixo #2", () => {
@@ -49,17 +73,19 @@ describe("interpretarComoLista", () => {
     expect(resultado.rows.map((r) => r.natural_key)).toEqual(["C001", "C001#2"]);
   });
 
-  it("linha sem nenhuma coluna-chave preenchida vira exceção aviso e não derruba a aba", () => {
+  it("linha sem nenhuma coluna-chave preenchida vira exceção aviso (com o conteúdo da linha na mensagem) e não derruba a aba", () => {
     const rows = [
-      ["CONTRATO", "CLIENTE"],
-      ["C001", "Sabesp"],
-      [null, "Sem contrato"],
-      ["C002", "Prefeitura"],
+      ["CONTRATO", "CLIENTE", "VALOR"],
+      ["C001", "Sabesp", 1000],
+      [null, "Sem contrato", 500],
+      ["C002", "Prefeitura", 2000],
     ];
     const resultado = interpretarComoLista(rows, 1, config);
-    expect(resultado.rows).toHaveLength(3);
+    expect(resultado.rows.map((r) => r.natural_key)).toEqual(["C001", "C002"]);
     expect(resultado.rejectedCount).toBe(1);
     expect(resultado.exceptions[0]).toMatchObject({ severity: "aviso", row_number: 3 });
+    expect(resultado.exceptions[0].message).toContain("B=Sem contrato");
+    expect(resultado.exceptions[0].message).toContain("C=500");
   });
 
   it("sem cabeçalho reconhecível, devolve vazio sem lançar erro", () => {

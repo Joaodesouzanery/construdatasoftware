@@ -362,7 +362,10 @@ export function interpretarHorasExtras(rows: unknown[][], firstRowNumber: number
 
     for (const { col, dia } of colunasDia) {
       const valor = parseNumeroBR(row[col]);
-      if (valor === null) continue;
+      // 0 explícito não é uma hora extra real - célula vazia e célula "0"
+      // significam a mesma coisa aqui (sem dado), igual já tratado em
+      // DESPESAS (Regra de Ouro 2: nunca inventa valor, zero não é dado).
+      if (valor === null || valor === 0) continue;
 
       const dataStr = `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
       const diaSemana = new Date(`${dataStr}T00:00:00Z`).getUTCDay();

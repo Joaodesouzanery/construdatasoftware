@@ -28,8 +28,36 @@ function ehTituloDeBloco(linha: unknown[]): boolean {
   return typeof naoVazias[0] !== "number" && Number.isNaN(Number(String(naoVazias[0]).replace(",", ".")));
 }
 
-function linhaTotalmenteVazia(linha: unknown[]): boolean {
+export function linhaTotalmenteVazia(linha: unknown[]): boolean {
   return (linha ?? []).every((v) => celulaVazia(v));
+}
+
+// TOTAL/TOTAL DA OBRA/TOTAL GERAL etc. - linha de conferência, nunca um
+// registro (mesmo quando a chave está vazia, não é um erro de dado).
+// Exportada - reaproveitada pelos interpretadores dedicados de obra
+// (gestaoEmpresaObras.ts), que têm a mesma regra "TOTAL não é registro".
+export function pareceLinhaDeResumo(linha: unknown[]): boolean {
+  return (linha ?? []).some((v) => !celulaVazia(v) && normalizarRotulo(v).startsWith("TOTAL"));
+}
+
+export function colunaParaLetra(indice: number): string {
+  let n = indice;
+  let letra = "";
+  do {
+    letra = String.fromCharCode(65 + (n % 26)) + letra;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letra;
+}
+
+// Para diagnóstico na mensagem de exceção - mostra célula a célula o que de
+// fato está na linha, em vez de uma mensagem genérica (Regra de Ouro 4: o
+// motivo do erro precisa ficar visível).
+export function descreverConteudoDaLinha(linha: unknown[]): string {
+  const partes = (linha ?? [])
+    .map((v, i) => (celulaVazia(v) ? null : `${colunaParaLetra(i)}=${v}`))
+    .filter((p): p is string => p !== null);
+  return partes.length > 0 ? partes.join(", ") : "(linha vazia)";
 }
 
 export interface ConfigLista {
@@ -74,7 +102,18 @@ export function interpretarComoLista(rows: unknown[][], firstRowNumber: number, 
     let i = headerIdx + 1;
     for (; i < rows.length; i++) {
       const linha = rows[i] ?? [];
-      if (linhaTotalmenteVazia(linha) || ehTituloDeBloco(linha)) break;
+      if (linhaTotalmenteVazia(linha)) break;
+
+      if (ehTituloDeBloco(linha)) {
+        // Só é FIM de bloco se um cabeçalho novo (mesmas colunas-chave)
+        // aparecer logo a seguir - senão é só uma linha decorativa (ex.
+        // título de seção) no meio do mesmo bloco, e os dados continuam
+        // sob o cabeçalho atual (casos reais: "14. FONTES", "15. CHANGELOG").
+        const restanteAposTitulo = rows.slice(i + 1, i + 1 + BUSCA_CABECALHO_MAX_LINHAS);
+        const novoHeaderAdiante = localizarCabecalho(restanteAposTitulo, config.colunasChave, restanteAposTitulo.length, 0.7);
+        if (novoHeaderAdiante !== null) break;
+        continue;
+      }
 
       const rowNumber = firstRowNumber + i;
       const partesChave = colunasChaveNormalizadas.map((rotulo) => {
@@ -84,13 +123,17 @@ export function interpretarComoLista(rows: unknown[][], firstRowNumber: number, 
       });
 
       if (partesChave.every((p) => p === "")) {
-        exceptions.push({
-          row_number: rowNumber,
-          severity: "aviso",
-          type: "chave_nao_encontrada",
-          message: "Linha ignorada - nenhuma das colunas-chave configuradas tem valor nesta linha",
-        });
-        rejectedCount++;
+        if (!pareceLinhaDeResumo(linha)) {
+          exceptions.push({
+            row_number: rowNumber,
+            severity: "aviso",
+            type: "chave_nao_encontrada",
+            message: `Linha ignorada - nenhuma das colunas-chave (${config.colunasChave.join(", ")}) tem valor nesta linha. Conteúdo: ${descreverConteudoDaLinha(linha)}`,
+          });
+          rejectedCount++;
+        }
+        // Linha de TOTAL/resumo: não é erro, é conferência - pula sem
+        // exceção e sem contar como rejeitada.
         continue;
       }
 
@@ -125,9 +168,11 @@ export interface ConfigSerieMensal {
 const MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
 
+// Exportada - reaproveitada pelos interpretadores dedicados de obra
+// (gestaoEmpresaObras.ts), que também precisam achar colunas de mês.
 // Aceita serial do Excel, "AAAA-MM", "DD/MM/AAAA" ou "mmm/aa" (pt-BR);
 // devolve "AAAA-MM" ou null se não reconhecer como mês.
-function parseMesDeCelula(valor: unknown): string | null {
+export function parseMesDeCelula(valor: unknown): string | null {
   if (celulaVazia(valor)) return null;
 
   if (typeof valor === "number") {
@@ -154,6 +199,34 @@ function parseMesDeCelula(valor: unknown): string | null {
   return null;
 }
 
+// Exportada - acha, dentro de UMA linha, a sequência mais longa de colunas
+// consecutivas reconhecíveis como mês; devolve null se não houver pelo
+// menos `minConsecutivos`. Reaproveitada pelos interpretadores dedicados de
+// obra (gestaoEmpresaObras.ts: 08A bloco 3, 12A blocos 1/2/3).
+export function encontrarColunasDeMesEmLinha(linha: unknown[], minConsecutivos = 6): { col: number; mes: string }[] | null {
+  let melhorInicio = -1;
+  let melhorFim = -1;
+  let inicioAtual = -1;
+  for (let c = 0; c < linha.length; c++) {
+    if (parseMesDeCelula(linha[c]) !== null) {
+      if (inicioAtual === -1) inicioAtual = c;
+      if (c - inicioAtual > melhorFim - melhorInicio) {
+        melhorInicio = inicioAtual;
+        melhorFim = c;
+      }
+    } else {
+      inicioAtual = -1;
+    }
+  }
+  if (melhorFim - melhorInicio + 1 < minConsecutivos) return null;
+  const colunasMes: { col: number; mes: string }[] = [];
+  for (let c = melhorInicio; c <= melhorFim; c++) {
+    const mes = parseMesDeCelula(linha[c]);
+    if (mes) colunasMes.push({ col: c, mes });
+  }
+  return colunasMes;
+}
+
 // Acha a linha de meses (>=6 datas consecutivas reconhecíveis); colunas à
 // esquerda formam o rótulo; "seção" é o título de bloco mais recente acima
 // (linha sem nenhum valor nas colunas de mês). Gera 1 InterpretedRow por
@@ -167,27 +240,10 @@ export function interpretarComoSerieMensal(rows: unknown[][], firstRowNumber: nu
   let colunasMes: { col: number; mes: string }[] = [];
 
   for (let i = 0; i < Math.min(rows.length, 20); i++) {
-    const linha = rows[i] ?? [];
-    let melhorInicio = -1;
-    let melhorFim = -1;
-    let inicioAtual = -1;
-    for (let c = 0; c < linha.length; c++) {
-      if (parseMesDeCelula(linha[c]) !== null) {
-        if (inicioAtual === -1) inicioAtual = c;
-        if (c - inicioAtual > melhorFim - melhorInicio) {
-          melhorInicio = inicioAtual;
-          melhorFim = c;
-        }
-      } else {
-        inicioAtual = -1;
-      }
-    }
-    if (melhorFim - melhorInicio + 1 >= 6) {
+    const encontradas = encontrarColunasDeMesEmLinha(rows[i] ?? [], 6);
+    if (encontradas) {
       headerIdx = i;
-      for (let c = melhorInicio; c <= melhorFim; c++) {
-        const mes = parseMesDeCelula(linha[c]);
-        if (mes) colunasMes.push({ col: c, mes });
-      }
+      colunasMes = encontradas;
       break;
     }
   }

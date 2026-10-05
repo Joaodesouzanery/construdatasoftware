@@ -168,6 +168,13 @@ describe("interpretarHorasExtras", () => {
     const resultado = interpretarHorasExtras(rows, 1, { sheetName: "HORAS EXTRAS JULHO", fileModifiedAt: "2026-07-15T00:00:00Z" });
     expect(resultado.exceptions.some((e) => e.type === "total_nao_confere")).toBe(false);
   });
+
+  it("célula DIA com 0 explícito não gera registro (célula vazia e 0 significam a mesma coisa aqui)", () => {
+    const rows = [header, ["João Silva", "Pedreiro", 0, "", 150]];
+    const resultado = interpretarHorasExtras(rows, 1, { sheetName: "HORAS EXTRAS JULHO", fileModifiedAt: "2026-07-15T00:00:00Z" });
+    expect(resultado.rows).toHaveLength(1);
+    expect(resultado.rows[0].data.data).toBe("2026-07-06");
+  });
 });
 
 describe("interpretarAusenciaPontoSaida", () => {

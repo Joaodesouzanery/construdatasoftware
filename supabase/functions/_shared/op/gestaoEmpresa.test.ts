@@ -47,8 +47,8 @@ describe("interpretarResultadoPorObra", () => {
     ["RESULTADO REAL ACUMULADO", "R$ 3.329.907,97"],
     ["MARGEM REAL", "41,29%"],
     [],
-    ["MÊS", "MEDIÇÃO PREVISTA", "MEDIÇÃO REAL", "NF PREVISTA", "NF EMITIDA", "TRIBUTOS PREVISTOS", "TRIBUTOS SOBRE NF EMITIDA", "CUSTO PREVISTO", "CUSTO LANÇADO", "RESULTADO PREVISTO"],
-    ["2026-07", 100, 90, 100, 90, 10, 9, 50, 45, 40],
+    ["MÊS", "MEDIÇÃO PREVISTA", "MEDIÇÃO REAL", "NF PREVISTA", "NF EMITIDA", "TRIBUTOS PREVISTOS", "TRIBUTOS SOBRE NF EMITIDA", "CUSTO PREVISTO", "CUSTO LANÇADO", "RESULTADO PREVISTO", "RESULTADO REAL"],
+    ["2026-07", 100, 90, 100, 90, 10, 9, 50, 45, 40, 38],
     [],
   ];
 
@@ -60,11 +60,12 @@ describe("interpretarResultadoPorObra", () => {
     expect(header?.data.margem_real).toBe("41,29%");
   });
 
-  it("extrai a linha mensal com a chave obra|mês", () => {
+  it("extrai a linha mensal com a chave obra|mês, incluindo a coluna RESULTADO REAL (11ª)", () => {
     const resultado = interpretarResultadoPorObra(rows, 1);
     const mensal = resultado.rows.find((r) => r.data.tipo === "mensal");
     expect(mensal?.natural_key).toBe("ZN|2026-07");
     expect(mensal?.data.medicao_real).toBe(90);
+    expect(mensal?.data.resultado_real).toBe(38);
   });
 
   it("sem 'OBRA:' no conteúdo, não interpreta nada", () => {
@@ -125,6 +126,21 @@ describe("interpretarPonteLucroCaixa", () => {
     const rowsComLixo = [...rows.slice(0, 3), ["Nota qualquer, não é componente", 999], ["(+) Não deveria ser lido", 1]];
     const resultado = interpretarPonteLucroCaixa(rowsComLixo, 1);
     expect(resultado.rows.every((r) => r.data.componente !== "(+) Não deveria ser lido")).toBe(true);
+  });
+
+  it("funciona com o marcador na coluna B (margem vazia na coluna A), caso real da planilha", () => {
+    const rowsColunaB = [
+      [null, "A · PONTE LUCRO → CAIXA", "set/26"],
+      [null, "(+) Recebimentos", 2000000],
+      [null, "(−) Pagamentos", -800000],
+      [null, "Lucro líquido do mês", 1200898.99],
+      [],
+    ];
+    const resultado = interpretarPonteLucroCaixa(rowsColunaB, 1);
+    const lucro = resultado.rows.find((r) => r.data.componente === "Lucro líquido do mês");
+    expect(lucro?.data.valor).toBeCloseTo(1200898.99);
+    expect(lucro?.data.mes).toBe("set/26");
+    expect(resultado.rows).toHaveLength(3);
   });
 });
 
