@@ -3137,6 +3137,24 @@ export type Database = {
           },
         ]
       }
+      op_apply_seen_keys: {
+        Row: {
+          natural_key: string
+          sheet_key: string
+          source_id: string
+        }
+        Insert: {
+          natural_key: string
+          sheet_key: string
+          source_id: string
+        }
+        Update: {
+          natural_key?: string
+          sheet_key?: string
+          source_id?: string
+        }
+        Relationships: []
+      }
       op_changes: {
         Row: {
           after: Json | null
@@ -4900,6 +4918,18 @@ export type Database = {
       }
       op_apply_interpreted_rows: {
         Args: {
+          p_rows: Json
+          p_run_id: string
+          p_sheet_key: string
+          p_skip_ausente_check?: boolean
+          p_source_id: string
+        }
+        Returns: Json
+      }
+      op_apply_interpreted_rows_batch: {
+        Args: {
+          p_is_first_batch?: boolean
+          p_is_last_batch?: boolean
           p_rows: Json
           p_run_id: string
           p_sheet_key: string
