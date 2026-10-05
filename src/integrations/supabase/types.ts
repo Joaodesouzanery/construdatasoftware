@@ -3335,12 +3335,14 @@ export type Database = {
           file_modified_at: string | null
           file_name: string | null
           id: string
+          origin: string
           received_at: string
           response: Json | null
           run_id: string
           sheet_name: string | null
           source_id: string
           status: string
+          uploaded_by_email: string | null
         }
         Insert: {
           counts?: Json
@@ -3348,12 +3350,14 @@ export type Database = {
           file_modified_at?: string | null
           file_name?: string | null
           id?: string
+          origin?: string
           received_at?: string
           response?: Json | null
           run_id: string
           sheet_name?: string | null
           source_id: string
           status: string
+          uploaded_by_email?: string | null
         }
         Update: {
           counts?: Json
@@ -3361,12 +3365,14 @@ export type Database = {
           file_modified_at?: string | null
           file_name?: string | null
           id?: string
+          origin?: string
           received_at?: string
           response?: Json | null
           run_id?: string
           sheet_name?: string | null
           source_id?: string
           status?: string
+          uploaded_by_email?: string | null
         }
         Relationships: [
           {
@@ -3381,6 +3387,7 @@ export type Database = {
       op_snapshots: {
         Row: {
           created_at: string
+          formatted_rows: Json | null
           id: string
           received_at: string
           rows: Json
@@ -3391,6 +3398,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          formatted_rows?: Json | null
           id?: string
           received_at?: string
           rows: Json
@@ -3401,6 +3409,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          formatted_rows?: Json | null
           id?: string
           received_at?: string
           rows?: Json
@@ -3433,6 +3442,8 @@ export type Database = {
           profile: string
           token_hash: string
           updated_at: string
+          upload_webhook_secret: string | null
+          upload_webhook_url: string | null
         }
         Insert: {
           active?: boolean
@@ -3447,6 +3458,8 @@ export type Database = {
           profile: string
           token_hash: string
           updated_at?: string
+          upload_webhook_secret?: string | null
+          upload_webhook_url?: string | null
         }
         Update: {
           active?: boolean
@@ -3461,8 +3474,51 @@ export type Database = {
           profile?: string
           token_hash?: string
           updated_at?: string
+          upload_webhook_secret?: string | null
+          upload_webhook_url?: string | null
         }
         Relationships: []
+      }
+      op_uploads: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          filename: string
+          id: string
+          size: number
+          source_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          filename: string
+          id?: string
+          size: number
+          source_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          filename?: string
+          id?: string
+          size?: number
+          source_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_uploads_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "op_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pending_actions: {
         Row: {
